@@ -7,9 +7,6 @@ FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel
 ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0+PTX"
 ENV TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
 ENV CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
-# Set ENV to download pretrained PyTorch models
-ARG PYTORCH_HOME
-ENV TORCH_HOME=${PYTORCH_HOME}
 
 RUN apt-get update && apt-get install -y vim git \
     && apt-get clean \
@@ -23,6 +20,9 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER appuser
 ENV PATH="/home/appuser/.local/bin:${PATH}"
 WORKDIR /home/appuser
+
+# Set ENV to download pretrained PyTorch models
+ENV TORCH_HOME="/home/appuser/sesemi/.cache/torch/"
 
 # Clone SESEMI and install dependencies
 RUN git clone https://github.com/FlyreelAI/sesemi.git

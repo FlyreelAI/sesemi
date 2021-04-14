@@ -17,7 +17,7 @@ We report the conservative results from using ResNet-50 without including the va
 In practical semi-supervised applications, one would use all available examples (training, validation, and even test) as unlabeled data. When trained with the validation set included as unlabeled examples, we obtain slightly better accuracy. These results are informational and are not reported on the FastAI leaderboard for the Imagewang dataset.
 
 * 78.41% &pm; 0.39 for 80 epochs over five runs
-* 79.19% &pm; 0.20 for 200 epochs over two runs
+* 79.27% &pm; 0.20 for 200 epochs over three runs
 
 ## Usage
 
@@ -33,7 +33,7 @@ In practical semi-supervised applications, one would use all available examples 
   * `n02105641`
   * `n02111889`
   * `n02115641`
-* Modify and run the following command to reproduce our results (as of commit `a4c921a`) on the [FastAI leaderboard](https://github.com/fastai/imagenette#image%E7%BD%91-leaderboard) for the Imagewang dataset in the 256 size category:
+* Modify and run the following command to reproduce our results (as of commit `768d979`) on the [FastAI leaderboard](https://github.com/fastai/imagenette#image%E7%BD%91-leaderboard) for the Imagewang dataset in the 256 size category:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 python -u open_sesemi.py \
@@ -44,7 +44,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -u open_sesemi.py \
   --backbone resnet50 --run-id imagewang_run01
 ```
 
-* The above run setting requires two GPUs with 12GB of video memory each and takes between 6 and 18 hours to complete. Ideas to reduce training time while maintaining comparable accuracy performance are welcome!
+* The above run configuration requires two GPUs with 12GB of video memory each and takes between 6 and 18 hours to complete. Ideas to reduce training time while maintaining comparable accuracy performance are welcome!
 
 ## Ideas for Further Exploration
 

@@ -37,7 +37,7 @@ logging.basicConfig(
 backbone_choices = sorted([
     'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
     'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2',
-    'inception_v3'
+    'inception_v3', 'densenet121', 'densenet169', 'densenet201', 'densenet161'
 ])
 
 parser = argparse.ArgumentParser(description='Supervised and Semi-Supervised Image Classification',

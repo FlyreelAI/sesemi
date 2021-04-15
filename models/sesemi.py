@@ -17,6 +17,7 @@ import torch.nn as nn
 
 from .resnet import Resnet
 from .inception import Inception3
+from .densenet import Densenet
 
 import logging
 
@@ -34,6 +35,9 @@ class SESEMI(nn.Module):
                 backbone=backbone, pretrained=pretrained)
         elif 'inception' in backbone:
             self.feature_extractor = Inception3(
+                backbone=backbone, pretrained=pretrained)
+        elif 'densenet' in backbone:
+            self.feature_extractor = Densenet(
                 backbone=backbone, pretrained=pretrained)
         else:
             raise NotImplementedError()

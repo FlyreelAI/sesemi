@@ -28,12 +28,4 @@ class Densenet(nn.Module):
         x = self.encoder.features(x)
         return self.final_relu(x)
 
-    def get_feature_blocks(self):
-        blocks = [m for m in self.encoder.features.children()]
-        block0 = blocks[:4]
-        block1 = blocks[4:6]
-        block2 = blocks[6:8]
-        block3 = blocks[8:10]
-        block4 = blocks[10:]
-        return block0, block1, block2, block3, block4
 

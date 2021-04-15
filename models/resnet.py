@@ -35,12 +35,4 @@ class Resnet(nn.Module):
         x = self.encoder.layer4(x)
         return x
 
-    def get_feature_blocks(self):
-        blocks = [m for m in self.encoder.children()]
-        block0 = blocks[:4]
-        block1 = blocks[4:5]
-        block2 = blocks[5:6]
-        block3 = blocks[6:7]
-        block4 = blocks[7:8]
-        return block0, block1, block2, block3, block4
 

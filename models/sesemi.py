@@ -17,13 +17,21 @@ import torch.nn as nn
 
 from .resnet import Resnet
 from .inception import Inception3
+from .densenet import Densenet
 
 import logging
 
 
+SUPPORTED_BACKBONES = (
+    'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
+    'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2',
+    'inception_v3', 'densenet121', 'densenet169', 'densenet201', 'densenet161'
+)
+
 class SESEMI(nn.Module):
     def __init__(self, backbone, pretrained, labeled_classes, unlabeled_classes):
         super(SESEMI, self).__init__()
+        assert backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
         self.backbone = backbone
         self.pretrained = pretrained
         self.labeled_classes = labeled_classes
@@ -34,6 +42,9 @@ class SESEMI(nn.Module):
                 backbone=backbone, pretrained=pretrained)
         elif 'inception' in backbone:
             self.feature_extractor = Inception3(
+                backbone=backbone, pretrained=pretrained)
+        elif 'densenet' in backbone:
+            self.feature_extractor = Densenet(
                 backbone=backbone, pretrained=pretrained)
         else:
             raise NotImplementedError()

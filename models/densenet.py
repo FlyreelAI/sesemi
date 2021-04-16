@@ -17,22 +17,15 @@ import torch.nn as nn
 import torchvision.models as Models
 
 
-class Resnet(nn.Module):
-    def __init__(self, backbone='resnet50', pretrained=True):
-        super(Resnet, self).__init__()
+class Densenet(nn.Module):
+    def __init__(self, backbone='densenet169', pretrained=True):
+        super(Densenet, self).__init__()
         self.encoder = getattr(Models, backbone)(pretrained=pretrained)
-        self.in_features = self.encoder.fc.in_features
+        self.final_relu = nn.ReLU(inplace=True)
+        self.in_features = self.encoder.classifier.in_features
 
     def forward(self, x):
-        x = self.encoder.conv1(x)
-        x = self.encoder.bn1(x)
-        x = self.encoder.relu(x)
-        x = self.encoder.maxpool(x)
-
-        x = self.encoder.layer1(x)
-        x = self.encoder.layer2(x)
-        x = self.encoder.layer3(x)
-        x = self.encoder.layer4(x)
-        return x
+        x = self.encoder.features(x)
+        return self.final_relu(x)
 
 

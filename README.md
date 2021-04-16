@@ -1,5 +1,17 @@
 # Image Classification with Self-Supervised Regularization
 
+## Why SESEMI?
+SESEMI is an open source image classification library built on PyTorch. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.
+
+### Highlights and Features
+
+* Integration with popular, contemporary high-performance supervised architectures: ResNet, ResNeXt, DenseNet, EfficientNet, etc.
+* Demonstrated utility on large realistic image datasets and is currently competitive on the [FastAI Imagenette benchmarks](https://github.com/fastai/imagenette)
+* Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
+* Simply add unlabeled data for improved image classification without any tricks
+
+Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. Contributions are welcome!
+
 ## Installation
 Our preferred installation method is Docker. Please refer to the provided `docker/Dockerfile` and related instructions. Otherwise, `pytorch>=1.6.0` and `torchvision>=0.7.0` along with `docker/requirements.txt` should satisfy the dependencies to run this repository outside of Docker, e.g., in an Anaconda environment.
 
@@ -7,8 +19,9 @@ Our preferred installation method is Docker. Please refer to the provided `docke
 
 The following instructions are intended for usage with the Docker and [`nvidia-docker`](https://github.com/NVIDIA/nvidia-docker) installation.
 
-* Download the full size `imagewoof2` dataset from the [FastAI Imagenette repository](https://github.com/fastai/imagenette). Extract it to the `data` sub-directory. You should have path `data/imagewoof2` with `train` and `val` splits
-* Issue the following `docker run` command to train and evaluate a SESEMI model with ResNet-50 backbone. The command assumes the `imagewoof2` dataset is mounted onto the image and is accessible via path `/home/appuser/sesemi/data/imagewoof2` inside the container. The script takes about 8 hours to complete using 2 TITAN X GPUs each with 12GB of video memory, and achieves ~90% classification accuracy.
+* `git clone https://github.com/FlyreelAI/sesemi.git` to a directory of your choice
+* Download the full size `imagewoof2` dataset from the [FastAI Imagenette repository](https://github.com/fastai/imagenette). Extract it to the `data` sub-directory. You should have path `/path/to/sesemi/data/imagewoof2` with `train` and `val` splits
+* Issue the following `docker run` command to train and evaluate a SESEMI model with the ResNet-50 backbone. The command assumes the `imagewoof2` dataset is mounted onto the image and is accessible via path `/home/appuser/sesemi/data/imagewoof2` inside the container. The script takes about 8 hours to complete using 2 TITAN X GPUs each with 12GB of video memory, and achieves ~90% classification accuracy.
 
 ```bash
 docker run \

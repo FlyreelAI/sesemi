@@ -35,12 +35,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-backbone_choices = sorted([
-    'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-    'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2',
-    'inception_v3'
-])
-
 parser = argparse.ArgumentParser(description='Supervised and Semi-Supervised Image Classification',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 # Optional subparser to evaluate trained model on validation dataset and exit
@@ -72,8 +66,7 @@ parser.add_argument('--workers', default=4, type=int,
                     help='number of data loading workers')
 # Training arguments
 parser.add_argument('--backbone', default='resnet50',
-                    choices=backbone_choices,
-                    help='backbone architectures')
+                    help='choice of backbone architecture')
 parser.add_argument('--optimizer', default='SGD',
                     choices=['SGD'.lower(), 'Adam'.lower()],
                     help='optimizer to use')

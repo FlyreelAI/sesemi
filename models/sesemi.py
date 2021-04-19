@@ -18,6 +18,7 @@ import torch.nn as nn
 from .resnet import Resnet
 from .inception import Inception3
 from .densenet import Densenet
+from .efficientnet import EfficientNet
 
 import logging
 
@@ -25,7 +26,17 @@ import logging
 SUPPORTED_BACKBONES = (
     'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
     'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2',
-    'inception_v3', 'densenet121', 'densenet169', 'densenet201', 'densenet161'
+    'inception_v3', 'densenet121', 'densenet169', 'densenet201', 'densenet161',
+
+    # Standard EfficientNet models.
+    'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2',
+    'tf_efficientnet_b3', 'tf_efficientnet_b4', 'tf_efficientnet_b5',
+    'tf_efficientnet_b6', 'tf_efficientnet_b7',
+
+    # EfficientNet models pretrained using the noisy student algorithm.
+    'tf_efficientnet_b0_ns', 'tf_efficientnet_b1_ns', 'tf_efficientnet_b2_ns',
+    'tf_efficientnet_b3_ns', 'tf_efficientnet_b4_ns', 'tf_efficientnet_b5_ns',
+    'tf_efficientnet_b6_ns', 'tf_efficientnet_b7_ns',
 )
 
 class SESEMI(nn.Module):
@@ -45,6 +56,9 @@ class SESEMI(nn.Module):
                 backbone=backbone, pretrained=pretrained)
         elif 'densenet' in backbone:
             self.feature_extractor = Densenet(
+                backbone=backbone, pretrained=pretrained)
+        elif 'efficientnet' in backbone:
+            self.feature_extractor = EfficientNet(
                 backbone=backbone, pretrained=pretrained)
         else:
             raise NotImplementedError()

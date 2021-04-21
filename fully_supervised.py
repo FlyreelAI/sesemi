@@ -84,8 +84,10 @@ parser.add_argument('--momentum', default=0.9, type=float,
                     help='momentum parameter in SGD or beta1 parameter in Adam')
 parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true',
+parser.add_argument('--pretrained', action='store_true',
                     help='use backbone architecture with pretrained ImageNet weights')
+parser.add_argument('--freeze-backbone', action='store_true',
+                    help='freeze backbone weights from updating')
 
 
 def go_supervised():
@@ -144,6 +146,14 @@ def go_supervised():
             labeled_classes=len(train_dataset.classes),
             unlabeled_classes=0 # dummy assignment in fully supervised mode
         )
+
+    if args.freeze_backbone:
+        logging.info(f'Freezing {model.backbone} backbone')
+        for m in model.feature_extractor.children():
+            m.eval()
+            for param in m.parameters():
+                param.requires_grad = False
+
     model = torch.nn.DataParallel(model).to(args.device)
 
     # Optimizer options

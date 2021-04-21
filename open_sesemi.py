@@ -85,8 +85,10 @@ parser.add_argument('--momentum', default=0.9, type=float,
                     help='momentum parameter in SGD or beta1 parameter in Adam')
 parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true',
+parser.add_argument('--pretrained', action='store_true',
                     help='use backbone architecture with pretrained ImageNet weights')
+parser.add_argument('--freeze-backbone', action='store_true',
+                    help='freeze backbone weights from updating')
 
 
 def open_sesemi():
@@ -103,10 +105,9 @@ def open_sesemi():
         exit()
     traindir = os.path.join(args.data_dir, 'train')
     valdir = os.path.join(args.data_dir, 'val')
+    data_dirs = [traindir, valdir]
     if args.unlabeled_dir:
-        data_dirs = [traindir, valdir, args.unlabeled_dir]
-    else:
-        data_dirs = [traindir, valdir]
+        data_dirs.append(args.unlabeled_dir)
     for path in data_dirs:
         if not os.path.exists(path):
             raise FileNotFoundError(
@@ -114,7 +115,7 @@ def open_sesemi():
             )
     
     train_transformations = train_transforms(
-        random_resized_crop=True, resize=256, crop_dim=224, scale=(0.2, 1.0), p_erase=0.0
+            random_resized_crop=True, resize=256, crop_dim=224, scale=(0.2, 1.0), p_erase=0.0
     )
     test_transformations = center_crop_transforms(resize=256, crop_dim=224)
     
@@ -163,6 +164,14 @@ def open_sesemi():
             labeled_classes=len(train_dataset.classes),
             unlabeled_classes=unlabeled_classes
         )
+    
+    if args.freeze_backbone:
+        logging.info(f'Freezing {model.backbone} backbone')
+        for m in model.feature_extractor.children():
+            m.eval()
+            for param in m.parameters():
+                param.requires_grad = False
+
     model = torch.nn.DataParallel(model).to(args.device)
 
     # Optimizer options

@@ -24,10 +24,12 @@ WORKDIR /home/appuser
 # Set ENV to download pretrained PyTorch models
 ENV TORCH_HOME="/home/appuser/sesemi/.cache/torch/"
 
-# Clone SESEMI and install dependencies
-RUN git clone https://github.com/FlyreelAI/sesemi.git
-WORKDIR /home/appuser/sesemi
+# Add and install dependencies
+COPY --chown=appuser:appuser ./requirements.txt sesemi/
+
 RUN conda clean -y --all
 RUN pip install --no-cache-dir --user --upgrade pip
-RUN pip install --no-cache-dir --user -r docker/requirements.txt
+RUN pip install --no-cache-dir --user -r sesemi/requirements.txt
 
+COPY --chown=appuser:appuser . sesemi
+WORKDIR /home/appuser/sesemi

@@ -18,7 +18,6 @@ import torch.nn as nn
 
 PYTORCH_IMAGE_MODELS_REPO = 'rwightman/pytorch-image-models'
 
-
 class EfficientNet(nn.Module):
     def __init__(self, backbone='tf_efficientnet_b0_ns', pretrained=True):
         super(EfficientNet, self).__init__()
@@ -26,11 +25,16 @@ class EfficientNet(nn.Module):
             PYTORCH_IMAGE_MODELS_REPO,
             backbone, 
             pretrained=pretrained,
-            num_classes=0,
-            global_pool='')        
-        self.final_gelu = nn.GELU()
-        self.in_features = self.encoder.conv_head.out_channels
+        )
+        self.in_features = self.encoder.classifier.in_features
 
     def forward(self, x):
-        x = self.encoder(x)
-        return self.final_gelu(x)
+        x = self.encoder.conv_stem(x)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        
+        x = self.encoder.blocks(x)
+        x = self.encoder.conv_head(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        return x

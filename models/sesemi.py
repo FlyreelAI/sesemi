@@ -52,7 +52,7 @@ SUPPORTED_BACKBONES = (
     # EfficientNet models trained with noisy student.
     'tf_efficientnet_b0_ns', 'tf_efficientnet_b1_ns', 'tf_efficientnet_b2_ns',
     'tf_efficientnet_b3_ns', 'tf_efficientnet_b4_ns', 'tf_efficientnet_b5_ns',
-    'tf_efficientnet_b6_ns', 'tf_efficientnet_b7_ns', 'tf_efficientnet_l2_ns_475',
+    'tf_efficientnet_b6_ns', 'tf_efficientnet_b7_ns',
 )
 
 

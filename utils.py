@@ -18,7 +18,9 @@ from tqdm import trange
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 from collections import OrderedDict
+from itertools import combinations
 import logging
+import os, errno
 
 
 def to_device(objects, device):
@@ -48,25 +50,26 @@ def sigmoid_rampup(curr_iter, rampup_iters):
 
 def train(model, train_loader, unlabeled_loader, optimizer, args):
     # Initialize history object to record and compute statistics
-    history = HistorySet()
+    history = HistoryDict()
     
     # Switch to train mode
     model.train()
 
     train_iterator = iter(train_loader)
     unlabeled_iterator = iter(unlabeled_loader)
-    for _ in trange(len(unlabeled_loader), desc=f'Train Epoch {args.curr_epoch}', position=2):
+    for _ in trange(args.epoch_over, desc=f'Train Epoch {args.curr_epoch}', position=2):
         adjust_polynomial_lr(optimizer, args)
         args.curr_iter += 1
         history.update('lr', optimizer.param_groups[0]['lr'], n=1)
         
         try:
             inputs_t, targets_t = next(train_iterator)
+            inputs_u, targets_u = next(unlabeled_iterator)
         except StopIteration:
             train_iterator = iter(train_loader)
+            unlabeled_iterator = iter(unlabeled_loader)
             inputs_t, targets_t = next(train_iterator)
-        
-        inputs_u, targets_u = next(unlabeled_iterator)
+            inputs_u, targets_u = next(unlabeled_iterator)
         
         # Forward pass
         inputs_t, targets_t, inputs_u, targets_u = to_device(
@@ -101,7 +104,7 @@ def train(model, train_loader, unlabeled_loader, optimizer, args):
 
 def evaluate(model, val_loader, args):
     # Initialize history object to record and compute statistics
-    history = HistorySet()
+    history = HistoryDict()
 
     # Switch to evaluate mode
     model.eval()
@@ -144,7 +147,7 @@ class History():
         self.avg = self.sum / self.count
 
 
-class HistorySet():
+class HistoryDict():
     def __init__(self):
         self.history = {}
 
@@ -224,8 +227,10 @@ def save_model(model, args, path):
         'model_params': {
             'backbone': model.module.backbone,
             'pretrained': model.module.pretrained,
-            'labeled_classes': model.module.labeled_classes,
-            'unlabeled_classes': model.module.unlabeled_classes
+            'num_labeled_classes': model.module.num_labeled_classes,
+            'num_unlabeled_classes': model.module.num_unlabeled_classes,
+            'dropout_rate': model.module.dropout_rate,
+            'global_pool': model.module.global_pool,
         },
         'state_dict': model.module.state_dict(),
     })
@@ -240,4 +245,20 @@ def load_model(Model, checkpoint_path, device):
     model.load_state_dict(checkpoint['state_dict'])
     model.CLASSES = checkpoint['meta']['classes']
     return model.to(device)
+
+
+def assert_same_classes(datasets):
+    if len(datasets) == 1:
+        return True
+    same_classes = [x.class_to_idx == y.class_to_idx for x, y in combinations(datasets, r=2)]
+    assert all(same_classes), \
+    f'The following have mismatched subdirectory names. Check the `Root location`.\n{datasets}'
+
+
+def validate_paths(paths):
+    for path in paths:
+        if not os.path.exists(path):
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), path
+            )
 

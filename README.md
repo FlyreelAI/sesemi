@@ -8,7 +8,7 @@ SESEMI is an open source image classification library built on PyTorch. SESEMI e
 
 ### Highlights and Features
 
-* Integration with popular, contemporary high-performance supervised architectures: ResNet, ResNeXt, DenseNet, EfficientNet, etc.
+* Integration with the popular [PyTorch Image Models](https://github.com/rwightman/pytorch-image-models) (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of [supported backbones](https://github.com/FlyreelAI/sesemi/blob/master/models/sesemi.py)
 * Demonstrated utility on large realistic image datasets and is currently competitive on the [FastAI Imagenette benchmarks](https://github.com/fastai/imagenette)
 * Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
 * Simply add unlabeled data for improved image classification without any tricks
@@ -75,7 +75,7 @@ training will work but will take a very long time.
         --data-dir ./data/imagewoof2 \
         --lr 0.1 --optimizer sgd --batch-size 32 \
         --epochs 80 --warmup-lr 0.001 --warmup-epochs 10 \
-        --backbone resnet50 --run-id imagewoof_run01
+        --backbone resnet50d --run-id imagewoof_run01
     ```
 
     If you use docker and have [`nvidia-docker`](https://github.com/NVIDIA/nvidia-docker) installed you can instead use:
@@ -92,7 +92,7 @@ training will work but will take a very long time.
         --data-dir /home/appuser/sesemi/data/imagewoof2 \
         --lr 0.1 --optimizer sgd --batch-size 32 \
         --epochs 80 --warmup-lr 0.001 --warmup-epochs 10 \
-        --backbone resnet50 --run-id imagewoof_run01
+        --backbone resnet50d --run-id imagewoof_run01
     ```
 
 3. Run evaluation on the trained checkpoint.
@@ -100,9 +100,10 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
-    $ python -u open_sesemi.py evaluate-only \
+    $ python -u open_sesemi.py \
         --data-dir ./data/imagewoof2 \
-        --checkpoint-path ./checkpoints/imagewoof_run01/best_val.pth
+        --checkpoint-path ./checkpoints/imagewoof_run01/best_val.pth \
+        evaluate-only
     ```
 
     With docker:
@@ -115,9 +116,10 @@ training will work but will take a very long time.
         --rm --ipc=host \
         --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi \
         ${SESEMI_IMAGE}:latest \
-        python -u open_sesemi.py evaluate-only \
+        python -u open_sesemi.py \
         --data-dir /home/appuser/sesemi/data/imagewoof2 \
-        --checkpoint-path /home/appuser/sesemi/checkpoints/imagewoof_run01/best_val.pth
+        --checkpoint-path /home/appuser/sesemi/checkpoints/imagewoof_run01/best_val.pth \
+        evaluate-only
     ```
 
 ## Citation

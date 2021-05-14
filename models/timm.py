@@ -18,17 +18,29 @@ import torch.nn as nn
 PYTORCH_IMAGE_MODELS_REPO = 'rwightman/pytorch-image-models'
 
 class PyTorchImageModels(nn.Module):
-    def __init__(self, backbone='resnet50d', pretrained=True):
+    def __init__(self, backbone='resnet50d', pretrained=True, global_pool='avg'):
         super(PyTorchImageModels, self).__init__()
-        self.encoder = torch.hub.load(
-            PYTORCH_IMAGE_MODELS_REPO,
-            backbone, 
-            pretrained,
-        )
-        for m in self.encoder.modules():
-            if isinstance(m, (nn.Linear)):
-                self.in_features = m.in_features
+        try:
+            self.encoder = torch.hub.load(
+                PYTORCH_IMAGE_MODELS_REPO,
+                backbone, 
+                pretrained,
+                num_classes=0,
+                global_pool=global_pool,
+            )
+        except RuntimeError:
+            self.encoder = torch.hub.load(
+                PYTORCH_IMAGE_MODELS_REPO,
+                backbone,
+                pretrained,
+                num_classes=0,
+                global_pool=global_pool,
+                force_reload=True,
+            )
+        self.in_features = self.encoder.num_features
+        if global_pool == 'catavgmax':
+            self.in_features *= 2
 
     def forward(self, x):
-        return self.encoder.forward_features(x)
+        return self.encoder(x)
 

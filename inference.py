@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from torchvision import datasets
 
 from models import SESEMI
-from utils import load_model
+from utils import load_model, validate_paths
 from dataset import center_crop_transforms, multi_crop_transforms
 
 
@@ -95,19 +95,16 @@ def predict():
     args = parser.parse_args()
     classifier = Classifier(args.checkpoint_path, args)
     # Data loading
-    if not os.path.exists(args.data_dir):
-        raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), args.data_dir
-        )
+    validate_paths([args.data_dir])
     if args.oversample:
         ncrops = args.ncrops
         test_transformations = multi_crop_transforms(
-            args.resize, args.crop_dim, ncrops
+            args.resize, args.crop_dim, ncrops, interpolation=3
         )
     else:
         ncrops = 1
         test_transformations = center_crop_transforms(
-            args.resize, args.crop_dim
+            args.resize, args.crop_dim, interpolation=3
         )
     dataset = datasets.ImageFolder(args.data_dir, test_transformations)
     dataset_loader = torch.utils.data.DataLoader(

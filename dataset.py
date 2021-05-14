@@ -16,13 +16,13 @@ import os, errno
 import torch
 from torchvision import datasets, transforms
 
-from utils import GammaCorrection
+from utils import GammaCorrection, validate_paths
 
 
 channel_mean = [0.485, 0.456, 0.406] 
 channel_std  = [0.229, 0.224, 0.225]
 
-def train_transforms(random_resized_crop=True, resize=256, crop_dim=224, scale=(0.2, 1.0),
+def train_transforms(random_resized_crop=True, resize=256, crop_dim=224, scale=(0.2, 1.0), interpolation=2,
                      gamma_range=(0.5, 1.5), p_hflip=0.5, norms=(channel_mean, channel_std), p_erase=0.5):
     default_transforms = [
         GammaCorrection(gamma_range),
@@ -33,25 +33,25 @@ def train_transforms(random_resized_crop=True, resize=256, crop_dim=224, scale=(
     ]
     if random_resized_crop:
         return transforms.Compose(
-            [transforms.RandomResizedCrop(crop_dim, scale=scale)] + default_transforms
+            [transforms.RandomResizedCrop(crop_dim, scale, interpolation=interpolation)] + default_transforms
         )
     else:
         return transforms.Compose([
-            transforms.Resize(resize),
+            transforms.Resize(resize, interpolation),
             transforms.RandomCrop(crop_dim)
         ] + default_transforms)
 
 
-def center_crop_transforms(resize=256, crop_dim=224, norms=(channel_mean, channel_std)):
+def center_crop_transforms(resize=256, crop_dim=224, interpolation=2, norms=(channel_mean, channel_std)):
     return transforms.Compose([
-        transforms.Resize(resize),
+        transforms.Resize(resize, interpolation),
         transforms.CenterCrop(crop_dim),
         transforms.ToTensor(),
         transforms.Normalize(*norms)
     ])
 
 
-def multi_crop_transforms(resize=256, crop_dim=224, num_crop=5,
+def multi_crop_transforms(resize=256, crop_dim=224, num_crop=5, interpolation=2,
                           norms=(channel_mean, channel_std)):
     to_tensor = transforms.ToTensor()
     normalize = transforms.Normalize(*norms)
@@ -63,7 +63,7 @@ def multi_crop_transforms(resize=256, crop_dim=224, num_crop=5,
     else:
         raise NotImplementedError('Number of crops should be integer of 5 or 10')
     return transforms.Compose([
-        transforms.Resize(resize),
+        transforms.Resize(resize, interpolation),
         multi_crop(crop_dim), # this is a list of PIL Images
         Lambda(lambda crops: torch.stack([to_tensor(crop) for crop in crops])),
         Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops])),
@@ -85,12 +85,12 @@ class UnlabeledDataset(torch.utils.data.Dataset):
 
 class RotationTransformer():
     def __init__(self):
-        self.rotation_labels = 4
+        self.num_rotation_labels = 4
 
     def __call__(self, batch):
         tensors, labels = [], []
         for tensor, _ in batch:
-            for k in range(self.rotation_labels):
+            for k in range(self.num_rotation_labels):
                 if k == 0:
                     t = tensor
                 else:
@@ -126,10 +126,7 @@ if __name__ == '__main__':
                         help='directory to save images for visualization')
     args = parser.parse_args()
 
-    if not os.path.exists(args.img_dir):
-        raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), args.img_dir
-        )
+    validate_paths([args.img_dir])
     os.makedirs(args.out_dir, exist_ok=True)
 
     print('args:')
@@ -146,16 +143,16 @@ if __name__ == '__main__':
         gamma_range=gamma_range, p_hflip=p_hflip, norms=(mean, std), p_erase=p_erase
     )
     dataset = datasets.ImageFolder(args.img_dir, transformations)
-    print('transforms:\n', transformations)
-    print('len(dataset): {}'.format(len(dataset)))
+    print('transformations:\n', transformations)
+    print('dataset size: {}'.format(len(dataset)))
     to_pil_image = transforms.ToPILImage()
     rotate = RotationTransformer()
     for i in trange(args.head):
         fpath = dataset.imgs[i][0]
         fname = fpath.split('/')[-1]
-        x, dummy = dataset[i]
+        x, dummy_label = dataset[i]
         if args.visualize_rotations:
-            tensors, indices = rotate([(x, dummy)])
+            tensors, indices = rotate([(x, dummy_label)])
             for x, ind in zip(*(tensors, indices)):
                 image = to_pil_image(x)
                 image.save(os.path.join(args.out_dir, f'rotated_{ind}_' + fname))

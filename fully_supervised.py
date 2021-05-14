@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ========================================================================
-import os, errno
+import os
 import argparse
 import numpy as np
 from tqdm import trange
@@ -25,7 +25,8 @@ from torchvision import datasets
 from models import SESEMI
 from utils import (
     evaluate, save_model, load_model, to_device,
-    adjust_polynomial_lr, accuracy, HistorySet
+    adjust_polynomial_lr, accuracy, HistoryDict,
+    validate_paths, assert_same_classes
 )
 from dataset import train_transforms, center_crop_transforms
 
@@ -40,10 +41,6 @@ parser = argparse.ArgumentParser(description='Supervised and Semi-Supervised Ima
 # Optional subparser to evaluate trained model on validation dataset and exit
 subparsers = parser.add_subparsers(dest='mode', help='module modes')
 evaluate_parser = subparsers.add_parser('evaluate-only', help='model evaluation')
-evaluate_parser.add_argument('--data-dir', required=True,
-                             help='path to dataset containing "train" and "val" subdirs')
-evaluate_parser.add_argument('--checkpoint-path', required=True,
-                             help='path to saved checkpoint')
 # Run arguments
 parser.add_argument('--run-id', default='run01',
                     help='experiment ID to name checkpoints and logs')
@@ -58,15 +55,23 @@ parser.add_argument('--no-cuda', action='store_true',
 parser.add_argument('--resume', default='',
                     help='path to latest checkpoint')
 # Data loading arguments
-parser.add_argument('--data-dir', default='',
-                    help='path to dataset containing "train" and "val" subdirs')
+parser.add_argument('--data-dir', nargs='+', default=[],
+                    help='path(s) to dataset containing "train" and "val" subdirs')
 parser.add_argument('--batch-size', default=16, type=int,
                     help='mini-batch size')
-parser.add_argument('--workers', default=4, type=int,
+parser.add_argument('--workers', default=6, type=int,
                     help='number of data loading workers')
+parser.add_argument('--resize', default=256, type=int,
+                    help='resize smaller edge to this resolution while maintaining aspect ratio')
+parser.add_argument('--crop-dim', default=224, type=int,
+                    help='dimension for center or multi cropping')
 # Training arguments
-parser.add_argument('--backbone', default='resnet50',
+parser.add_argument('--backbone', default='resnet50d',
                     help='choice of backbone architecture')
+parser.add_argument('--freeze-backbone', action='store_true',
+                    help='freeze backbone weights from updating')
+parser.add_argument('--pretrained', action='store_true',
+                    help='use backbone architecture with pretrained ImageNet weights')
 parser.add_argument('--optimizer', default='SGD',
                     choices=['SGD'.lower(), 'Adam'.lower()],
                     help='optimizer to use')
@@ -84,10 +89,6 @@ parser.add_argument('--momentum', default=0.9, type=float,
                     help='momentum parameter in SGD or beta1 parameter in Adam')
 parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
-parser.add_argument('--pretrained', action='store_true',
-                    help='use backbone architecture with pretrained ImageNet weights')
-parser.add_argument('--freeze-backbone', action='store_true',
-                    help='freeze backbone weights from updating')
 
 
 def go_supervised():
@@ -99,29 +100,39 @@ def go_supervised():
     os.makedirs(os.path.join(args.checkpoint_dir, args.run_id), exist_ok=True)
 
     # Data loading
-    if not args.data_dir:
-        logging.info('Exiting. --data-dir argument is required.')
-        exit()
-    traindir = os.path.join(args.data_dir, 'train')
-    valdir = os.path.join(args.data_dir, 'val')
-    for path in [traindir, valdir]:
-        if not os.path.exists(path):
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), path
-            )
-    
+    traindir, valdir = [], []
+    for datadir in args.data_dir:
+        for d in os.scandir(datadir):
+            if d.is_dir():
+                if d.name == 'train':
+                    traindir.append(os.path.join(datadir, d))
+                elif d.name == 'val':
+                    valdir.append(os.path.join(datadir, d))
+                else:
+                    continue
+    validate_paths(traindir + valdir)
+
     train_transformations = train_transforms(
-        random_resized_crop=True, resize=256, crop_dim=224, scale=(0.2, 1.0), p_erase=0.0
+        random_resized_crop=True, resize=args.resize, crop_dim=args.crop_dim, scale=(0.2, 1.0), p_erase=0.0, interpolation=3
     )
-    test_transformations = center_crop_transforms(resize=256, crop_dim=224)
+    test_transformations = center_crop_transforms(resize=args.resize, crop_dim=args.crop_dim, interpolation=3)
     
-    train_dataset = datasets.ImageFolder(traindir, train_transformations)
-    val_dataset = datasets.ImageFolder(valdir, test_transformations)
+    train_dataset = torch.utils.data.ConcatDataset([
+        datasets.ImageFolder(datadir, train_transformations) for datadir in traindir
+    ])
+    val_dataset = torch.utils.data.ConcatDataset([
+        datasets.ImageFolder(datadir, test_transformations) for datadir in valdir
+    ])
+
+    for dataset in [train_dataset, val_dataset]:
+        assert_same_classes(dataset.datasets)
+    args.classes = train_dataset.datasets[0].classes
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size,
         shuffle=True, num_workers=args.workers, pin_memory=True,
-        worker_init_fn=lambda x: np.random.seed(), drop_last=True)
+        worker_init_fn=lambda x: np.random.seed(), drop_last=True,
+    )
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
@@ -143,19 +154,21 @@ def go_supervised():
         model = SESEMI(
             args.backbone,
             pretrained=args.pretrained,
-            labeled_classes=len(train_dataset.classes),
-            unlabeled_classes=0 # dummy assignment in fully supervised mode
+            num_labeled_classes=len(args.classes),
+            num_unlabeled_classes=4, # dummy assignment in fully supervised mode
+            dropout_rate=0.0,
+            global_pool='avg'
         )
 
     if args.freeze_backbone:
         logging.info(f'Freezing {model.backbone} backbone')
-        for m in model.feature_extractor.children():
+        for m in model.feature_extractor.modules():
             m.eval()
             for param in m.parameters():
                 param.requires_grad = False
 
     model = torch.nn.DataParallel(model).to(args.device)
-
+    
     # Optimizer options
     if args.optimizer.lower() == 'sgd':
         optimizer = torch.optim.SGD(
@@ -175,32 +188,36 @@ def go_supervised():
     tb_writer = SummaryWriter(log_dir=tb_path)
 
     # Initialize variables
-    args.warmup_iters = args.warmup_epochs * len(train_loader)
-    args.max_iters = args.epochs * len(train_loader)
+    args.epoch_over = len(train_loader)
+    args.warmup_iters = args.warmup_epochs * args.epoch_over
+    args.max_iters = args.epochs * args.epoch_over
     args.running_lr = args.warmup_lr if args.warmup_epochs > 0 else args.lr
     args.curr_iter = 0
     args.best_val_score = 0
-    args.classes = train_dataset.classes
         
     # Start training and evaluation
     for epoch in trange(1, args.epochs + 1, desc='Epoch', unit='epoch', position=0):
         args.curr_epoch = epoch
         
         # Initialize history object to record and compute statistics
-        history = HistorySet()
+        history = HistoryDict()
         
         # Switch to train mode
         model.train()
         
         # Train for one epoch
         train_iterator = iter(train_loader)
-        for _ in trange(len(train_loader), desc=f'Train Epoch {args.curr_epoch}', position=2):
+        for _ in trange(args.epoch_over, desc=f'Train Epoch {args.curr_epoch}', position=2):
             adjust_polynomial_lr(optimizer, args)
             args.curr_iter += 1
             history.update('lr', optimizer.param_groups[0]['lr'], n=1)
         
-            inputs, targets = next(train_iterator)
-        
+            try:
+                inputs, targets = next(train_iterator)
+            except StopIteration:
+                train_iterator = iter(train_loader)
+                inputs, targets = next(train_iterator)
+
             # Forward pass
             inputs, targets = to_device((inputs, targets), device=args.device)
             outputs = model(inputs)

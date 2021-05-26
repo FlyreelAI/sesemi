@@ -15,7 +15,14 @@
 import torch
 import torch.nn as nn
 from .timm import PyTorchImageModels
+from utils import sigmoid_rampup, adjust_polynomial_lr
 import logging
+
+import torch.nn.functional as F
+
+import pytorch_lightning as pl
+
+from torchmetrics.classification.accuracy import Accuracy
 
 
 SUPPORTED_BACKBONES = (
@@ -65,10 +72,17 @@ SUPPORTED_BACKBONES = (
 )
 
 
-class SESEMI(nn.Module):
+class SESEMI(pl.LightningModule):
     def __init__(self, backbone, pretrained,
                  num_labeled_classes, num_unlabeled_classes,
-                 dropout_rate=0.5, global_pool='avg'):
+                 dropout_rate=0.5, global_pool='avg',
+                 freeze_backbone=False,
+                 optimizer='SGD',
+                 momentum=None,
+                 weight_decay=None,
+                 *, initial_loss_weight, stop_rampup,
+                 warmup_iters, warmup_lr, lr, lr_pow,
+                 max_iters):
         super(SESEMI, self).__init__()
         assert backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
         self.backbone = backbone
@@ -80,8 +94,25 @@ class SESEMI(nn.Module):
         if not global_pool:
             # If no global pooling method specified, fall back to "avg"
             self.global_pool = 'avg'
+        self.freeze_backbone = freeze_backbone
+        self.optimizer = optimizer
+        self.momentum = momentum
+        self.weight_decay = weight_decay
 
         self.feature_extractor = PyTorchImageModels(backbone, pretrained, self.global_pool)
+
+        if self.freeze_backbone:
+            logging.info(f'Freezing {self.backbone} backbone')
+            for m in self.feature_extractor.modules():
+                m.eval()
+                for param in m.parameters():
+                    param.requires_grad = False
+        
+        self.warmup_iters = warmup_iters
+        self.warmup_lr = warmup_lr
+        self.lr = lr
+        self.lr_pow = lr_pow
+        self.max_iters = max_iters
 
         if self.pretrained:
             logging.info(f'Initialized with pretrained {backbone} backbone')
@@ -89,8 +120,18 @@ class SESEMI(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
         self.fc_labeled = nn.Linear(self.in_features, self.num_labeled_classes)
         self.fc_unlabeled = nn.Linear(self.in_features, self.num_unlabeled_classes)
+        self.initial_loss_weight = initial_loss_weight
+        self.stop_rampup = stop_rampup
+        self.current_learning_rate = warmup_lr
+
+        self.validation_top1_accuracy = Accuracy(top_k=1)
     
-    def forward(self, x_labeled, x_unlabeled=None):
+    def forward(self, x):
+        features = self.feature_extractor(x)
+        logits = self.fc_labeled(features)
+        return torch.softmax(logits, dim=-1)
+
+    def forward_train(self, x_labeled, x_unlabeled=None):
         # Compute output for labeled input
         x_labeled = self.feature_extractor(x_labeled)
         if self.dropout_rate > 0.0:
@@ -105,3 +146,69 @@ class SESEMI(nn.Module):
 
         return output_labeled
 
+    def optimizer_step(
+        self,
+        epoch,
+        batch_idx,
+        optimizer,
+        optimizer_idx,
+        optimizer_closure,
+        **kwargs,
+    ):
+        optimizer.step(closure=optimizer_closure)
+        self.current_learning_rate = adjust_polynomial_lr(
+                optimizer.optimizer, self.global_step,
+                warmup_iters=self.warmup_iters,
+                warmup_lr=self.warmup_lr,
+                lr=self.lr,
+                lr_pow=self.lr_pow,
+                max_iters=self.max_iters)
+
+    def configure_optimizers(self):
+        if self.optimizer.lower() == 'sgd':
+            optimizer = torch.optim.SGD(
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.lr, momentum=self.momentum, nesterov=True,
+                weight_decay=self.weight_decay)
+        elif self.optimizer.lower() == 'adam':
+            optimizer = torch.optim.Adam(
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.lr, betas=(self.momentum, 0.999), weight_decay=0.0)
+        else:
+            raise NotImplementedError()    
+        
+        return optimizer
+
+    def training_step(self, batch, batch_index):
+        (inputs_t, targets_t), (inputs_u, targets_u) = batch
+        
+        # Forward pass
+        outputs_t, outputs_u = self.forward_train(inputs_t, inputs_u)
+        
+        loss_weight = self.initial_loss_weight * sigmoid_rampup(
+            self.global_step, self.stop_rampup)
+        
+        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='mean')
+        loss_u = F.cross_entropy(outputs_u, targets_u, reduction='mean')
+        loss = loss_t + loss_u * loss_weight
+
+        self.log('train/loss_labeled', loss_t)
+        self.log('train/loss_unlabeled', loss_u)
+        self.log('train/loss_unlabeled_weight', loss_weight)
+        self.log('train/loss', loss)
+        self.log('train/learning_rate', self.current_learning_rate)
+
+        return loss
+
+    def validation_step(self, batch, batch_index):
+        inputs_t, targets_t = batch
+        outputs_t = self.forward(inputs_t)
+        return outputs_t, targets_t
+        
+    def validation_step_end(self, outputs):
+        outputs_t, targets_t = outputs
+        self.validation_top1_accuracy.update(outputs_t, targets_t)
+
+    def validation_epoch_end(self, outputs):
+        top1 = self.validation_top1_accuracy.compute()
+        self.log('val/top1', top1)

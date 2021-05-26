@@ -188,19 +188,21 @@ class GammaCorrection():
         return self.__class__.__name__ + '(r={})'.format(self.gamma_range)
 
     
-def adjust_polynomial_lr(optimizer, args):
+def adjust_polynomial_lr(optimizer, curr_iter, *, warmup_iters, warmup_lr, lr, lr_pow, max_iters):
     """Decay learning rate according to polynomial schedule with warmup"""
-    if args.curr_iter < args.warmup_iters:
-        frac = args.curr_iter / args.warmup_iters
-        step = args.lr - args.warmup_lr
-        args.running_lr = args.warmup_lr + step * frac
+    if curr_iter < warmup_iters:
+        frac = curr_iter / warmup_iters
+        step = lr - warmup_lr
+        running_lr = warmup_lr + step * frac
     else:
-        frac = (float(args.curr_iter) - args.warmup_iters) / (args.max_iters - args.warmup_iters)
-        scale_running_lr = max((1.0 - frac), 0.) ** args.lr_pow
-        args.running_lr = args.lr * scale_running_lr
+        frac = (float(curr_iter) - warmup_iters) / (max_iters - warmup_iters)
+        scale_running_lr = max((1.0 - frac), 0.) ** lr_pow
+        running_lr = lr * scale_running_lr
 
     for param_group in optimizer.param_groups:
-        param_group['lr'] = args.running_lr
+        param_group['lr'] = running_lr
+    
+    return running_lr
         
         
 def accuracy(output, target, topk=(1,)):

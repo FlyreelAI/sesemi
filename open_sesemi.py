@@ -15,10 +15,15 @@
 import os
 import argparse
 import numpy as np
+from pytorch_lightning.accelerators import accelerator
+from torch.optim import optimizer
 from tqdm import trange
 from tensorboardX import SummaryWriter
 
 import torch
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import LearningRateMonitor
+
 from torchvision import datasets
 
 from models import SESEMI
@@ -45,12 +50,10 @@ evaluate_parser = subparsers.add_parser('evaluate-only', help='model evaluation'
 # Run arguments
 parser.add_argument('--run-id', default='run01',
                     help='experiment ID to name checkpoints and logs')
-parser.add_argument('--checkpoint-dir', default='./checkpoints',
-                    help='directory to output checkpoints')
+parser.add_argument('--log-dir', default='./logs',
+                    help='directory to output checkpoints and metrics')
 parser.add_argument('--checkpoint-path', default='',
                     help='path to saved checkpoint')
-parser.add_argument('--logs', default='./logs',
-                    help='directory to logging')
 parser.add_argument('--no-cuda', action='store_true',
                     help='disable cuda')
 parser.add_argument('--resume', default='',
@@ -92,6 +95,8 @@ parser.add_argument('--momentum', default=0.9, type=float,
                     help='momentum parameter in SGD or beta1 parameter in Adam')
 parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
+parser.add_argument('--num-gpus', default=1, type=int,
+                    help='the number of GPUs to use')
 
 
 def open_sesemi():
@@ -100,7 +105,8 @@ def open_sesemi():
     args.device = torch.device(
         'cpu' if args.no_cuda or not torch.cuda.is_available() else 'cuda'
     )
-    os.makedirs(os.path.join(args.checkpoint_dir, args.run_id), exist_ok=True)
+    run_dir = os.path.join(args.log_dir, args.run_id)
+    os.makedirs(run_dir, exist_ok=True)
 
     # Data loading
     traindir, valdir = [], []
@@ -157,58 +163,9 @@ def open_sesemi():
 
     num_unlabeled_classes = rotate.num_rotation_labels
     args.classes = train_dataset.datasets[0].classes
-    
-    # Model loading
-    if args.checkpoint_path:
-        # Load saved model for finetuning or evaluation
-        model = load_model(SESEMI, args.checkpoint_path, args.device)
-        logging.info(f'=> Model checkpoint loaded from {args.checkpoint_path}')
-        if args.mode == 'evaluate-only':
-            # Evaluate model on validation set and exit
-            args.curr_epoch = '###'
-            with torch.no_grad():
-                evaluate(model, val_loader, args)
-            return
-    else:
-        # Initialize model with optional pretrained backbone
-        model = SESEMI(
-            args.backbone,
-            pretrained=args.pretrained,
-            num_labeled_classes=len(args.classes),
-            num_unlabeled_classes=num_unlabeled_classes,
-            dropout_rate=0.5,
-            global_pool='avg'
-        )
-    
-    if args.freeze_backbone:
-        logging.info(f'Freezing {model.backbone} backbone')
-        for m in model.feature_extractor.modules():
-            m.eval()
-            for param in m.parameters():
-                param.requires_grad = False
-
-    model = torch.nn.DataParallel(model).to(args.device)
-    
-    # Optimizer options
-    if args.optimizer.lower() == 'sgd':
-        optimizer = torch.optim.SGD(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=args.lr, momentum=args.momentum, nesterov=True,
-            weight_decay=args.weight_decay)
-    elif args.optimizer.lower() == 'adam':
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=args.lr, betas=(args.momentum, 0.999), weight_decay=0.0)
-    else:
-        raise NotImplementedError()    
-    
-    # TODO: Tensorboard for monitoring training statistics
-    tb_path = os.path.join(args.logs, args.run_id)
-    os.makedirs(tb_path, exist_ok=True)
-    tb_writer = SummaryWriter(log_dir=tb_path)
 
     # Initialize variables
-    args.epoch_over = len(unlabeled_loader)
+    args.epoch_over = max(len(train_loader), len(unlabeled_loader))
     args.warmup_iters = args.warmup_epochs * args.epoch_over
     args.max_iters = args.epochs * args.epoch_over
     args.running_lr = args.warmup_lr if args.warmup_epochs > 0 else args.lr
@@ -216,25 +173,47 @@ def open_sesemi():
     args.loss_weight = 1.0
     args.curr_iter = 0
     args.best_val_score = 0
+    
+    # Initialize model with optional pretrained backbone
+    model = SESEMI(
+        args.backbone,
+        pretrained=args.pretrained,
+        num_labeled_classes=len(args.classes),
+        num_unlabeled_classes=num_unlabeled_classes,
+        dropout_rate=0.5,
+        global_pool='avg',
+        optimizer=args.optimizer,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay,
+        initial_loss_weight=args.loss_weight,
+        stop_rampup=args.stop_rampup,
+        warmup_iters=args.warmup_iters,
+        warmup_lr=args.warmup_lr,
+        lr=args.lr,
+        lr_pow=args.lr_pow,
+        max_iters=args.max_iters,
+    )
+
+    trainer = pl.Trainer(
+        gpus=args.num_gpus, 
+        accelerator='dp', 
+        max_steps=args.max_iters,
+        default_root_dir=run_dir)
+    
+    # Model loading
+    if args.checkpoint_path:
+        # Load saved model for finetuning or evaluation
+        with open(args.checkpoint_path, 'rb') as f:
+            checkpoint = torch.load(f)
         
-    # Start training and evaluation
-    for epoch in trange(1, args.epochs + 1, desc='Epoch', unit='epoch', position=0):
-        args.curr_epoch = epoch
-        
-        # Train for one epoch
-        train(model, train_loader, unlabeled_loader, optimizer, args)
-        
-        # Evaluate after each epoch
-        with torch.no_grad():
-            history = evaluate(model, val_loader, args)
-            
-        # Save best validation model
-        curr_val_score = history['validation top1 accuracy'].avg
-        logging.info('Epoch {:03d} =====> {:.4f} vs. Best {:.4f}'.format(
-                epoch, curr_val_score, args.best_val_score))
-        if curr_val_score > args.best_val_score:
-            args.best_val_score = curr_val_score
-            save_model(model, args, path=os.path.join(args.checkpoint_dir, args.run_id, 'best_val.pth'))
+        model.load_state_dict(checkpoint['state_dict'])
+
+        logging.info(f'=> Model checkpoint loaded from {args.checkpoint_path}')
+        if args.mode == 'evaluate-only':
+            # Evaluate model on validation set and exit
+            trainer.validate(model, val_loader)
+    else:
+        trainer.fit(model, (train_loader, unlabeled_loader), val_loader)
     
 
 if __name__ == '__main__':

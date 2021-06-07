@@ -15,22 +15,16 @@
 import os
 import argparse
 import numpy as np
-from pytorch_lightning.accelerators import accelerator
-from torch.optim import optimizer
-from tqdm import trange
-from tensorboardX import SummaryWriter
 
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor
+
+from omegaconf import OmegaConf
 
 from torchvision import datasets
 
 from models import SESEMI
-from utils import (
-    train, evaluate, save_model, load_model,
-    validate_paths, assert_same_classes
-)
+from utils import validate_paths, assert_same_classes
 from dataset import (
     UnlabeledDataset, RotationTransformer,
     train_transforms, center_crop_transforms
@@ -97,6 +91,7 @@ parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
 parser.add_argument('--num-gpus', default=1, type=int,
                     help='the number of GPUs to use')
+parser.add_argument('--fully-supervised', action='store_true')
 
 
 def open_sesemi():
@@ -175,8 +170,8 @@ def open_sesemi():
     args.best_val_score = 0
     
     # Initialize model with optional pretrained backbone
-    model = SESEMI(
-        args.backbone,
+    hparams = OmegaConf.create(dict(
+        backbone=args.backbone,
         pretrained=args.pretrained,
         num_labeled_classes=len(args.classes),
         num_unlabeled_classes=num_unlabeled_classes,
@@ -192,28 +187,28 @@ def open_sesemi():
         lr=args.lr,
         lr_pow=args.lr_pow,
         max_iters=args.max_iters,
-    )
+    ))
+
+    model = SESEMI(hparams)
 
     trainer = pl.Trainer(
         gpus=args.num_gpus, 
         accelerator='dp', 
         max_steps=args.max_iters,
-        default_root_dir=run_dir)
+        default_root_dir=run_dir,
+        resume_from_checkpoint=args.checkpoint_path or None)
     
-    # Model loading
-    if args.checkpoint_path:
-        # Load saved model for finetuning or evaluation
-        with open(args.checkpoint_path, 'rb') as f:
-            checkpoint = torch.load(f)
-        
-        model.load_state_dict(checkpoint['state_dict'])
+    if args.mode == 'evaluate-only':
+        # Evaluate model on validation set and exit
+        trainer.validate(model, val_loader)
+        return
 
-        logging.info(f'=> Model checkpoint loaded from {args.checkpoint_path}')
-        if args.mode == 'evaluate-only':
-            # Evaluate model on validation set and exit
-            trainer.validate(model, val_loader)
+    if args.fully_supervised:
+        loaders = dict(supervised=train_loader)
     else:
-        trainer.fit(model, (train_loader, unlabeled_loader), val_loader)
+        loaders = dict(supervised=train_loader, unsupervised_rotation=unlabeled_loader)
+    
+    trainer.fit(model, loaders, val_loader)
     
 
 if __name__ == '__main__':

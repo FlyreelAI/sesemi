@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from torchvision import datasets
 
 from models import SESEMI
-from utils import load_model, validate_paths
+from utils import validate_paths
 from dataset import center_crop_transforms, multi_crop_transforms
 
 
@@ -70,10 +70,10 @@ class Classifier():
         self._init_model()
 
     def _init_model(self):
-        self.model = load_model(SESEMI, self.model_path, self.device)
+        self.model = SESEMI.load_from_checkpoint(self.model_path, map_location=self.device)
         logging.info(f'=> Model checkpoint loaded from {self.model_path}')
         self.model = torch.nn.DataParallel(self.model).to(self.device)
-        self.classes = np.array(self.model.module.CLASSES)
+        self.classes = np.array(self.model.hparams.classes)
         self.model.eval()
 
     def predict(self, x, ncrops, topk=1):
@@ -83,7 +83,6 @@ class Classifier():
             w, h, c = x.shape[-1:-4:-1]
             outputs = self.model(x.view(-1, c, h, w)) # fuse batch size and ncrops
             outputs = outputs.view(batch_size, ncrops, -1).mean(1) # avg over crops
-            outputs = F.softmax(outputs, dim=1)
             scores, indices = torch.topk(outputs, k=topk, largest=True, sorted=True)
             scores = scores.cpu().numpy()
             indices = indices.cpu().numpy()

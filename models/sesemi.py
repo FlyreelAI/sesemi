@@ -73,56 +73,35 @@ SUPPORTED_BACKBONES = (
 
 
 class SESEMI(pl.LightningModule):
-    def __init__(self, backbone, pretrained,
-                 num_labeled_classes, num_unlabeled_classes,
-                 dropout_rate=0.5, global_pool='avg',
-                 freeze_backbone=False,
-                 optimizer='SGD',
-                 momentum=None,
-                 weight_decay=None,
-                 *, initial_loss_weight, stop_rampup,
-                 warmup_iters, warmup_lr, lr, lr_pow,
-                 max_iters):
+    def __init__(self, hparams):
         super(SESEMI, self).__init__()
-        assert backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
-        self.backbone = backbone
-        self.pretrained = pretrained
-        self.num_labeled_classes = num_labeled_classes
-        self.num_unlabeled_classes = num_unlabeled_classes
-        self.dropout_rate = dropout_rate
-        self.global_pool = global_pool
-        if not global_pool:
+        self.save_hyperparameters(hparams)
+
+        assert self.hparams.backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
+        
+        if not self.hparams.global_pool:
             # If no global pooling method specified, fall back to "avg"
-            self.global_pool = 'avg'
-        self.freeze_backbone = freeze_backbone
-        self.optimizer = optimizer
-        self.momentum = momentum
-        self.weight_decay = weight_decay
+            self.hparams.global_pool = 'avg'
 
-        self.feature_extractor = PyTorchImageModels(backbone, pretrained, self.global_pool)
+        self.feature_extractor = PyTorchImageModels(self.hparams.backbone, self.hparams.pretrained, self.hparams.global_pool)
 
-        if self.freeze_backbone:
-            logging.info(f'Freezing {self.backbone} backbone')
+        if self.hparams.freeze_backbone:
+            logging.info(f'Freezing {self.hparams.backbone} backbone')
             for m in self.feature_extractor.modules():
                 m.eval()
                 for param in m.parameters():
                     param.requires_grad = False
-        
-        self.warmup_iters = warmup_iters
-        self.warmup_lr = warmup_lr
-        self.lr = lr
-        self.lr_pow = lr_pow
-        self.max_iters = max_iters
 
-        if self.pretrained:
-            logging.info(f'Initialized with pretrained {backbone} backbone')
+        if self.hparams.pretrained:
+            logging.info(f'Initialized with pretrained {self.hparams.backbone} backbone')
+
         self.in_features = self.feature_extractor.in_features
-        self.dropout = nn.Dropout(dropout_rate)
-        self.fc_labeled = nn.Linear(self.in_features, self.num_labeled_classes)
-        self.fc_unlabeled = nn.Linear(self.in_features, self.num_unlabeled_classes)
-        self.initial_loss_weight = initial_loss_weight
-        self.stop_rampup = stop_rampup
-        self.current_learning_rate = warmup_lr
+        self.dropout = nn.Dropout(self.hparams.dropout_rate)
+        self.fc_labeled = nn.Linear(self.in_features, self.hparams.num_labeled_classes)
+        self.fc_unlabeled = nn.Linear(self.in_features, self.hparams.num_unlabeled_classes)
+        self.register_buffer(
+            'current_learning_rate',
+            torch.tensor(self.hparams.warmup_lr, dtype=torch.float32, device=self.device))
 
         self.validation_top1_accuracy = Accuracy(top_k=1)
     
@@ -134,7 +113,7 @@ class SESEMI(pl.LightningModule):
     def forward_train(self, x_labeled, x_unlabeled=None):
         # Compute output for labeled input
         x_labeled = self.feature_extractor(x_labeled)
-        if self.dropout_rate > 0.0:
+        if self.hparams.dropout_rate > 0.0:
             x_labeled = self.dropout(x_labeled)
         output_labeled = self.fc_labeled(x_labeled)
         
@@ -144,7 +123,7 @@ class SESEMI(pl.LightningModule):
             output_unlabeled = self.fc_unlabeled(x_unlabeled)
             return output_labeled, output_unlabeled
 
-        return output_labeled
+        return output_labeled, None
 
     def optimizer_step(
         self,
@@ -156,40 +135,48 @@ class SESEMI(pl.LightningModule):
         **kwargs,
     ):
         optimizer.step(closure=optimizer_closure)
-        self.current_learning_rate = adjust_polynomial_lr(
+        self.current_learning_rate = torch.tensor(adjust_polynomial_lr(
                 optimizer.optimizer, self.global_step,
-                warmup_iters=self.warmup_iters,
-                warmup_lr=self.warmup_lr,
-                lr=self.lr,
-                lr_pow=self.lr_pow,
-                max_iters=self.max_iters)
+                warmup_iters=self.hparams.warmup_iters,
+                warmup_lr=self.hparams.warmup_lr,
+                lr=self.hparams.lr,
+                lr_pow=self.hparams.lr_pow,
+                max_iters=self.hparams.max_iters),
+                dtype=self.current_learning_rate.dtype,
+                device=self.current_learning_rate.device)
 
     def configure_optimizers(self):
-        if self.optimizer.lower() == 'sgd':
+        if self.hparams.optimizer.lower() == 'sgd':
             optimizer = torch.optim.SGD(
                 filter(lambda p: p.requires_grad, self.parameters()),
-                lr=self.lr, momentum=self.momentum, nesterov=True,
-                weight_decay=self.weight_decay)
-        elif self.optimizer.lower() == 'adam':
+                lr=self.hparams.lr, momentum=self.hparams.momentum, nesterov=True,
+                weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer.lower() == 'adam':
             optimizer = torch.optim.Adam(
                 filter(lambda p: p.requires_grad, self.parameters()),
-                lr=self.lr, betas=(self.momentum, 0.999), weight_decay=0.0)
+                lr=self.hparams.lr, betas=(self.hparams.momentum, 0.999), weight_decay=0.0)
         else:
             raise NotImplementedError()    
         
         return optimizer
 
     def training_step(self, batch, batch_index):
-        (inputs_t, targets_t), (inputs_u, targets_u) = batch
+        inputs_t, targets_t = batch['supervised']
+        inputs_u, targets_u = batch.get('unsupervised_rotation', (None, None))
         
         # Forward pass
         outputs_t, outputs_u = self.forward_train(inputs_t, inputs_u)
         
-        loss_weight = self.initial_loss_weight * sigmoid_rampup(
-            self.global_step, self.stop_rampup)
+        loss_weight = self.hparams.initial_loss_weight * sigmoid_rampup(
+            self.global_step, self.hparams.stop_rampup)
         
         loss_t = F.cross_entropy(outputs_t, targets_t, reduction='mean')
-        loss_u = F.cross_entropy(outputs_u, targets_u, reduction='mean')
+        
+        if outputs_u is not None:
+            loss_u = F.cross_entropy(outputs_u, targets_u, reduction='mean')
+        else:
+            loss_u = 0.
+
         loss = loss_t + loss_u * loss_weight
 
         self.log('train/loss_labeled', loss_t)

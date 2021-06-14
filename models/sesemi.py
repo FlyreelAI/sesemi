@@ -199,3 +199,6 @@ class SESEMI(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         top1 = self.validation_top1_accuracy.compute()
         self.log('val/top1', top1)
+        logging.info('Epoch {:03d} =====> {:.4f}'.format(
+            self.trainer.current_epoch,
+            top1))

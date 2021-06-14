@@ -73,7 +73,7 @@ class Classifier():
         self.model = SESEMI.load_from_checkpoint(self.model_path, map_location=self.device)
         logging.info(f'=> Model checkpoint loaded from {self.model_path}')
         self.model = torch.nn.DataParallel(self.model).to(self.device)
-        self.classes = np.array(self.model.hparams.classes)
+        self.classes = np.array(self.model.module.hparams.classes)
         self.model.eval()
 
     def predict(self, x, ncrops, topk=1):

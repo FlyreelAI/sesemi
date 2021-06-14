@@ -15,6 +15,7 @@
 import os
 import argparse
 import numpy as np
+from pytorch_lightning import callbacks
 
 import torch
 import pytorch_lightning as pl
@@ -24,11 +25,13 @@ from omegaconf import OmegaConf
 from torchvision import datasets
 
 from models import SESEMI
-from utils import validate_paths, assert_same_classes
+from utils import load_checkpoint, validate_paths, assert_same_classes
 from dataset import (
     UnlabeledDataset, RotationTransformer,
     train_transforms, center_crop_transforms
 )
+
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 import logging
 logging.basicConfig(
@@ -46,8 +49,10 @@ parser.add_argument('--run-id', default='run01',
                     help='experiment ID to name checkpoints and logs')
 parser.add_argument('--log-dir', default='./logs',
                     help='directory to output checkpoints and metrics')
-parser.add_argument('--checkpoint-path', default='',
+parser.add_argument('--resume-from-checkpoint', default='',
                     help='path to saved checkpoint')
+parser.add_argument('--pretrained-checkpoint-path', default='',
+                    help='path to pretrained model weights')
 parser.add_argument('--no-cuda', action='store_true',
                     help='disable cuda')
 parser.add_argument('--resume', default='',
@@ -173,8 +178,10 @@ def open_sesemi():
     hparams = OmegaConf.create(dict(
         backbone=args.backbone,
         pretrained=args.pretrained,
+        freeze_backbone=args.freeze_backbone,
         num_labeled_classes=len(args.classes),
-        num_unlabeled_classes=num_unlabeled_classes,
+        num_unlabeled_classes=num_unlabeled_classes if not args.fully_supervised else 0,
+        classes=args.classes,
         dropout_rate=0.5,
         global_pool='avg',
         optimizer=args.optimizer,
@@ -191,12 +198,22 @@ def open_sesemi():
 
     model = SESEMI(hparams)
 
+    model_checkpoint_callback = ModelCheckpoint(
+        monitor='val/top1',
+        mode='max',
+        save_top_k=1, 
+        save_last=True)
+
     trainer = pl.Trainer(
         gpus=args.num_gpus, 
         accelerator='dp', 
         max_steps=args.max_iters,
         default_root_dir=run_dir,
-        resume_from_checkpoint=args.checkpoint_path or None)
+        resume_from_checkpoint=args.resume_from_checkpoint or None,
+        callbacks=[model_checkpoint_callback])
+
+    if not args.resume_from_checkpoint and args.pretrained_checkpoint_path:
+        load_checkpoint(model, args.pretrained_checkpoint_path)
     
     if args.mode == 'evaluate-only':
         # Evaluate model on validation set and exit

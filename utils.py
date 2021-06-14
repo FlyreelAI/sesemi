@@ -13,9 +13,11 @@
 # limitations under the License.
 # ========================================================================
 import numpy as np
-import torchvision.transforms.functional as TF
-from itertools import combinations
 import os, errno
+import torch
+import torchvision.transforms.functional as TF
+
+from itertools import combinations
 
 
 def sigmoid_rampup(curr_iter, rampup_iters):
@@ -39,7 +41,7 @@ class GammaCorrection():
     def __repr__(self):
         return self.__class__.__name__ + '(r={})'.format(self.gamma_range)
 
-    
+
 def adjust_polynomial_lr(optimizer, curr_iter, *, warmup_iters, warmup_lr, lr, lr_pow, max_iters):
     """Decay learning rate according to polynomial schedule with warmup"""
     if curr_iter < warmup_iters:
@@ -72,3 +74,36 @@ def validate_paths(paths):
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             )
 
+
+def load_checkpoint(model, checkpoint_path):
+    print(f'Loading {checkpoint_path}')
+    print()
+    with open(checkpoint_path, 'rb') as f:
+        checkpoint = torch.load(f)
+
+    pretrained_state_dict = checkpoint['state_dict']
+    current_state_dict = model.state_dict()
+    if 'fc_unlabeled.weight' in pretrained_state_dict:
+        if 'fc_unlabeled.weight' not in current_state_dict or (
+                pretrained_state_dict['fc_unlabeled.weight'].shape != current_state_dict['fc_unlabeled.weight'].shape):
+            pretrained_state_dict.pop('fc_unlabeled.weight')
+            pretrained_state_dict.pop('fc_unlabeled.bias')
+    
+    if 'fc_labeled.weight' in pretrained_state_dict:
+        if 'fc_labeled.weight' not in current_state_dict or (
+                pretrained_state_dict['fc_labeled.weight'].shape != current_state_dict['fc_labeled.weight'].shape):
+            pretrained_state_dict.pop('fc_labeled.weight')
+            pretrained_state_dict.pop('fc_labeled.bias')
+
+    incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
+    if incompatible_keys.missing_keys:
+        print('missing keys:')
+        print('---')
+        print('\n'.join(incompatible_keys.missing_keys))
+        print()
+    
+    if incompatible_keys.unexpected_keys:
+        print('unexpected keys:')
+        print('---')
+        print('\n'.join(incompatible_keys.unexpected_keys))
+        print()

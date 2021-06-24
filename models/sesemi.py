@@ -219,6 +219,8 @@ class SESEMI(pl.LightningModule):
         self.log('val/top1', top1)
         self.log('val/loss', loss)
 
+        print()
+        print()
         logging.info(
             'Epoch {:03d} =====> '
             'Valid Loss: {:.4f}  '

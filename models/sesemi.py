@@ -23,6 +23,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 
 from torchmetrics.classification.accuracy import Accuracy
+from torchmetrics.average import AverageMeter
 
 
 SUPPORTED_BACKBONES = (
@@ -107,6 +108,7 @@ class SESEMI(pl.LightningModule):
             torch.tensor(0., dtype=torch.float32, device=self.device))
 
         self.validation_top1_accuracy = Accuracy(top_k=1)
+        self.validation_average_loss = AverageMeter()
     
     def forward(self, x):
         features = self.feature_extractor(x)
@@ -166,8 +168,6 @@ class SESEMI(pl.LightningModule):
     def training_step(self, batch, batch_index):
         inputs_t, targets_t = batch['supervised']
         inputs_u, targets_u = batch.get('unsupervised_rotation', (None, None))
-
-        message = {}
         
         # Forward pass
         outputs_t, outputs_u = self.forward_train(inputs_t, inputs_u)
@@ -190,31 +190,25 @@ class SESEMI(pl.LightningModule):
         self.log('train/loss', loss)
         self.log('train/learning_rate', self.current_learning_rate)
 
-        message['rank'] = self.global_rank
-        message['epoch'] = self.trainer.current_epoch
-        message['step'] = self.global_step
-        message['loss'] = float(loss)
-        message['loss_labeled'] = float(loss_t)
-        message['loss_unlabeled'] = float(loss_u)
-        message['loss_weight'] = float(loss_weight)
-
-        if self.global_rank == 0:
-            logging.info(str(message))
-
         return loss
 
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
-        outputs_t = self.forward(inputs_t)
-        return outputs_t, targets_t
+        outputs_t = self.fc_labeled(self.feature_extractor(inputs_t))
+        probs_t = torch.softmax(outputs_t, dim=-1)
+        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='mean')
+        return probs_t, targets_t, loss_t
         
     def validation_step_end(self, outputs):
-        outputs_t, targets_t = outputs
+        outputs_t, targets_t, loss_t = outputs
         self.validation_top1_accuracy.update(outputs_t, targets_t)
+        self.validation_average_loss.update(loss_t)
 
     def validation_epoch_end(self, outputs):
         top1 = self.validation_top1_accuracy.compute()
+        loss = self.validation_average_loss.compute()
         self.validation_top1_accuracy.reset()
+        self.validation_average_loss.reset()
 
         if top1 > self.best_validation_top1_accuracy:
             self.best_validation_top1_accuracy =  torch.tensor(
@@ -223,7 +217,14 @@ class SESEMI(pl.LightningModule):
                 device=self.best_validation_top1_accuracy.device)
 
         self.log('val/top1', top1)
-        logging.info('Epoch {:03d} =====> Validation Accuracy {:.4f} [Best {:.4f}]'.format(
-            self.trainer.current_epoch,
-            top1,
-            self.best_validation_top1_accuracy))
+        self.log('val/loss', loss)
+
+        logging.info(
+            'Epoch {:03d} =====> '
+            'Valid Loss: {:.4f}  '
+            'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
+                self.trainer.current_epoch,
+                loss,
+                top1,
+                self.best_validation_top1_accuracy)
+        )

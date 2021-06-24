@@ -210,7 +210,6 @@ def open_sesemi():
         accelerator='dp', 
         max_steps=args.max_iters,
         default_root_dir=run_dir,
-        progress_bar_refresh_rate=0,
         resume_from_checkpoint=args.resume_from_checkpoint or None,
         callbacks=[model_checkpoint_callback])
 

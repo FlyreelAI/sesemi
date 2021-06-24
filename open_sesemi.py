@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from omegaconf import OmegaConf
 
 from torchvision import datasets
+from pprint import pprint
 
 from models import SESEMI
 from utils import load_checkpoint, validate_paths, assert_same_classes
@@ -209,11 +210,21 @@ def open_sesemi():
         accelerator='dp', 
         max_steps=args.max_iters,
         default_root_dir=run_dir,
+        progress_bar_refresh_rate=0,
         resume_from_checkpoint=args.resume_from_checkpoint or None,
         callbacks=[model_checkpoint_callback])
 
     if not args.resume_from_checkpoint and args.pretrained_checkpoint_path:
         load_checkpoint(model, args.pretrained_checkpoint_path)
+
+    print(f'CLI hyperparameters:')
+    pprint(dict(hparams))
+    print()
+    print(f'Fully loaded hyperparameters:')
+    pprint(dict(model.hparams))
+    print()
+    print(f'Steps per epoch: {args.epoch_over}')
+    print()
     
     if args.mode == 'evaluate-only':
         # Evaluate model on validation set and exit
@@ -224,7 +235,7 @@ def open_sesemi():
         loaders = dict(supervised=train_loader)
     else:
         loaders = dict(supervised=train_loader, unsupervised_rotation=unlabeled_loader)
-    
+
     trainer.fit(model, loaders, val_loader)
     
 

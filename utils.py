@@ -82,6 +82,9 @@ def load_checkpoint(model, checkpoint_path):
         checkpoint = torch.load(f)
 
     pretrained_state_dict = checkpoint['state_dict']
+    pretrained_state_dict.pop('current_learning_rate', None)
+    pretrained_state_dict.pop('best_validation_top1_accuracy', None)
+    
     current_state_dict = model.state_dict()
     if 'fc_unlabeled.weight' in pretrained_state_dict:
         if 'fc_unlabeled.weight' not in current_state_dict or (

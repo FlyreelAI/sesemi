@@ -22,6 +22,8 @@ import torch.nn.functional as F
 
 import pytorch_lightning as pl
 
+from pytorch_lightning.trainer.states import TrainerState, RunningStage
+
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics.average import AverageMeter
 
@@ -210,23 +212,24 @@ class SESEMI(pl.LightningModule):
         self.validation_top1_accuracy.reset()
         self.validation_average_loss.reset()
 
-        if top1 > self.best_validation_top1_accuracy:
-            self.best_validation_top1_accuracy =  torch.tensor(
-                float(top1),
-                dtype=self.best_validation_top1_accuracy.dtype,
-                device=self.best_validation_top1_accuracy.device)
+        if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
+            if top1 > self.best_validation_top1_accuracy:
+                self.best_validation_top1_accuracy =  torch.tensor(
+                    float(top1),
+                    dtype=self.best_validation_top1_accuracy.dtype,
+                    device=self.best_validation_top1_accuracy.device)
 
-        self.log('val/top1', top1)
-        self.log('val/loss', loss)
+                self.log('val/top1', top1)
+                self.log('val/loss', loss)
 
-        print()
-        print()
-        logging.info(
-            'Epoch {:03d} =====> '
-            'Valid Loss: {:.4f}  '
-            'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
-                self.trainer.current_epoch,
-                loss,
-                top1,
-                self.best_validation_top1_accuracy)
-        )
+                print()
+                print()
+                logging.info(
+                    'Epoch {:03d} =====> '
+                    'Valid Loss: {:.4f}  '
+                    'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
+                        self.trainer.current_epoch,
+                        loss,
+                        top1,
+                        self.best_validation_top1_accuracy)
+                )

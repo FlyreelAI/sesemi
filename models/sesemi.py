@@ -222,14 +222,15 @@ class SESEMI(pl.LightningModule):
                 self.log('val/top1', top1)
                 self.log('val/loss', loss)
 
-                print()
-                print()
-                logging.info(
-                    'Epoch {:03d} =====> '
-                    'Valid Loss: {:.4f}  '
-                    'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
-                        self.trainer.current_epoch,
-                        loss,
-                        top1,
-                        self.best_validation_top1_accuracy)
-                )
+                if self.global_rank == 0:
+                    print()
+                    print()
+                    logging.info(
+                        'Epoch {:03d} =====> '
+                        'Valid Loss: {:.4f}  '
+                        'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
+                            self.trainer.current_epoch,
+                            loss,
+                            top1,
+                            self.best_validation_top1_accuracy)
+                    )

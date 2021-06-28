@@ -21,7 +21,7 @@ from itertools import combinations
 
 
 def sigmoid_rampup(curr_iter, rampup_iters):
-    """Exponential rampup from https://arxiv.org/abs/1610.02242"""
+    """Exponential rampup from <https://arxiv.org/abs/1610.02242>"""
     if rampup_iters == 0:
         return 1.0
     else:
@@ -76,11 +76,15 @@ def validate_paths(paths):
 
 
 def load_checkpoint(model, checkpoint_path):
-    print(f'Loading {checkpoint_path}')
-    print()
     with open(checkpoint_path, 'rb') as f:
         checkpoint = torch.load(f)
 
+    pretrained_backbone = checkpoint['hyper_parameters']['backbone']
+    model_backbone = model.hparams.backbone
+    assert pretrained_backbone == model_backbone, \
+    f'Checkpoint backbone `{pretrained_backbone}` is different from model backbone `{model_backbone}`. ' \
+    'Specify the correct model backbone to match the pretrained backbone.'
+    
     pretrained_state_dict = checkpoint['state_dict']
     pretrained_state_dict.pop('current_learning_rate', None)
     pretrained_state_dict.pop('best_validation_top1_accuracy', None)

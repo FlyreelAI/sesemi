@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ========================================================================
-import os, errno
+import os
 import argparse
 import numpy as np
 from tqdm import trange
@@ -23,7 +23,6 @@ logging.basicConfig(
 )
 
 import torch
-import torch.nn.functional as F
 from torchvision import datasets
 
 from models import SESEMI
@@ -67,11 +66,11 @@ class Classifier():
         self.device = torch.device(
             'cpu' if args.no_cuda or not torch.cuda.is_available() else 'cuda'
         )
-        self._init_model()
+        self.init_model()
 
-    def _init_model(self):
+    def init_model(self):
         self.model = SESEMI.load_from_checkpoint(self.model_path, map_location=self.device)
-        logging.info(f'=> Model checkpoint loaded from {self.model_path}')
+        logging.info(f'Model checkpoint loaded from {self.model_path}')
         self.model = torch.nn.DataParallel(self.model).to(self.device)
         self.classes = np.array(self.model.module.hparams.classes)
         self.model.eval()

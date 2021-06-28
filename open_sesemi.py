@@ -15,24 +15,22 @@
 import os
 import argparse
 import numpy as np
-from pytorch_lightning import callbacks
 
 import torch
+from torchvision import datasets
+
 import pytorch_lightning as pl
+from pytorch_lightning import callbacks
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from omegaconf import OmegaConf
 
-from torchvision import datasets
-from pprint import pprint
-
 from models import SESEMI
-from utils import load_checkpoint, validate_paths, assert_same_classes
+from utils import validate_paths, assert_same_classes, load_checkpoint
 from dataset import (
     UnlabeledDataset, RotationTransformer,
     train_transforms, center_crop_transforms
 )
-
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 import logging
 logging.basicConfig(
@@ -42,9 +40,6 @@ logging.basicConfig(
 
 parser = argparse.ArgumentParser(description='Supervised and Semi-Supervised Image Classification',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-# Optional subparser to evaluate trained model on validation dataset and exit
-subparsers = parser.add_subparsers(dest='mode', help='module modes')
-evaluate_parser = subparsers.add_parser('evaluate-only', help='model evaluation')
 # Run arguments
 parser.add_argument('--run-id', default='run01',
                     help='experiment ID to name checkpoints and logs')
@@ -52,12 +47,12 @@ parser.add_argument('--log-dir', default='./logs',
                     help='directory to output checkpoints and metrics')
 parser.add_argument('--resume-from-checkpoint', default='',
                     help='path to saved checkpoint')
-parser.add_argument('--pretrained-checkpoint-path', default='',
+parser.add_argument('--pretrained-checkpoint', default='',
                     help='path to pretrained model weights')
+parser.add_argument('--num-gpus', default=1, type=int,
+                    help='the number of GPUs to use')
 parser.add_argument('--no-cuda', action='store_true',
-                    help='disable cuda')
-parser.add_argument('--resume', default='',
-                    help='path to latest checkpoint')
+                    help='disable CUDA')
 # Data loading arguments
 parser.add_argument('--data-dir', nargs='+', default=[],
                     help='path(s) to dataset containing "train" and "val" subdirs')
@@ -74,6 +69,9 @@ parser.add_argument('--crop-dim', default=224, type=int,
 # Training arguments
 parser.add_argument('--backbone', default='resnet50d',
                     help='choice of backbone architecture')
+parser.add_argument('--global-pool', default='avg',
+                    choices=['avg', 'max', 'avgmax', 'catavgmax'],
+                    help='global pooling method to aggregate backbone features')
 parser.add_argument('--freeze-backbone', action='store_true',
                     help='freeze backbone weights from updating')
 parser.add_argument('--pretrained', action='store_true',
@@ -95,17 +93,14 @@ parser.add_argument('--momentum', default=0.9, type=float,
                     help='momentum parameter in SGD or beta1 parameter in Adam')
 parser.add_argument('--weight-decay', default=5e-4, type=float,
                     help='weight decay')
-parser.add_argument('--num-gpus', default=1, type=int,
-                    help='the number of GPUs to use')
-parser.add_argument('--fully-supervised', action='store_true')
+parser.add_argument('--fully-supervised', action='store_true',
+                    help='fully supervised training without unlabeled data')
+parser.add_argument('--evaluate-only', action='store_true',
+                    help='evaluate model on validation set and exit')
 
 
 def open_sesemi():
     args = parser.parse_args()
-    
-    args.device = torch.device(
-        'cpu' if args.no_cuda or not torch.cuda.is_available() else 'cuda'
-    )
     run_dir = os.path.join(args.log_dir, args.run_id)
     os.makedirs(run_dir, exist_ok=True)
 
@@ -140,8 +135,8 @@ def open_sesemi():
         UnlabeledDataset(datadir, train_transformations) for datadir in data_dirs
     ])
     
-    for dataset in [train_dataset, val_dataset]:
-        assert_same_classes(dataset.datasets)
+    for ds in [train_dataset, val_dataset]:
+        assert_same_classes(ds.datasets)
 
     rotate = RotationTransformer()
     unlabeled_loader = torch.utils.data.DataLoader(
@@ -162,20 +157,15 @@ def open_sesemi():
         batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True, drop_last=False)
 
+    # Initialize hyper-parameters
     num_unlabeled_classes = rotate.num_rotation_labels
     args.classes = train_dataset.datasets[0].classes
-
-    # Initialize variables
-    args.epoch_over = max(len(train_loader), len(unlabeled_loader))
-    args.warmup_iters = args.warmup_epochs * args.epoch_over
-    args.max_iters = args.epochs * args.epoch_over
-    args.running_lr = args.warmup_lr if args.warmup_epochs > 0 else args.lr
+    args.iters_per_epoch = len(train_loader) if args.fully_supervised else len(unlabeled_loader) 
+    args.warmup_iters = args.warmup_epochs * args.iters_per_epoch
+    args.max_iters = args.epochs * args.iters_per_epoch
     args.stop_rampup = int(0.0 * args.max_iters) # try 0.1-0.5
     args.loss_weight = 1.0
-    args.curr_iter = 0
-    args.best_val_score = 0
     
-    # Initialize model with optional pretrained backbone
     hparams = OmegaConf.create(dict(
         backbone=args.backbone,
         pretrained=args.pretrained,
@@ -183,8 +173,8 @@ def open_sesemi():
         num_labeled_classes=len(args.classes),
         num_unlabeled_classes=num_unlabeled_classes if not args.fully_supervised else 0,
         classes=args.classes,
-        dropout_rate=0.5,
-        global_pool='avg',
+        dropout_rate=0.5 if not args.fully_supervised else 0.0,
+        global_pool=args.global_pool,
         optimizer=args.optimizer,
         momentum=args.momentum,
         weight_decay=args.weight_decay,
@@ -196,7 +186,8 @@ def open_sesemi():
         lr_pow=args.lr_pow,
         max_iters=args.max_iters,
     ))
-
+    
+    # Model loading and training
     model = SESEMI(hparams)
 
     model_checkpoint_callback = ModelCheckpoint(
@@ -206,26 +197,19 @@ def open_sesemi():
         save_last=True)
 
     trainer = pl.Trainer(
-        gpus=args.num_gpus, 
-        accelerator='dp', 
+        gpus=0 if args.no_cuda else args.num_gpus,
+        accelerator='dp',
         max_steps=args.max_iters,
         default_root_dir=run_dir,
         resume_from_checkpoint=args.resume_from_checkpoint or None,
         callbacks=[model_checkpoint_callback])
 
-    if not args.resume_from_checkpoint and args.pretrained_checkpoint_path:
-        load_checkpoint(model, args.pretrained_checkpoint_path)
+    if not args.resume_from_checkpoint and args.pretrained_checkpoint:
+        # Load checkpoint for finetuning or evaluation
+        logging.info(f'Loading checkpoint {args.pretrained_checkpoint}')
+        load_checkpoint(model, args.pretrained_checkpoint)
 
-    print(f'CLI hyperparameters:')
-    pprint(dict(hparams))
-    print()
-    print(f'Fully loaded hyperparameters:')
-    pprint(dict(model.hparams))
-    print()
-    print(f'Steps per epoch: {args.epoch_over}')
-    print()
-    
-    if args.mode == 'evaluate-only':
+    if args.evaluate_only:
         # Evaluate model on validation set and exit
         trainer.validate(model, val_loader)
         return

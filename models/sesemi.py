@@ -14,8 +14,16 @@
 # ========================================================================
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .timm import PyTorchImageModels
+from utils import sigmoid_rampup, adjust_polynomial_lr
 import logging
+
+import pytorch_lightning as pl
+from pytorch_lightning.trainer.states import TrainerState, RunningStage
+
+from torchmetrics.classification.accuracy import Accuracy
+from torchmetrics.average import AverageMeter
 
 
 SUPPORTED_BACKBONES = (
@@ -65,35 +73,49 @@ SUPPORTED_BACKBONES = (
 )
 
 
-class SESEMI(nn.Module):
-    def __init__(self, backbone, pretrained,
-                 num_labeled_classes, num_unlabeled_classes,
-                 dropout_rate=0.5, global_pool='avg'):
+class SESEMI(pl.LightningModule):
+    def __init__(self, hparams):
         super(SESEMI, self).__init__()
-        assert backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
-        self.backbone = backbone
-        self.pretrained = pretrained
-        self.num_labeled_classes = num_labeled_classes
-        self.num_unlabeled_classes = num_unlabeled_classes
-        self.dropout_rate = dropout_rate
-        self.global_pool = global_pool
-        if not global_pool:
-            # If no global pooling method specified, fall back to "avg"
-            self.global_pool = 'avg'
+        self.save_hyperparameters(hparams)
 
-        self.feature_extractor = PyTorchImageModels(backbone, pretrained, self.global_pool)
+        assert self.hparams.backbone in SUPPORTED_BACKBONES, f'--backbone must be one of {SUPPORTED_BACKBONES}'
 
-        if self.pretrained:
-            logging.info(f'Initialized with pretrained {backbone} backbone')
+        self.feature_extractor = PyTorchImageModels(self.hparams.backbone, self.hparams.pretrained, self.hparams.global_pool)
+
+        if self.hparams.pretrained:
+            logging.info(f'Initialized with pretrained {self.hparams.backbone} backbone')
+        
+        if self.hparams.freeze_backbone:
+            logging.info(f'Freezing {self.hparams.backbone} backbone')
+            for m in self.feature_extractor.modules():
+                m.eval()
+                for param in m.parameters():
+                    param.requires_grad = False
+
         self.in_features = self.feature_extractor.in_features
-        self.dropout = nn.Dropout(dropout_rate)
-        self.fc_labeled = nn.Linear(self.in_features, self.num_labeled_classes)
-        self.fc_unlabeled = nn.Linear(self.in_features, self.num_unlabeled_classes)
+        self.dropout = nn.Dropout(self.hparams.dropout_rate)
+        self.fc_labeled = nn.Linear(self.in_features, self.hparams.num_labeled_classes)
+        self.fc_unlabeled = nn.Linear(self.in_features, self.hparams.num_unlabeled_classes)
+        self.register_buffer(
+            'current_learning_rate',
+            torch.tensor(self.hparams.warmup_lr, dtype=torch.float32, device=self.device))
+        self.register_buffer(
+            'best_validation_top1_accuracy',
+            torch.tensor(0., dtype=torch.float32, device=self.device))
+
+        self.training_accuracy = Accuracy(top_k=1, dist_sync_on_step=True)
+        self.validation_top1_accuracy = Accuracy(top_k=1)
+        self.validation_average_loss = AverageMeter()
     
-    def forward(self, x_labeled, x_unlabeled=None):
+    def forward(self, x):
+        features = self.feature_extractor(x)
+        logits = self.fc_labeled(features)
+        return F.softmax(logits, dim=-1)
+
+    def forward_train(self, x_labeled, x_unlabeled=None):
         # Compute output for labeled input
         x_labeled = self.feature_extractor(x_labeled)
-        if self.dropout_rate > 0.0:
+        if self.hparams.dropout_rate > 0.0:
             x_labeled = self.dropout(x_labeled)
         output_labeled = self.fc_labeled(x_labeled)
         
@@ -103,5 +125,111 @@ class SESEMI(nn.Module):
             output_unlabeled = self.fc_unlabeled(x_unlabeled)
             return output_labeled, output_unlabeled
 
-        return output_labeled
+        return output_labeled, None
+
+    def optimizer_step(
+        self,
+        epoch,
+        batch_idx,
+        optimizer,
+        optimizer_idx,
+        optimizer_closure,
+        **kwargs,
+    ):
+        optimizer.step(closure=optimizer_closure)
+        self.current_learning_rate = torch.tensor(adjust_polynomial_lr(
+                optimizer.optimizer, self.global_step,
+                warmup_iters=self.hparams.warmup_iters,
+                warmup_lr=self.hparams.warmup_lr,
+                lr=self.hparams.lr,
+                lr_pow=self.hparams.lr_pow,
+                max_iters=self.hparams.max_iters),
+                dtype=self.current_learning_rate.dtype,
+                device=self.current_learning_rate.device)
+
+    def configure_optimizers(self):
+        if self.hparams.optimizer.lower() == 'sgd':
+            optimizer = torch.optim.SGD(
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.hparams.lr, momentum=self.hparams.momentum, nesterov=True,
+                weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer.lower() == 'adam':
+            optimizer = torch.optim.Adam(
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.hparams.lr, betas=(self.hparams.momentum, 0.999), weight_decay=0.0)
+        else:
+            raise NotImplementedError()    
+        
+        return optimizer
+
+    def training_step(self, batch, batch_index):
+        inputs_t, targets_t = batch['supervised']
+        inputs_u, targets_u = batch.get('unsupervised_rotation', (None, None))
+        
+        # Forward pass
+        outputs_t, outputs_u = self.forward_train(inputs_t, inputs_u)
+        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='mean')
+        if outputs_u is not None:
+            loss_u = F.cross_entropy(outputs_u, targets_u, reduction='mean')
+        else:
+            loss_u = 0.
+        loss_weight = self.hparams.initial_loss_weight * sigmoid_rampup(
+            self.global_step, self.hparams.stop_rampup)
+        
+        loss = loss_t + loss_u * loss_weight
+
+        self.log('train/loss_labeled', loss_t)
+        self.log('train/loss_unlabeled', loss_u)
+        self.log('train/loss_unlabeled_weight', loss_weight)
+        self.log('train/loss', loss)
+        self.log('train/learning_rate', self.current_learning_rate)
+
+        return {'loss': loss, 'probs': F.softmax(outputs_t, dim=-1), 'targets': targets_t}
+
+    def training_step_end(self, outputs):
+        self.training_accuracy(outputs['probs'], outputs['targets'])
+        self.log('acc', self.training_accuracy, on_step=False, on_epoch=True, prog_bar=True, logger=False)
+        self.log('lr', self.current_learning_rate, on_step=True, on_epoch=False, prog_bar=True, logger=False)
+        loss = outputs['loss'].mean()
+        return loss
+
+    def validation_step(self, batch, batch_index):
+        inputs_t, targets_t = batch
+        outputs_t = self.fc_labeled(self.feature_extractor(inputs_t))
+        probs_t = F.softmax(outputs_t, dim=-1)
+        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='none')
+        return probs_t, targets_t, loss_t
+        
+    def validation_step_end(self, outputs):
+        outputs_t, targets_t, loss_t = outputs
+        self.validation_top1_accuracy.update(outputs_t, targets_t)
+        self.validation_average_loss.update(loss_t)
+
+    def validation_epoch_end(self, outputs):
+        top1 = self.validation_top1_accuracy.compute()
+        loss = self.validation_average_loss.compute()
+        self.validation_top1_accuracy.reset()
+        self.validation_average_loss.reset()
+
+        if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
+            if top1 > self.best_validation_top1_accuracy:
+                self.best_validation_top1_accuracy =  torch.tensor(
+                    float(top1),
+                    dtype=self.best_validation_top1_accuracy.dtype,
+                    device=self.best_validation_top1_accuracy.device)
+
+            self.log('val/top1', top1)
+            self.log('val/loss', loss)
+
+            if self.global_rank == 0:
+                print()
+                logging.info(
+                    'Epoch {:03d} =====> '
+                    'Valid Loss: {:.4f}  '
+                    'Valid Acc: {:.4f}  [Best {:.4f}]'.format(
+                        self.trainer.current_epoch,
+                        loss,
+                        top1,
+                        self.best_validation_top1_accuracy)
+                )
 

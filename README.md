@@ -4,7 +4,7 @@
 <span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.6.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span>
 
 ## Why SESEMI?
-SESEMI is an open source image classification library built on PyTorch. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.
+SESEMI is an open source image classification library built on PyTorch and PyTorch Lightning. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.
 
 ### Highlights and Features
 
@@ -66,7 +66,7 @@ training will work but will take a very long time.
     $ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
     ```
 
-3. Run training using SESEMI for 80 epochs.
+3. Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the FastAI leaderboard, using a standard training protocol + unlabeled data - fancy tricks.
 
     If you're not using docker this can be done as follows:
 
@@ -95,6 +95,12 @@ training will work but will take a very long time.
         --backbone resnet50d --run-id imagewoof_run01
     ```
 
+    The training logs with all relevant training statistics (accuracy, losses, learning rate, etc.) are written to the `./logs` directory. You can use [TensorBoard](https://www.tensorflow.org/tensorboard) to view and monitor them in your browser during training.
+    
+    ```bash
+    $ tensorboard --logdir ./logs/imagewoof_run01/lightning_logs/
+    ```
+    
 3. Run evaluation on the trained checkpoint.
 
     Without docker:
@@ -102,7 +108,8 @@ training will work but will take a very long time.
     ```bash
     $ python -u open_sesemi.py \
         --data-dir ./data/imagewoof2 \
-        --checkpoint-path ./checkpoints/imagewoof_run01/best_val.pth \
+        --pretrained-checkpoint ./logs/imagewoof_run01/checkpoints/last.ckpt \
+        --run-id imagewoof_test01 \
         evaluate-only
     ```
 
@@ -118,7 +125,8 @@ training will work but will take a very long time.
         ${SESEMI_IMAGE}:latest \
         python -u open_sesemi.py \
         --data-dir /home/appuser/sesemi/data/imagewoof2 \
-        --checkpoint-path /home/appuser/sesemi/checkpoints/imagewoof_run01/best_val.pth \
+        --pretrained-checkpoint ./logs/imagewoof_run01/checkpoints/last.ckpt \
+        --run-id imagewoof_test01 \
         evaluate-only
     ```
 
@@ -126,7 +134,7 @@ training will work but will take a very long time.
 If you find this work useful, consider citing the related paper:
 
 ```
-@inproceedings{tran-sesemi,
+@inproceedings{TranSESEMI,
   title="{Exploring Self-Supervised Regularization for Supervised and Semi-Supervised Learning}",
   author={Phi Vu Tran},
   booktitle={NeurIPS Workshop on Learning with Rich Experience: Integration of Learning Paradigms},

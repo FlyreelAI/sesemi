@@ -110,7 +110,7 @@ training will work but will take a very long time.
         --data-dir ./data/imagewoof2 \
         --pretrained-checkpoint ./logs/imagewoof_run01/checkpoints/last.ckpt \
         --run-id imagewoof_test01 \
-        evaluate-only
+        --evaluate-only
     ```
 
     With docker:
@@ -127,7 +127,7 @@ training will work but will take a very long time.
         --data-dir /home/appuser/sesemi/data/imagewoof2 \
         --pretrained-checkpoint ./logs/imagewoof_run01/checkpoints/last.ckpt \
         --run-id imagewoof_test01 \
-        evaluate-only
+        --evaluate-only
     ```
 
 ## Citation

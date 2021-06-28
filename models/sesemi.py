@@ -197,7 +197,7 @@ class SESEMI(pl.LightningModule):
         inputs_t, targets_t = batch
         outputs_t = self.fc_labeled(self.feature_extractor(inputs_t))
         probs_t = F.softmax(outputs_t, dim=-1)
-        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='mean')
+        loss_t = F.cross_entropy(outputs_t, targets_t, reduction='none')
         return probs_t, targets_t, loss_t
         
     def validation_step_end(self, outputs):

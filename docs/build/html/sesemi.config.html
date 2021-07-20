@@ -1,0 +1,427 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="sesemi.models package" href="sesemi.models.html" /><link rel="prev" title="sesemi package" href="sesemi.html" />
+
+    <meta name="generator" content="sphinx-4.1.1, furo 2021.07.05.beta38"/>
+        <title>sesemi.config package - SESEMI documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css" />
+    
+
+
+<style>
+  :root {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+
+  /* For allowing end-user-specific overrides */
+  .override-light {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  .override-dark {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+</style><link media="(prefers-color-scheme: dark)" rel="stylesheet" href="_static/pygments_dark.css"></head>
+  <body dir="">
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+      stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z"/>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      class="feather feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      class="feather feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SESEMI  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">SESEMI  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html">
+  <input class="sidebar-search" placeholder=Search name="q">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="sesemi.html">sesemi package</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">sesemi.config package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="sesemi.models.html">sesemi.models package</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="sesemi.models.backbones.html">sesemi.models.backbones package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sesemi.models.heads.html">sesemi.models.heads package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sesemi.schedulers.html">sesemi.schedulers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sesemi.trainer.html">sesemi.trainer package</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <main class="main">
+    <div class="content">
+      <article role="main">
+        <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+        </label>
+        <div class="section" id="sesemi-config-package">
+<h1>sesemi.config package<a class="headerlink" href="#sesemi-config-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-sesemi.config.resolvers">
+<span id="sesemi-config-resolvers-module"></span><h2>sesemi.config.resolvers module<a class="headerlink" href="#module-sesemi.config.resolvers" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.AttributeResolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.resolvers.</span></span><span class="sig-name descname"><span class="pre">AttributeResolver</span></span><a class="headerlink" href="#sesemi.config.resolvers.AttributeResolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.SESEMIConfigAttributes">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.resolvers.</span></span><span class="sig-name descname"><span class="pre">SESEMIConfigAttributes</span></span><a class="headerlink" href="#sesemi.config.resolvers.SESEMIConfigAttributes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#sesemi.config.resolvers.AttributeResolver" title="sesemi.config.resolvers.AttributeResolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">sesemi.config.resolvers.AttributeResolver</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.SESEMIConfigAttributes.iterations_per_epoch">
+<span class="sig-name descname"><span class="pre">iterations_per_epoch</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#sesemi.config.resolvers.SESEMIConfigAttributes.iterations_per_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.SESEMIConfigAttributes.max_iterations">
+<span class="sig-name descname"><span class="pre">max_iterations</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#sesemi.config.resolvers.SESEMIConfigAttributes.max_iterations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.SESEMIConfigAttributes.num_gpus">
+<span class="sig-name descname"><span class="pre">num_gpus</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#sesemi.config.resolvers.SESEMIConfigAttributes.num_gpus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.resolvers.SESEMIConfigAttributes.num_nodes">
+<span class="sig-name descname"><span class="pre">num_nodes</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#sesemi.config.resolvers.SESEMIConfigAttributes.num_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+</div>
+<div class="section" id="module-sesemi.config.structs">
+<span id="sesemi-config-structs-module"></span><h2>sesemi.config.structs module<a class="headerlink" href="#module-sesemi.config.structs" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">ClassifierConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#sesemi.config.structs.ClassifierModelConfig" title="sesemi.config.structs.ClassifierModelConfig"><span class="pre">sesemi.config.structs.ClassifierModelConfig</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">ClassifierModelConfig(backbone='???',</span> <span class="pre">supervised_loss=LossCallableConfig(callable='???',</span> <span class="pre">scheduler=None,</span> <span class="pre">reduction='mean'),</span> <span class="pre">regularization_loss_heads=None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'???'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_scheduler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#sesemi.config.structs.LRSchedulerConfig" title="sesemi.config.structs.LRSchedulerConfig"><span class="pre">sesemi.config.structs.LRSchedulerConfig</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">NoneType</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.ClassifierConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierConfig.classes">
+<span class="sig-name descname"><span class="pre">classes</span></span><em class="property"><span class="pre">:</span> <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierConfig.classes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierConfig.lr_scheduler">
+<span class="sig-name descname"><span class="pre">lr_scheduler</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#sesemi.config.structs.LRSchedulerConfig" title="sesemi.config.structs.LRSchedulerConfig"><span class="pre">sesemi.config.structs.LRSchedulerConfig</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierConfig.lr_scheduler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierConfig.model">
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#sesemi.config.structs.ClassifierModelConfig" title="sesemi.config.structs.ClassifierModelConfig"><span class="pre">sesemi.config.structs.ClassifierModelConfig</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">ClassifierModelConfig(backbone='???',</span> <span class="pre">supervised_loss=LossCallableConfig(callable='???',</span> <span class="pre">scheduler=None,</span> <span class="pre">reduction='mean'),</span> <span class="pre">regularization_loss_heads=None)</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierConfig.model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierConfig.optimizer">
+<span class="sig-name descname"><span class="pre">optimizer</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierConfig.optimizer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierModelConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">ClassifierModelConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backbone</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'???'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supervised_loss</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#sesemi.config.structs.LossCallableConfig" title="sesemi.config.structs.LossCallableConfig"><span class="pre">sesemi.config.structs.LossCallableConfig</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">LossCallableConfig(callable='???',</span> <span class="pre">scheduler=None,</span> <span class="pre">reduction='mean')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regularization_loss_heads</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#sesemi.config.structs.LossHeadConfig" title="sesemi.config.structs.LossHeadConfig"><span class="pre">sesemi.config.structs.LossHeadConfig</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">NoneType</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.ClassifierModelConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierModelConfig.backbone">
+<span class="sig-name descname"><span class="pre">backbone</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierModelConfig.backbone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierModelConfig.regularization_loss_heads">
+<span class="sig-name descname"><span class="pre">regularization_loss_heads</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#sesemi.config.structs.LossHeadConfig" title="sesemi.config.structs.LossHeadConfig"><span class="pre">sesemi.config.structs.LossHeadConfig</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierModelConfig.regularization_loss_heads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.ClassifierModelConfig.supervised_loss">
+<span class="sig-name descname"><span class="pre">supervised_loss</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#sesemi.config.structs.LossCallableConfig" title="sesemi.config.structs.LossCallableConfig"><span class="pre">sesemi.config.structs.LossCallableConfig</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">LossCallableConfig(callable='???',</span> <span class="pre">scheduler=None,</span> <span class="pre">reduction='mean')</span></em><a class="headerlink" href="#sesemi.config.structs.ClassifierModelConfig.supervised_loss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">LRSchedulerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'step'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">NoneType</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">NoneType</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.frequency">
+<span class="sig-name descname"><span class="pre">frequency</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.frequency" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.interval">
+<span class="sig-name descname"><span class="pre">interval</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'step'</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.interval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.monitor">
+<span class="sig-name descname"><span class="pre">monitor</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.scheduler">
+<span class="sig-name descname"><span class="pre">scheduler</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.scheduler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LRSchedulerConfig.strict">
+<span class="sig-name descname"><span class="pre">strict</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#sesemi.config.structs.LRSchedulerConfig.strict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossCallableConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">LossCallableConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callable</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'???'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'mean'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.LossCallableConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossCallableConfig.callable">
+<span class="sig-name descname"><span class="pre">callable</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.LossCallableConfig.callable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossCallableConfig.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'mean'</span></em><a class="headerlink" href="#sesemi.config.structs.LossCallableConfig.reduction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossCallableConfig.scheduler">
+<span class="sig-name descname"><span class="pre">scheduler</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.LossCallableConfig.scheduler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossHeadConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">LossHeadConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">head</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'mean'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.LossHeadConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossHeadConfig.head">
+<span class="sig-name descname"><span class="pre">head</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><a class="headerlink" href="#sesemi.config.structs.LossHeadConfig.head" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossHeadConfig.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'mean'</span></em><a class="headerlink" href="#sesemi.config.structs.LossHeadConfig.reduction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.LossHeadConfig.scheduler">
+<span class="sig-name descname"><span class="pre">scheduler</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.LossHeadConfig.scheduler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">RunConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">seed:</span> <span class="pre">Union[int</span></em>, <em class="sig-param"><span class="pre">NoneType]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">num_epochs:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">'???'</span></em>, <em class="sig-param"><span class="pre">id:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'run01'</span></em>, <em class="sig-param"><span class="pre">log_dir:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'./logs'</span></em>, <em class="sig-param"><span class="pre">mode:</span> <span class="pre">sesemi.config.structs.RunMode</span> <span class="pre">=</span> <span class="pre">&lt;RunMode.TRAIN:</span> <span class="pre">'train'&gt;</span></em>, <em class="sig-param"><span class="pre">resume_from_checkpoint:</span> <span class="pre">Union[str</span></em>, <em class="sig-param"><span class="pre">NoneType]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">pretrained_checkpoint_path:</span> <span class="pre">Union[str</span></em>, <em class="sig-param"><span class="pre">NoneType]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">no_cuda:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.RunConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'run01'</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.log_dir">
+<span class="sig-name descname"><span class="pre">log_dir</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'./logs'</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.log_dir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.mode">
+<span class="sig-name descname"><span class="pre">mode</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#sesemi.config.structs.RunMode" title="sesemi.config.structs.RunMode"><span class="pre">sesemi.config.structs.RunMode</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">'train'</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.no_cuda">
+<span class="sig-name descname"><span class="pre">no_cuda</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.no_cuda" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.num_epochs">
+<span class="sig-name descname"><span class="pre">num_epochs</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.num_epochs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.pretrained_checkpoint_path">
+<span class="sig-name descname"><span class="pre">pretrained_checkpoint_path</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.pretrained_checkpoint_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.resume_from_checkpoint">
+<span class="sig-name descname"><span class="pre">resume_from_checkpoint</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.resume_from_checkpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunConfig.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#sesemi.config.structs.RunConfig.seed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunMode">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">RunMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.RunMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunMode.EVALUATE_ONLY">
+<span class="sig-name descname"><span class="pre">EVALUATE_ONLY</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'evaluate-only'</span></em><a class="headerlink" href="#sesemi.config.structs.RunMode.EVALUATE_ONLY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.RunMode.TRAIN">
+<span class="sig-name descname"><span class="pre">TRAIN</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'train'</span></em><a class="headerlink" href="#sesemi.config.structs.RunMode.TRAIN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">SESEMIConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">run:</span> <span class="pre">sesemi.config.structs.RunConfig</span> <span class="pre">=</span> <span class="pre">RunConfig(seed=None</span></em>, <em class="sig-param"><span class="pre">num_epochs='???'</span></em>, <em class="sig-param"><span class="pre">id='run01'</span></em>, <em class="sig-param"><span class="pre">log_dir='./logs'</span></em>, <em class="sig-param"><span class="pre">mode=&lt;RunMode.TRAIN:</span> <span class="pre">'train'&gt;</span></em>, <em class="sig-param"><span class="pre">resume_from_checkpoint=None</span></em>, <em class="sig-param"><span class="pre">pretrained_checkpoint_path=None</span></em>, <em class="sig-param"><span class="pre">no_cuda=False)</span></em>, <em class="sig-param"><span class="pre">data:</span> <span class="pre">Any</span> <span class="pre">=</span> <span class="pre">'???'</span></em>, <em class="sig-param"><span class="pre">trainer:</span> <span class="pre">Any</span> <span class="pre">=</span> <span class="pre">'???'</span></em>, <em class="sig-param"><span class="pre">learner:</span> <span class="pre">Any</span> <span class="pre">=</span> <span class="pre">'???'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.data">
+<span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.learner">
+<span class="sig-name descname"><span class="pre">learner</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.learner" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.run">
+<span class="sig-name descname"><span class="pre">run</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#sesemi.config.structs.RunConfig" title="sesemi.config.structs.RunConfig"><span class="pre">sesemi.config.structs.RunConfig</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">RunConfig(seed=None,</span> <span class="pre">num_epochs='???',</span> <span class="pre">id='run01',</span> <span class="pre">log_dir='./logs',</span> <span class="pre">mode=&lt;RunMode.TRAIN:</span> <span class="pre">'train'&gt;,</span> <span class="pre">resume_from_checkpoint=None,</span> <span class="pre">pretrained_checkpoint_path=None,</span> <span class="pre">no_cuda=False)</span></em><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.trainer">
+<span class="sig-name descname"><span class="pre">trainer</span></span><em class="property"><span class="pre">:</span> <span class="pre">Any</span></em><em class="property"> <span class="pre">=</span> <span class="pre">'???'</span></em><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.trainer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+</dd></dl>
+</div>
+<div class="section" id="module-sesemi.config">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-sesemi.config" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+      </article>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="sesemi.models.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">sesemi.models package</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="sesemi.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">sesemi package</div>
+                
+              </div>
+            </a>
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; 2021, Flyreel AI
+            |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+            |
+            <a class="muted-link" href="_sources/sesemi.config.rst.txt"
+               rel="nofollow">
+              Show Source
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">sesemi.config package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-sesemi.config.resolvers">sesemi.config.resolvers module</a></li>
+<li><a class="reference internal" href="#module-sesemi.config.structs">sesemi.config.structs module</a></li>
+<li><a class="reference internal" href="#module-sesemi.config">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </main>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/scripts/main.js"></script>
+    </body>
+</html>

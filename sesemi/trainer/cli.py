@@ -67,7 +67,8 @@ def open_sesemi(config: SESEMIConfig):
         len(x) for x in train_dataloaders.values()
     )
 
-    if sesemi_config_attributes.num_gpus > 0:
+    accelerator = config.trainer.get("accelerator", "ddp")
+    if sesemi_config_attributes.num_gpus > 0 and accelerator == "ddp":
         sesemi_config_attributes.iterations_per_epoch = ceil(
             sesemi_config_attributes.iterations_per_epoch
             / sesemi_config_attributes.num_gpus

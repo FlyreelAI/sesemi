@@ -33,7 +33,7 @@ class PolynomialLR(_LRScheduler):
             )
 
         if self.last_epoch >= self.max_iters:
-            return [group["initial_lr"] for group in self.optimizer.param_groups]
+            return [0.0 for _ in self.optimizer.param_groups]
         else:
             if self.last_epoch < self.warmup_iters:
                 frac = self.last_epoch / self.warmup_iters

@@ -29,7 +29,7 @@ from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics.average import AverageMeter
 
-from .config.structs import ClassifierConfig
+from .config.structs import ClassifierHParams
 from .models.backbones.base import Backbone
 from .utils import reduce_tensor
 from .schedulers.weight import WeightScheduler
@@ -38,16 +38,16 @@ logger = logging.getLogger(__name__)
 
 
 class Classifier(pl.LightningModule):
-    hparams: ClassifierConfig  # type: ignore
+    hparams: ClassifierHParams  # type: ignore
 
-    def __init__(self, hparams: ClassifierConfig):
+    def __init__(self, hparams: ClassifierHParams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
         self.shared_backbones = nn.ModuleDict()
         self.shared_backbones["backbone"] = instantiate(hparams.model.backbone)
 
-        self.fc = nn.Linear(self.backbone.out_features, len(hparams.classes))
+        self.fc = nn.Linear(self.backbone.out_features, hparams.num_classes)
 
         self.supervised_loss = instantiate(
             hparams.model.supervised_loss.callable, reduction="none"
@@ -97,7 +97,7 @@ class Classifier(pl.LightningModule):
         return torch.softmax(logits, dim=-1)
 
     def configure_optimizers(self):
-        optimizer = instantiate(self.hparams.optimizer, self.parameters())
+        optimizer = instantiate(self.hparams.optimizer, params=self.parameters())
 
         if self.hparams.lr_scheduler is not None:
             lr_dict = dict(self.hparams.lr_scheduler)
@@ -140,16 +140,18 @@ class Classifier(pl.LightningModule):
         self,
         loss: Tensor,
         reduction: Optional[str],
-        scheduler: Optional[WeightScheduler] = None,
+        scheduler: Optional[WeightScheduler],
+        scale_factor: float,
         log_prefix: Optional[str] = None,
     ) -> Tuple[Tensor, Tensor, float]:
         reduced_loss = reduce_tensor(loss, reduction)
 
         if scheduler is not None:
-            loss_weight = scheduler(self.global_step)
+            scheduler_weight = scheduler(self.global_step)
         else:
-            loss_weight = 1.0
+            scheduler_weight = 1.0
 
+        loss_weight = scale_factor * scheduler_weight
         weighted_loss = loss_weight * reduced_loss
 
         if log_prefix is not None:
@@ -179,6 +181,7 @@ class Classifier(pl.LightningModule):
             loss=outputs["supervised_loss"],
             reduction=self.supervised_loss_reduction_method,
             scheduler=self.supervised_loss_scheduler,
+            scale_factor=self.hparams.model.supervised_loss.scale_factor,
             log_prefix="train/supervised",
         )
 
@@ -188,6 +191,9 @@ class Classifier(pl.LightningModule):
                 loss=regularization_loss,
                 reduction=self.regularization_loss_reduction_methods[name],
                 scheduler=self.regularization_loss_schedulers[name],
+                scale_factor=self.hparams.model.regularization_loss_heads[
+                    name
+                ].scale_factor,
                 log_prefix=f"train/regularization/{name}",
             )
 
@@ -196,22 +202,25 @@ class Classifier(pl.LightningModule):
         losses = [weighted_supervised_loss] + weighted_regularization_losses
         loss = torch.sum(torch.stack(losses))
 
-        self.training_accuracy(outputs["probs"], outputs["targets"])
+        self.training_accuracy.update(outputs["probs"], outputs["targets"])
 
         self.log("train/loss", loss)
 
+        self._log_learning_rates()
+
+        return loss
+
+    def training_epoch_end(self, outputs) -> None:
         self.log(
-            "acc",
-            self.training_accuracy,
+            "train/top1",
+            self.training_accuracy.compute(),
             on_step=False,
             on_epoch=True,
             prog_bar=True,
             logger=False,
         )
 
-        self._log_learning_rates()
-
-        return loss
+        self.training_accuracy.reset()
 
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
@@ -239,19 +248,29 @@ class Classifier(pl.LightningModule):
                     device=self.best_validation_top1_accuracy.device,
                 )
 
-                self.log("val/top1", top1)
-                self.log("val/loss", loss)
+            self.log(
+                "val/top1",
+                top1,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
 
-                if self.global_rank == 0:
-                    print()
-                    print()
-                    print(
-                        "Epoch {:03d} =====> "
-                        "Valid Loss: {:.4f}  "
-                        "Valid Acc: {:.4f}  [Best {:.4f}]".format(
-                            self.trainer.current_epoch,
-                            loss,
-                            top1,
-                            self.best_validation_top1_accuracy,
-                        )
-                    )
+            self.log(
+                "val/top1/best",
+                top1,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
+
+            self.log(
+                "val/loss",
+                loss,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )

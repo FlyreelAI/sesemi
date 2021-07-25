@@ -1,23 +1,38 @@
-from typing import List
+from typing import List, Optional
 import warnings
 from torch.optim import Optimizer
 
 from torch.optim.lr_scheduler import _LRScheduler
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PolynomialLR(_LRScheduler):
     def __init__(
         self,
         optimizer: Optimizer,
-        warmup_epochs: int,
-        iters_per_epoch: int,
         warmup_lr: float,
         lr_pow: float,
         max_iters: int,
+        warmup_iters: Optional[int] = None,
+        warmup_epochs: Optional[int] = None,
+        iters_per_epoch: Optional[int] = None,
         last_epoch: int = -1,
     ):
-        self.iters_per_epoch = iters_per_epoch
-        self.warmup_iters = warmup_epochs * iters_per_epoch
+        if warmup_iters is None:
+            assert (
+                warmup_epochs is not None and iters_per_epoch is not None
+            ), "must specify either warmup_iters or warmup_epochs and iters_per_epoch"
+
+            self.iters_per_epoch = iters_per_epoch
+            self.warmup_iters = warmup_epochs * iters_per_epoch
+        else:
+            self.warmup_iters = warmup_iters
+
+        logger.info(f"Using warmup iterations of {self.warmup_iters}")
+
         self.warmup_lr = warmup_lr
         self.lr_pow = lr_pow
         self.max_iters = max_iters

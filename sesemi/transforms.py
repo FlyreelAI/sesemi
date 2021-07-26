@@ -1,3 +1,4 @@
+#
 # Copyright 2021, Flyreel. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,18 +12,49 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ========================================================================
+# ========================================================================#
+"""Image transforms."""
 import os
-from typing import Callable, List, Tuple
+import numpy as np
+
 import torch
+import torchvision.transforms.functional as TF
+
+from typing import Callable, Tuple
+from torch import Tensor
 from torchvision import datasets, transforms
 
-from .utils import GammaCorrection, validate_paths
 from .collation import RotationTransformer
+from .utils import validate_paths
 
 
-channel_mean = [0.485, 0.456, 0.406]
-channel_std = [0.229, 0.224, 0.225]
+channel_mean = (0.485, 0.456, 0.406)
+channel_std = (0.229, 0.224, 0.225)
+
+
+class GammaCorrection:
+    def __init__(self, gamma_range: Tuple[float, float] = (0.5, 2.0)):
+        """Initializes the gamma correction transform.
+
+        Args:
+            gamma_range: A tuple defining the lower and upper bound of the range.
+        """
+        self.gamma_range = gamma_range
+
+    def __call__(self, x: Tensor) -> Tensor:
+        """Applies random gamma correction to the input image.
+
+        Args:
+            x: The input image.
+
+        Returns:
+            The gamma corrected image.
+        """
+        gamma = np.random.uniform(*self.gamma_range)
+        return TF.adjust_gamma(x, gamma, gain=1)
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__ + "(r={})".format(self.gamma_range)
 
 
 def train_transforms(
@@ -33,9 +65,27 @@ def train_transforms(
     interpolation: int = 3,
     gamma_range: Tuple[float, float] = (0.5, 1.5),
     p_hflip: float = 0.5,
-    norms: Tuple[List[float], List[float]] = (channel_mean, channel_std),
+    norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
+        channel_mean,
+        channel_std,
+    ),
     p_erase: float = 0.0,
 ) -> Callable:
+    """Builds a torchvision training transform.
+
+    Args:
+        random_resized_crop: Whether to apply random resized cropping.
+        resize: The image size to resize to if random cropping is not applied.
+        crop_dim: The output crop dimension.
+        interpolation: The interpolation mode to use when resizing.
+        gamma_range: The gamma correction range.
+        p_hflip: The horiziontal random flip probability.
+        norms: A tuple of the normalization mean and standard deviation.
+        p_erase: The probability of random erasing.
+
+    Returns:
+        A torchvision transform.
+    """
     default_transforms = [
         GammaCorrection(gamma_range),
         transforms.RandomHorizontalFlip(p_hflip),
@@ -59,8 +109,22 @@ def center_crop_transforms(
     resize: int = 256,
     crop_dim: int = 224,
     interpolation: int = 3,
-    norms: Tuple[List[float], List[float]] = (channel_mean, channel_std),
+    norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
+        channel_mean,
+        channel_std,
+    ),
 ) -> Callable:
+    """Builds a center cropping transform.
+
+    Args:
+        resize: The image size to resize to if random cropping is not applied.
+        crop_dim: The output crop dimension.
+        interpolation: The interpolation mode to use when resizing.
+        norms: A tuple of the normalization mean and standard deviation.
+
+    Returns:
+        A torchvision transform.
+    """
     return transforms.Compose(
         [
             transforms.Resize(resize, interpolation),
@@ -75,9 +139,24 @@ def multi_crop_transforms(
     resize: int = 256,
     crop_dim: int = 224,
     num_crop: int = 5,
-    interpolation: int = 2,
-    norms: Tuple[List[float], List[float]] = (channel_mean, channel_std),
+    interpolation: int = 3,
+    norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
+        channel_mean,
+        channel_std,
+    ),
 ) -> Callable:
+    """Builds a multi-crop transform.
+
+    Args:
+        resize: The image size to resize to if random cropping is not applied.
+        crop_dim: The output crop dimension.
+        num_crop: The number of crops to generate.
+        interpolation: The interpolation mode to use when resizing.
+        norms: A tuple of the normalization mean and standard deviation.
+
+    Returns:
+        A torchvision transform.
+    """
     to_tensor = transforms.ToTensor()
     normalize = transforms.Normalize(*norms)
     Lambda = transforms.Lambda
@@ -87,6 +166,7 @@ def multi_crop_transforms(
         multi_crop = transforms.TenCrop
     else:
         raise NotImplementedError("Number of crops should be integer of 5 or 10")
+
     return transforms.Compose(
         [
             transforms.Resize(resize, interpolation),
@@ -150,7 +230,7 @@ if __name__ == "__main__":
     (mean, std) = (
         (channel_mean, channel_std)
         if args.normalize
-        else ([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+        else ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
     )
 
     transformations = train_transforms(

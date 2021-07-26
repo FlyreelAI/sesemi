@@ -1,3 +1,4 @@
+#
 # Copyright 2021, Flyreel. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,13 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ========================================================================
+# ========================================================================#
+"""Backbones from the rwightman/pytorch-image-models repository."""
 import torch
-import torch.nn as nn
+import logging
 
 from .base import Backbone
 
 PYTORCH_IMAGE_MODELS_REPO = "rwightman/pytorch-image-models"
+
+logger = logging.getLogger(__name__)
 
 
 SUPPORTED_BACKBONES = (
@@ -102,12 +106,23 @@ class PyTorchImageModels(Backbone):
         name: str = "resnet50d",
         pretrained: bool = True,
         global_pool: str = "avg",
-        dropout_rate: float = 0.0,
+        drop_rate: float = 0.0,
         freeze: bool = False,
     ):
-        assert (
-            name in SUPPORTED_BACKBONES
-        ), f"backbone {name} must be one of {SUPPORTED_BACKBONES}"
+        """Builds the pytorch-image-models backbone.
+
+        Args:
+            name: The name of the backbone.
+            pretrained: Whether to load the default pretrained model weights.
+            global_pool: The kind of pooling to use. Can be one of (avg, max, avgmax, catavgmax).
+            drop_rate: The dropout rate.
+            freeze: Whether to freeze the backbone's weights.
+        """
+        if name not in SUPPORTED_BACKBONES:
+            logger.warn(
+                f"backbone {name} is not one of the supported backbones: {SUPPORTED_BACKBONES}"
+            )
+
         super().__init__()
         try:
             self.encoder = torch.hub.load(
@@ -116,6 +131,7 @@ class PyTorchImageModels(Backbone):
                 pretrained,
                 num_classes=0,
                 global_pool=global_pool,
+                drop_rate=drop_rate,
             )
         except RuntimeError:
             self.encoder = torch.hub.load(
@@ -124,10 +140,10 @@ class PyTorchImageModels(Backbone):
                 pretrained,
                 num_classes=0,
                 global_pool=global_pool,
+                drop_rate=drop_rate,
                 force_reload=True,
             )
 
-        self.dropout = nn.Dropout(dropout_rate)
         self.out_features = self.encoder.num_features
         if global_pool == "catavgmax":
             self.out_features *= 2
@@ -136,4 +152,4 @@ class PyTorchImageModels(Backbone):
             self.freeze()
 
     def forward(self, x):
-        return self.dropout(self.encoder(x))
+        return self.encoder(x)

@@ -1,0 +1,106 @@
+##
+## Copyright 2021, Flyreel. All Rights Reserved.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+## ========================================================================##
+defaults:
+  - sesemi_config
+  - learner: classifier
+hydra:
+  run:
+    dir: ${run.dir}/${run.id}/${now:%Y-%m-%d-%H-%M-%S}
+run:
+  seed: 42
+  num_epochs: 80
+  gpus: 2
+  accelerator: dp
+  id: imagewoof
+  batch_size_per_gpu: 16
+data:
+  train:
+    supervised:
+      dataset:
+        _target_: sesemi.dataset
+        name: image_folder
+        root: imagewoof2
+        subset: train
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+      shuffle: True
+      num_workers: 4
+    rotation_prediction:
+      dataset:
+        _target_: sesemi.dataset
+        name: image_folder
+        root: imagewoof2
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      collate_fn:
+        _target_: sesemi.collation.RotationTransformer
+      drop_last: True
+  val:
+    dataset:
+      _target_: sesemi.dataset
+      name: image_folder
+      root: imagewoof2
+      subset: val
+      image_transform:
+        _target_: sesemi.transforms.center_crop_transforms
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False
+learner:
+  hparams:
+    num_classes: 10
+    model:
+      backbone:
+        _target_: sesemi.PyTorchImageModels
+        name: resnet50d
+        freeze: False
+        pretrained: False
+        global_pool: avg
+        drop_rate: 0.5
+      supervised_loss:
+        callable:
+          _target_: torch.nn.CrossEntropyLoss
+      regularization_loss_heads:
+        rotation_prediction:
+          head:
+            _target_: sesemi.models.heads.loss.RotationPredictionLossHead
+            input_data: rotation_prediction
+            input_backbone: backbone
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.1
+      momentum: 0.9
+      nesterov: True
+      weight_decay: 0.
+    lr_scheduler:
+      scheduler:
+        _target_: sesemi.PolynomialLR
+        warmup_epochs: 10
+        iters_per_epoch: ${sesemi:iterations_per_epoch}
+        warmup_lr: 0.001
+        lr_pow: 0.5
+        max_iters: ${sesemi:max_iterations}
+trainer:
+  callbacks:
+    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+      monitor: val/top1
+      mode: max
+      save_top_k: 1
+      save_last: True

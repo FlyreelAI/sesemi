@@ -1,6 +1,14 @@
 sesemi.trainer package
 ======================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 100
+
+   sesemi.trainer.conf
+
 Submodules
 ----------
 

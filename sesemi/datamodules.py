@@ -1,25 +1,66 @@
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ========================================================================#
+"""PyTorch Lightning data modules."""
 import pytorch_lightning as pl
 import os.path as osp
+import logging
 
 from math import ceil
-
 from torch.utils.data.dataset import Dataset
 from sesemi.config.structs import DataConfig, DataLoaderConfig, DatasetConfig
 from typing import Dict, List, Optional, Union
 from torch.utils.data import DataLoader, DistributedSampler
 from hydra.utils import instantiate, to_absolute_path
 
+logger = logging.getLogger(__name__)
+
 
 class SESEMIDataModule(pl.LightningDataModule):
+    """The main SESEMI data module.
+
+    Attributes:
+        train (Optional[Dict[str, Dataset]]): An optional dictionary of training datasets.
+        val (Optional[Dataset]): An optional validation dataset.
+        test (Optional[Dataset]): An optional test dataset.
+        train_batch_sizes (Dict[str, int]): The batch size used for each training data loader.
+        train_batch_sizes_per_gpu (Dict[str, int]): The batch size used per GPU for each training
+            data loader.
+        train_batch_sizes_per_iteration (Dict[str, int]): The batch size per iteration for each
+            training data loader.
+    """
+
     def __init__(
         self,
         config: DataConfig,
         accelerator: Optional[str],
         num_gpus: int,
-        data_root: str = ".",
+        data_root: str,
         batch_size_per_gpu: Optional[int] = None,
         random_seed: int = 0,
     ):
+        """Initializes the data module.
+
+        Args:
+            config: The data config.
+            accelerator: The accelerator being used.
+            num_gpus: The number of GPUs being used.
+            data_root: The data root to look for datasets with relative paths.
+            batch_size_per_gpu: An optional default batch size per GPU to use with data loaders.
+            random_seed: The random seed to initialize DDP data loaders.
+        """
         super().__init__()
         self.config = config
         self.accelerator = accelerator

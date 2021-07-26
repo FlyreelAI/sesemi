@@ -1,3 +1,4 @@
+#
 # Copyright 2021, Flyreel. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ========================================================================
-import os
+# ========================================================================#
+"""The trainer CLI's main function and configuration."""
 import hydra
 import logging
 import pytorch_lightning as pl
@@ -39,36 +40,44 @@ config_store.store(name="classifier", node=ClassifierConfig, group="learner")
 
 @hydra.main(config_path="conf", config_name="config")
 def open_sesemi(config: SESEMIConfig):
+    """The trainer's main function.
+
+    Args:
+        config: The trainer config.
+    """
     random_seed = pl.seed_everything(config.run.seed)
 
     sesemi_config_attributes = SESEMIConfigAttributes()
     OmegaConf.register_new_resolver("sesemi", sesemi_config_attributes)
 
-    # Expose config trainer-specific attributes to config
-    gpus = config.run.gpus if not config.run.no_cuda else 0
-    num_gpus = compute_num_gpus(gpus) if not config.run.no_cuda else 0
+    # Expose trainer-specific attributes to config
+    num_gpus = compute_num_gpus(config.run.gpus)
     sesemi_config_attributes.num_gpus = num_gpus
-    sesemi_config_attributes.num_nodes = config.trainer.get("num_nodes", 1)
+    sesemi_config_attributes.num_nodes = config.run.num_nodes or 1
 
     # Build data loaders
     accelerator = None
     if sesemi_config_attributes.num_gpus > 0:
-        accelerator = config.run.accelerator
+        accelerator = config.run.accelerator or "ddp"
+        assert accelerator in {"dp", "ddp"}, f"Unsupport accelerator {accelerator}"
 
     datamodule = SESEMIDataModule(
         config.data,
         accelerator,
         num_gpus,
+        config.run.data_root,
         batch_size_per_gpu=config.run.batch_size_per_gpu,
         random_seed=random_seed,
     )
 
-    # Expose config data-specific attributes to config
+    # Expose data-specific attributes to config
     sesemi_config_attributes.iterations_per_epoch = None
     sesemi_config_attributes.max_iterations = None
     if config.data.train is not None:
         sesemi_config_attributes.iterations_per_epoch = max(
-            ceil(len(x) / datamodule.train_batch_sizes_per_iteration[k])
+            len(x) // datamodule.train_batch_sizes_per_iteration[k]
+            if config.data.train[k].drop_last
+            else ceil(len(x) / datamodule.train_batch_sizes_per_iteration[k])
             for k, x in datamodule.train.items()
         )
 
@@ -83,10 +92,11 @@ def open_sesemi(config: SESEMIConfig):
 
     learner = instantiate(config.learner, _recursive_=False)
 
-    callbacks = config.trainer.get("callbacks", [])
+    trainer_config = config.trainer or {}
+    callbacks = trainer_config.get("callbacks", [])
     callbacks = [instantiate(c) for c in callbacks]
 
-    trainer_kwargs: Dict[str, Any] = dict(config.trainer)
+    trainer_kwargs: Dict[str, Any] = dict(trainer_config)
     trainer_kwargs["callbacks"] = callbacks
 
     trainer = pl.Trainer(
@@ -94,7 +104,8 @@ def open_sesemi(config: SESEMIConfig):
         max_epochs=config.run.num_epochs,
         max_steps=config.run.num_iterations,
         accelerator=accelerator,
-        gpus=gpus,
+        gpus=config.run.gpus,
+        num_nodes=config.run.num_nodes,
         resume_from_checkpoint=to_absolute_path(config.run.resume_from_checkpoint)
         if config.run.resume_from_checkpoint
         else None,

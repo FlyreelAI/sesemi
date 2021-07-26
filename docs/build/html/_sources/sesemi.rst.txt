@@ -10,6 +10,7 @@ Subpackages
    sesemi.config
    sesemi.models
    sesemi.schedulers
+   sesemi.tools
    sesemi.trainer
 
 Submodules
@@ -19,6 +20,14 @@ sesemi.collation module
 -----------------------
 
 .. automodule:: sesemi.collation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+sesemi.datamodules module
+-------------------------
+
+.. automodule:: sesemi.datamodules
    :members:
    :undoc-members:
    :show-inheritance:

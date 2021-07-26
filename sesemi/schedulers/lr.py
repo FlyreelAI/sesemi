@@ -1,4 +1,20 @@
-from typing import List, Optional
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ========================================================================#
+"""Learning rate schedulers."""
+from typing import Optional
 import warnings
 from torch.optim import Optimizer
 
@@ -10,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class PolynomialLR(_LRScheduler):
+    """A polynomial learning rate scheduler."""
+
     def __init__(
         self,
         optimizer: Optimizer,
@@ -21,6 +39,20 @@ class PolynomialLR(_LRScheduler):
         iters_per_epoch: Optional[int] = None,
         last_epoch: int = -1,
     ):
+        """Initializes the polynomial learning rate scheduler.
+
+        Args:
+            optimizer: The optimizer.
+            warmup_lr: The initial warmup learning rate.
+            lr_pow: The power of the polynomial update rule.
+            max_iters: The maximum number of updates.
+            warmup_iters: The number of iterations to warmup. Mutually exclusive with
+                `warmup_epochs`.
+            warmup_epochs: The number of warmup epochs. Mutually exclusive with `warmup_iters`.
+            iters_per_epoch: The number of iterations per epoch. Must be set if `warmup_epochs` is
+                set.
+            last_epoch: The index of the last epoch.
+        """
         if warmup_iters is None:
             assert (
                 warmup_epochs is not None and iters_per_epoch is not None

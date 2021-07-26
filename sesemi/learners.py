@@ -1,3 +1,4 @@
+#
 # Copyright 2021, Flyreel. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ========================================================================
+# ========================================================================#
+"""SESEMI learners."""
 from typing import Optional, Tuple
 
 from torch import Tensor
@@ -38,9 +40,16 @@ logger = logging.getLogger(__name__)
 
 
 class Classifier(pl.LightningModule):
+    """The SESEMI classifier."""
+
     hparams: ClassifierHParams  # type: ignore
 
     def __init__(self, hparams: ClassifierHParams):
+        """Initializes the module.
+
+        Args:
+            hparams: The classifier's hyperparameters.
+        """
         super().__init__()
         self.save_hyperparameters(hparams)
 
@@ -89,6 +98,7 @@ class Classifier(pl.LightningModule):
 
     @property
     def backbone(self) -> Backbone:
+        """The supervised backbone."""
         return self.shared_backbones["backbone"]
 
     def forward(self, x):
@@ -124,7 +134,7 @@ class Classifier(pl.LightningModule):
                 data=batch,
                 backbones=self.shared_backbones,
                 features=shared_features,
-                global_step=self.global_step,
+                step=self.global_step,
             )
             for name, head in self.regularization_loss_heads.items()
         }

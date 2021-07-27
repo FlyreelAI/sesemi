@@ -176,15 +176,14 @@ class SESEMIDataModule(pl.LightningDataModule):
         ), "cannot set both batch_size and batch_size_per_gpu"
 
         if self.accelerator == "dp":
-            batch_size = (
-                config.batch_size
-                or config.batch_size_per_gpu
-                or (
-                    self.batch_size_per_gpu * self.num_gpus
-                    if self.batch_size_per_gpu is not None
-                    else 1
-                )
-            )
+            if config.batch_size is not None:
+                batch_size = config.batch_size
+            elif config.batch_size_per_gpu is not None:
+                batch_size = config.batch_size_per_gpu * self.num_gpus
+            elif self.batch_size_per_gpu is not None:
+                batch_size = self.batch_size_per_gpu * self.num_gpus
+            else:
+                batch_size = 1
         else:
             batch_size = (
                 config.batch_size

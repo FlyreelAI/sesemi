@@ -13,7 +13,8 @@ SESEMI is an open source image classification library built on PyTorch and PyTor
 * Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
 * Simply add unlabeled data for improved image classification without any tricks
 
-Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know. Contributions are also welcome!
+Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know
+and cite the related paper below. Contributions are also welcome!
 
 ## Installation
 Our preferred installation method is Docker, however, you can use any virtual environment tool to install the necessary Python dependencies. Below are instructions for both these methods.
@@ -119,7 +120,6 @@ training will work but will take a very long time.
     ```
 
 ## Citation
-If you find this work useful, consider citing the related paper:
 
 ```
 @inproceedings{TranSESEMI,

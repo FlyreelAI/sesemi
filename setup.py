@@ -5,7 +5,9 @@ with open("requirements.txt", "r") as f:
 
 setup(
     name="sesemi",
-    version="0.1",
+    version="0.1.0",
+    author="Flyreel AI",
+    author_email="ai@flyreel.co",
     packages=find_packages(include=["sesemi"]),
     entry_points={"console_scripts": ["open_sesemi = sesemi.trainer.cli:open_sesemi"]},
     url="https://github.com/FlyreelAI/sesemi/",

@@ -20,38 +20,42 @@ This will download and configure an *open_sesemi* CLI which you can inspect as f
     Override anything in the config (foo.bar=value)
 
     run:
-        seed: null
-        num_epochs: null
-        num_iterations: null
-        gpus: -1
-        num_nodes: 1
-        accelerator: null
-        batch_size_per_gpu: null
-        data_root: ./data
-        id: default
-        dir: ./runs
-        mode: FIT
-        resume_from_checkpoint: null
-        pretrained_checkpoint_path: null
+      seed: null
+      num_epochs: null
+      num_iterations: null
+      gpus: -1
+      num_nodes: 1
+      accelerator: null
+      batch_size_per_gpu: null
+      data_root: ./data
+      id: default
+      dir: ./runs
+      mode: FIT
+      resume_from_checkpoint: null
+      pretrained_checkpoint_path: null
     data:
-        train: null
-        val: null
-        test: null
+      train: null
+      val: null
+      test: null
     learner:
-        _target_: sesemi.Classifier
-        hparams:
-            num_classes: ???
-            model:
-                backbone: ???
-                supervised_loss:
-                    callable: ???
-                    scheduler: null
-                    reduction: mean
-                    scale_factor: 1.0
-                regularization_loss_heads: null
-            optimizer: ???
-            lr_scheduler: null
+      _target_: sesemi.Classifier
+      hparams:
+        num_classes: ???
+        model:
+          backbone: ???
+          supervised_loss:
+            callable: ???
+            scheduler: null
+            reduction: mean
+            scale_factor: 1.0
+          regularization_loss_heads: null
+        optimizer: ???
+        lr_scheduler: null
     trainer: null
+
+
+    Powered by Hydra (https://hydra.cc)
+    Use --hydra-help to view Hydra specific help
 
 
     Powered by Hydra (https://hydra.cc)
@@ -188,6 +192,9 @@ configuration you can run::
 
 This assumes you have downloaded the imagewoof dataset to the *./data/imagewoof2* directory, but otherwise it should work out of the box.
 
+There is also a configuration file named standard that can be used as a starting point for custom configs or to train
+baseline models.
+
 --------
 Datasets
 --------
@@ -216,40 +223,35 @@ format can be easily registered. The interface used to construct datasets is sho
         """
 
 Note that the name used for image folder datasets is *image_folder*. Additionally, registering datasets is done using a
-*register_dataset* decorator function.
+*register_dataset* decorator function, however, it's possible to construct datasets without this.
 
 -------
 Example
 -------
 
-The following is a look at part of the imagewoof configuration::
+The following is a look at the standard configuration::
 
     defaults:
       - sesemi_config
-      - learner: classifier
     run:
-      seed: 42
-      num_epochs: 80
-      gpus: 2
       accelerator: dp
+      num_epochs: 50
       batch_size_per_gpu: 16
     data:
       train:
         supervised:
           dataset:
-            _target_: sesemi.dataset
             name: image_folder
-            root: imagewoof2
             subset: train
             image_transform:
               _target_: sesemi.transforms.train_transforms
           shuffle: True
+          pin_memory: True
           num_workers: 4
+          drop_last: True
         rotation_prediction:
           dataset:
-            _target_: sesemi.dataset
             name: image_folder
-            root: imagewoof2
             image_transform:
               _target_: sesemi.transforms.train_transforms
           shuffle: True
@@ -260,9 +262,7 @@ The following is a look at part of the imagewoof configuration::
           drop_last: True
       val:
         dataset:
-          _target_: sesemi.dataset
           name: image_folder
-          root: imagewoof2
           subset: val
           image_transform:
             _target_: sesemi.transforms.center_crop_transforms
@@ -295,7 +295,7 @@ The following is a look at part of the imagewoof configuration::
           lr: 0.1
           momentum: 0.9
           nesterov: True
-          weight_decay: 0.
+          weight_decay: 0.0005
         lr_scheduler:
           scheduler:
             _target_: sesemi.PolynomialLR
@@ -342,6 +342,55 @@ which is shown below::
       num_nodes: int
 
 Going back to the first section of the config, there is a *defaults* section which is used to essentially import
-configurations from other sources. In this case, the *sesemi_config* default specifies that the *SESEMIConfig* data 
-class should be used for type checking and specifying default attributes. Additionally, a classifier learner is
+configurations from other sources. In this case, the *sesemi_config* default specifies that the *SESEMIBaseConfig*
+structure config along with some other overrides should be used. Additionally, a classifier learner is
 set to be used.
+
+-----
+Usage
+-----
+
+There are two main ways you can use this package. For advanced users that aim to make code changes to the core library
+it's possible to clone the repository locally and pip install an editable version that will track your
+modifications. If don't need to make changes to the underlying codebase, you can instead use the open_sesemi
+CLI which is installed with the pip package in order to run experiments. An example of how this can be done is shown below.
+
+First create the following directory structure somewhere and enter /sesemi-experiments::
+
+  /sesemi-experiments         # Stores your code, configurations, data, metrics, and models.
+    /configs                  # Your custom Hydra configurations.
+    /data                     # Any datasets you want to use.
+    /runs                     # Stores models and metrics generated by sesemi.
+    /src                      # Custom code with modules that you can instantiate from the configs.
+
+For this example, we'll make use of the imagewoof dataset which can be downloaded using::
+
+  curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
+
+Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml::
+
+  defaults:
+  - standard
+  run:
+    seed: 42
+    gpus: -1
+    num_epochs: 80
+    id: imagewoof
+    data_root: ./data/imagewoof2
+
+This will use the built-in standard configuration and adds a couple of overrides. For a bare bones default
+you can instead use sesemi_config. This example is the same as the provided imagewoof config.
+
+You can inspect your custom config file using::
+
+  open_sesemi -cd configs -cn custom --info
+
+And finally, you can run your custom config file using::
+
+  open_sesemi -cd configs -cn custom
+
+Note that -cd adds the directory configs to the config search path and -cn specifies that the custom config
+should be loaded.
+
+The same structure follows if you are using a locally clone repository. You will just be able to make modifications
+to the core library as well.

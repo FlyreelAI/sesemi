@@ -28,6 +28,6 @@ Applications
 The SESEMI package comes with a set of built-in configurations. Which configuration to use can be selected via the CLI.
 Additionally, users can provide their own set of configurations as well. For example::
 
-	$ open_sesemi -cd configs -cn user-config
+	$ open_sesemi -cd configs -cn custom
 
-This runs a command that adds the *configs* directory to the config search path and then looks for the *user-config* object.
+This runs a command that adds the *configs* directory to the config search path and then looks for the *custom* object.

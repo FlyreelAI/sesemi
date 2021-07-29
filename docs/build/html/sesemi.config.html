@@ -690,7 +690,7 @@ mapped into dictionaries of data batches.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="sesemi.config.structs.DatasetConfig">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">DatasetConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_transform</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_target_</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'sesemi.dataset'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.DatasetConfig" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">DatasetConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_transform</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_target_</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'sesemi.dataset'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.DatasetConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>The SESEMI dataset configuration.</p>
 <dl class="py attribute">
@@ -707,10 +707,11 @@ mapped into dictionaries of data batches.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="sesemi.config.structs.DatasetConfig.root">
 <span class="sig-name descname"><span class="pre">root</span></span><a class="headerlink" href="#sesemi.config.structs.DatasetConfig.root" title="Permalink to this definition">¶</a></dt>
-<dd><p>The absolute or relative (with respect to the run’s data root) path to the dataset.</p>
+<dd><p>The absolute or relative (with respect to the run’s data root) path to the dataset.
+If this is None, then the run’s <cite>data_root</cite> attribute will be used instead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>str</p>
+<dd class="field-odd"><p>Optional[str]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -750,7 +751,7 @@ to indicate the full set.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id29">
-<span class="sig-name descname"><span class="pre">root</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#id29" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">root</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#id29" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1271,13 +1272,13 @@ this to -1 uses all GPUs and setting it to 0 also uses the CPU.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">SESEMIConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">run:</span> <span class="pre">sesemi.config.structs.RunConfig</span> <span class="pre">=</span> <span class="pre">RunConfig(seed=None</span></em>, <em class="sig-param"><span class="pre">num_epochs=None</span></em>, <em class="sig-param"><span class="pre">num_iterations=None</span></em>, <em class="sig-param"><span class="pre">gpus=-1</span></em>, <em class="sig-param"><span class="pre">num_nodes=1</span></em>, <em class="sig-param"><span class="pre">accelerator=None</span></em>, <em class="sig-param"><span class="pre">batch_size_per_gpu=None</span></em>, <em class="sig-param"><span class="pre">data_root='./data'</span></em>, <em class="sig-param"><span class="pre">id='default'</span></em>, <em class="sig-param"><span class="pre">dir='./runs'</span></em>, <em class="sig-param"><span class="pre">mode=&lt;RunMode.FIT:</span> <span class="pre">'fit'&gt;</span></em>, <em class="sig-param"><span class="pre">resume_from_checkpoint=None</span></em>, <em class="sig-param"><span class="pre">pretrained_checkpoint_path=None)</span></em>, <em class="sig-param"><span class="pre">data:</span> <span class="pre">sesemi.config.structs.DataConfig</span> <span class="pre">=</span> <span class="pre">DataConfig(train=None</span></em>, <em class="sig-param"><span class="pre">val=None</span></em>, <em class="sig-param"><span class="pre">test=None)</span></em>, <em class="sig-param"><span class="pre">learner:</span> <span class="pre">sesemi.config.structs.LearnerConfig</span> <span class="pre">=</span> <span class="pre">LearnerConfig(_target_='???')</span></em>, <em class="sig-param"><span class="pre">trainer:</span> <span class="pre">Optional[Any]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIBaseConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.config.structs.</span></span><span class="sig-name descname"><span class="pre">SESEMIBaseConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">run:</span> <span class="pre">sesemi.config.structs.RunConfig</span> <span class="pre">=</span> <span class="pre">RunConfig(seed=None</span></em>, <em class="sig-param"><span class="pre">num_epochs=None</span></em>, <em class="sig-param"><span class="pre">num_iterations=None</span></em>, <em class="sig-param"><span class="pre">gpus=-1</span></em>, <em class="sig-param"><span class="pre">num_nodes=1</span></em>, <em class="sig-param"><span class="pre">accelerator=None</span></em>, <em class="sig-param"><span class="pre">batch_size_per_gpu=None</span></em>, <em class="sig-param"><span class="pre">data_root='./data'</span></em>, <em class="sig-param"><span class="pre">id='default'</span></em>, <em class="sig-param"><span class="pre">dir='./runs'</span></em>, <em class="sig-param"><span class="pre">mode=&lt;RunMode.FIT:</span> <span class="pre">'fit'&gt;</span></em>, <em class="sig-param"><span class="pre">resume_from_checkpoint=None</span></em>, <em class="sig-param"><span class="pre">pretrained_checkpoint_path=None)</span></em>, <em class="sig-param"><span class="pre">data:</span> <span class="pre">sesemi.config.structs.DataConfig</span> <span class="pre">=</span> <span class="pre">DataConfig(train=None</span></em>, <em class="sig-param"><span class="pre">val=None</span></em>, <em class="sig-param"><span class="pre">test=None)</span></em>, <em class="sig-param"><span class="pre">learner:</span> <span class="pre">sesemi.config.structs.LearnerConfig</span> <span class="pre">=</span> <span class="pre">LearnerConfig(_target_='???')</span></em>, <em class="sig-param"><span class="pre">trainer:</span> <span class="pre">Optional[Any]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.config.structs.SESEMIBaseConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>The full SESEMI configuration.</p>
+<p>The base SESEMI configuration.</p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.run">
-<span class="sig-name descname"><span class="pre">run</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.run" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIBaseConfig.run">
+<span class="sig-name descname"><span class="pre">run</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIBaseConfig.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>The run config.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
@@ -1287,8 +1288,8 @@ this to -1 uses all GPUs and setting it to 0 also uses the CPU.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.data">
-<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIBaseConfig.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIBaseConfig.data" title="Permalink to this definition">¶</a></dt>
 <dd><p>The data config.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
@@ -1298,8 +1299,8 @@ this to -1 uses all GPUs and setting it to 0 also uses the CPU.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.learner">
-<span class="sig-name descname"><span class="pre">learner</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.learner" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIBaseConfig.learner">
+<span class="sig-name descname"><span class="pre">learner</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIBaseConfig.learner" title="Permalink to this definition">¶</a></dt>
 <dd><p>The learner config.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
@@ -1309,8 +1310,8 @@ this to -1 uses all GPUs and setting it to 0 also uses the CPU.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIConfig.trainer">
-<span class="sig-name descname"><span class="pre">trainer</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIConfig.trainer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sesemi.config.structs.SESEMIBaseConfig.trainer">
+<span class="sig-name descname"><span class="pre">trainer</span></span><a class="headerlink" href="#sesemi.config.structs.SESEMIBaseConfig.trainer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Optional additional parameters that can be passed to a PyTorch Lightning Trainer
 object.</p>
 <dl class="field-list simple">

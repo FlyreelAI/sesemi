@@ -93,6 +93,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#built-in-configurations">Built-in Configurations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#datasets">Datasets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hydra.html">A Primer on Hydra</a></li>
@@ -184,38 +185,42 @@ learner: classifier
 Override anything in the config (foo.bar=value)
 
 run:
-    seed: null
-    num_epochs: null
-    num_iterations: null
-    gpus: -1
-    num_nodes: 1
-    accelerator: null
-    batch_size_per_gpu: null
-    data_root: ./data
-    id: default
-    dir: ./runs
-    mode: FIT
-    resume_from_checkpoint: null
-    pretrained_checkpoint_path: null
+  seed: null
+  num_epochs: null
+  num_iterations: null
+  gpus: -1
+  num_nodes: 1
+  accelerator: null
+  batch_size_per_gpu: null
+  data_root: ./data
+  id: default
+  dir: ./runs
+  mode: FIT
+  resume_from_checkpoint: null
+  pretrained_checkpoint_path: null
 data:
-    train: null
-    val: null
-    test: null
+  train: null
+  val: null
+  test: null
 learner:
-    _target_: sesemi.Classifier
-    hparams:
-        num_classes: ???
-        model:
-            backbone: ???
-            supervised_loss:
-                callable: ???
-                scheduler: null
-                reduction: mean
-                scale_factor: 1.0
-            regularization_loss_heads: null
-        optimizer: ???
-        lr_scheduler: null
+  _target_: sesemi.Classifier
+  hparams:
+    num_classes: ???
+    model:
+      backbone: ???
+      supervised_loss:
+        callable: ???
+        scheduler: null
+        reduction: mean
+        scale_factor: 1.0
+      regularization_loss_heads: null
+    optimizer: ???
+    lr_scheduler: null
 trainer: null
+
+
+Powered by Hydra (https://hydra.cc)
+Use --hydra-help to view Hydra specific help
 
 
 Powered by Hydra (https://hydra.cc)
@@ -346,6 +351,8 @@ configuration you can run:</p>
 </pre></div>
 </div>
 <p>This assumes you have downloaded the imagewoof dataset to the <em>./data/imagewoof2</em> directory, but otherwise it should work out of the box.</p>
+<p>There is also a configuration file named standard that can be used as a starting point for custom configs or to train
+baseline models.</p>
 </div>
 <div class="section" id="datasets">
 <h2>Datasets<a class="headerlink" href="#datasets" title="Permalink to this headline">¶</a></h2>
@@ -373,37 +380,32 @@ format can be easily registered. The interface used to construct datasets is sho
 </pre></div>
 </div>
 <p>Note that the name used for image folder datasets is <em>image_folder</em>. Additionally, registering datasets is done using a
-<em>register_dataset</em> decorator function.</p>
+<em>register_dataset</em> decorator function, however, it’s possible to construct datasets without this.</p>
 </div>
 <div class="section" id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
-<p>The following is a look at part of the imagewoof configuration:</p>
+<p>The following is a look at the standard configuration:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>defaults:
   - sesemi_config
-  - learner: classifier
 run:
-  seed: 42
-  num_epochs: 80
-  gpus: 2
   accelerator: dp
+  num_epochs: 50
   batch_size_per_gpu: 16
 data:
   train:
     supervised:
       dataset:
-        _target_: sesemi.dataset
         name: image_folder
-        root: imagewoof2
         subset: train
         image_transform:
           _target_: sesemi.transforms.train_transforms
       shuffle: True
+      pin_memory: True
       num_workers: 4
+      drop_last: True
     rotation_prediction:
       dataset:
-        _target_: sesemi.dataset
         name: image_folder
-        root: imagewoof2
         image_transform:
           _target_: sesemi.transforms.train_transforms
       shuffle: True
@@ -414,9 +416,7 @@ data:
       drop_last: True
   val:
     dataset:
-      _target_: sesemi.dataset
       name: image_folder
-      root: imagewoof2
       subset: val
       image_transform:
         _target_: sesemi.transforms.center_crop_transforms
@@ -449,7 +449,7 @@ learner:
       lr: 0.1
       momentum: 0.9
       nesterov: True
-      weight_decay: 0.
+      weight_decay: 0.0005
     lr_scheduler:
       scheduler:
         _target_: sesemi.PolynomialLR
@@ -496,9 +496,53 @@ which is shown below:</p>
 </pre></div>
 </div>
 <p>Going back to the first section of the config, there is a <em>defaults</em> section which is used to essentially import
-configurations from other sources. In this case, the <em>sesemi_config</em> default specifies that the <em>SESEMIConfig</em> data
-class should be used for type checking and specifying default attributes. Additionally, a classifier learner is
+configurations from other sources. In this case, the <em>sesemi_config</em> default specifies that the <em>SESEMIBaseConfig</em>
+structure config along with some other overrides should be used. Additionally, a classifier learner is
 set to be used.</p>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>There are two main ways you can use this package. For advanced users that aim to make code changes to the core library
+it’s possible to clone the repository locally and pip install an editable version that will track your
+modifications. If don’t need to make changes to the underlying codebase, you can instead use the open_sesemi
+CLI which is installed with the pip package in order to run experiments. An example of how this can be done is shown below.</p>
+<p>First create the following directory structure somewhere and enter /sesemi-experiments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">sesemi</span><span class="o">-</span><span class="n">experiments</span>         <span class="c1"># Stores your code, configurations, data, metrics, and models.</span>
+  <span class="o">/</span><span class="n">configs</span>                  <span class="c1"># Your custom Hydra configurations.</span>
+  <span class="o">/</span><span class="n">data</span>                     <span class="c1"># Any datasets you want to use.</span>
+  <span class="o">/</span><span class="n">runs</span>                     <span class="c1"># Stores models and metrics generated by sesemi.</span>
+  <span class="o">/</span><span class="n">src</span>                      <span class="c1"># Custom code with modules that you can instantiate from the configs.</span>
+</pre></div>
+</div>
+<p>For this example, we’ll make use of the imagewoof dataset which can be downloaded using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">s3</span><span class="o">.</span><span class="n">amazonaws</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">fast</span><span class="o">-</span><span class="n">ai</span><span class="o">-</span><span class="n">imageclas</span><span class="o">/</span><span class="n">imagewoof2</span><span class="o">.</span><span class="n">tgz</span> <span class="o">|</span> <span class="n">tar</span> <span class="o">-</span><span class="n">xzv</span> <span class="o">-</span><span class="n">C</span> <span class="o">./</span><span class="n">data</span>
+</pre></div>
+</div>
+<p>Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">defaults</span><span class="p">:</span>
+<span class="o">-</span> <span class="n">standard</span>
+<span class="n">run</span><span class="p">:</span>
+  <span class="n">seed</span><span class="p">:</span> <span class="mi">42</span>
+  <span class="n">gpus</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>
+  <span class="n">num_epochs</span><span class="p">:</span> <span class="mi">80</span>
+  <span class="nb">id</span><span class="p">:</span> <span class="n">imagewoof</span>
+  <span class="n">data_root</span><span class="p">:</span> <span class="o">./</span><span class="n">data</span><span class="o">/</span><span class="n">imagewoof2</span>
+</pre></div>
+</div>
+<p>This will use the built-in standard configuration and adds a couple of overrides. For a bare bones default
+you can instead use sesemi_config. This example is the same as the provided imagewoof config.</p>
+<p>You can inspect your custom config file using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">open_sesemi</span> <span class="o">-</span><span class="n">cd</span> <span class="n">configs</span> <span class="o">-</span><span class="n">cn</span> <span class="n">custom</span> <span class="o">--</span><span class="n">info</span>
+</pre></div>
+</div>
+<p>And finally, you can run your custom config file using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">open_sesemi</span> <span class="o">-</span><span class="n">cd</span> <span class="n">configs</span> <span class="o">-</span><span class="n">cn</span> <span class="n">custom</span>
+</pre></div>
+</div>
+<p>Note that -cd adds the directory configs to the config search path and -cn specifies that the custom config
+should be loaded.</p>
+<p>The same structure follows if you are using a locally clone repository. You will just be able to make modifications
+to the core library as well.</p>
 </div>
 </div>
 

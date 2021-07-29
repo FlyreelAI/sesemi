@@ -71,9 +71,12 @@ class SESEMIDataModule(pl.LightningDataModule):
         self._build()
 
     def _build_dataset(self, config: DatasetConfig) -> Dataset:
-        dataset_root = config.root
-        if not osp.isabs(dataset_root):
-            dataset_root = to_absolute_path(osp.join(self.data_root, dataset_root))
+        if config.root is None:
+            dataset_root = self.data_root
+        elif not osp.isabs(config.root):
+            dataset_root = to_absolute_path(osp.join(self.data_root, config.root))
+        else:
+            dataset_root = config.root
 
         dataset_kwargs = dict(config)  # type: ignore
         dataset_kwargs.pop("root")

@@ -41,13 +41,14 @@ class DatasetConfig:
     Attributes:
         name: The name of the dataset in the registry.
         root: The absolute or relative (with respect to the run's data root) path to the dataset.
+            If this is None, then the run's `data_root` attribute will be used instead.
         subset: Can either be a the string name of the subset, a list of subsets, or None (null)
             to indicate the full set.
         image_transform: An optional callable transform configuration that is applied to images.
     """
 
     name: str
-    root: str
+    root: Optional[str] = None
     subset: Any = None
     image_transform: Any = None
     _target_: str = "sesemi.dataset"
@@ -155,8 +156,8 @@ class LearnerConfig:
 
 
 @dataclass
-class SESEMIConfig:
-    """The full SESEMI configuration.
+class SESEMIBaseConfig:
+    """The base SESEMI configuration.
 
     Attributes:
         run: The run config.

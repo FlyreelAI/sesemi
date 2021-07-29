@@ -26,7 +26,7 @@ from hydra.utils import to_absolute_path
 from math import ceil
 
 from ..config.resolvers import SESEMIConfigAttributes
-from ..config.structs import SESEMIConfig, ClassifierConfig, RunMode
+from ..config.structs import SESEMIBaseConfig, ClassifierConfig, RunMode
 from ..datamodules import SESEMIDataModule
 from ..utils import compute_num_gpus, load_checkpoint
 
@@ -34,12 +34,12 @@ logger = logging.getLogger(__name__)
 
 
 config_store = ConfigStore.instance()
-config_store.store(name="sesemi_config", node=SESEMIConfig)
+config_store.store(name="sesemi_base_config", node=SESEMIBaseConfig)
 config_store.store(name="classifier", node=ClassifierConfig, group="learner")
 
 
-@hydra.main(config_path="conf", config_name="config")
-def open_sesemi(config: SESEMIConfig):
+@hydra.main(config_path="conf", config_name="sesemi_config")
+def open_sesemi(config: SESEMIBaseConfig):
     """The trainer's main function.
 
     Args:

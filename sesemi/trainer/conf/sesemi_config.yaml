@@ -14,7 +14,7 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - sesemi_config
+  - sesemi_base_config
   - learner: classifier
 hydra:
   run:

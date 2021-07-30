@@ -49,7 +49,7 @@ Note that your OS user ID is obtained through the bash command `id -u`. This com
 
 ## Getting Started
 
-This section will go through the process of using SESEMI to train a model on [FastAI's imagewoof2 dataset](https://github.com/fastai/imagenette#imagewoof). If you don't have access to a GPU machine, 
+You can find more detailed documentation which is hosted [here](https://flyreelai.github.io/sesemi/), however, this section will guide you through the process of using SESEMI to train a model on [FastAI's imagewoof2 dataset](https://github.com/fastai/imagenette#imagewoof). If you don't have access to a GPU machine, 
 training will work but will take a very long time.
 
 1. Create a directory for the experiment and enter it.

@@ -55,14 +55,14 @@ training will work but will take a very long time.
 1. Create a directory for the experiment and enter it.
 
     ```bash
-    $ mkdir sesemi
-    $ cd sesemi
+    $ mkdir sesemi-experiments
+    $ cd sesemi-experiments
+    $ mkdir data runs .cache
     ```
 
 2. Download and extract the imagewoof2 dataset to the data directory.
 
     ```bash
-    $ mkdir data
     $ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
     ```
 
@@ -82,7 +82,8 @@ training will work but will take a very long time.
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
-        --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
+        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
+        -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
         open_sesemi -cn imagewoof
     ```
@@ -98,24 +99,27 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ open_sesemi -cn imagewoof \
         run.mode=VALIDATE \
-        run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
+        run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
 
     With docker:
 
     ```bash
     $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi GPUS=all
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ docker run \
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
-        --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
+        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
+        -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
         open_sesemi -cn imagewoof \
             run.mode=VALIDATE \
-            run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
+            run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
 
 ## Citation

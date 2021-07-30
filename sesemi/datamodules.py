@@ -72,11 +72,11 @@ class SESEMIDataModule(pl.LightningDataModule):
 
     def _build_dataset(self, config: DatasetConfig) -> Dataset:
         if config.root is None:
-            dataset_root = self.data_root
-        elif not osp.isabs(config.root):
-            dataset_root = to_absolute_path(osp.join(self.data_root, config.root))
-        else:
+            dataset_root = to_absolute_path(self.data_root)
+        elif osp.isabs(config.root):
             dataset_root = config.root
+        else:
+            dataset_root = to_absolute_path(osp.join(self.data_root, config.root))
 
         dataset_kwargs = dict(config)  # type: ignore
         dataset_kwargs.pop("root")
@@ -114,7 +114,7 @@ class SESEMIDataModule(pl.LightningDataModule):
                 self.train_batch_sizes_per_gpu[key] = batch_size_per_gpu
 
             self.train_batch_sizes_per_iteration = {
-                key: self.train_batch_sizes_per_gpu[key] * self.num_gpus
+                key: self.train_batch_sizes_per_gpu[key] * max(self.num_gpus, 1)
                 for key in self.config.train.keys()
             }
 

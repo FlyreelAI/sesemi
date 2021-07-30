@@ -10,6 +10,17 @@ Subpackages
    sesemi.models.backbones
    sesemi.models.heads
 
+Submodules
+----------
+
+sesemi.models.utils module
+--------------------------
+
+.. automodule:: sesemi.models.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

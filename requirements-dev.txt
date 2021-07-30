@@ -1,0 +1,4 @@
+Sphinx
+mypy
+pytest
+black

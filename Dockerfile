@@ -25,11 +25,9 @@ WORKDIR /home/appuser
 ENV TORCH_HOME="/home/appuser/sesemi/.cache/torch/"
 
 # Add and install dependencies
-COPY --chown=appuser:appuser ./requirements.txt sesemi/
+COPY --chown=appuser:appuser . sesemi/
+WORKDIR /home/appuser/sesemi
 
 RUN conda clean -y --all
 RUN pip install --no-cache-dir --user --upgrade pip
-RUN pip install --no-cache-dir --user -r sesemi/requirements.txt
-
-COPY --chown=appuser:appuser . sesemi
-WORKDIR /home/appuser/sesemi
+RUN pip install --no-cache-dir --user -e .

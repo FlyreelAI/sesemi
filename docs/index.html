@@ -166,13 +166,12 @@
 <div class="section" id="highlights-and-features">
 <h3>Highlights and Features<a class="headerlink" href="#highlights-and-features" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>Integration with the popular <a class="reference external" href="https://github.com/rwightman/pytorch-image-models">PyTorch Image Models</a> (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of <a class="reference external" href="https://github.com/FlyreelAI/sesemi/blob/master/models/sesemi.py">supported backbones</a></p></li>
+<li><p>Integration with the popular <a class="reference external" href="https://github.com/rwightman/pytorch-image-models">PyTorch Image Models</a> (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of <a class="reference external" href="https://github.com/FlyreelAI/sesemi/blob/master/sesemi/models/backbones/timm.py">supported backbones</a></p></li>
 <li><p>Demonstrated utility on large realistic image datasets and is currently competitive on the <a class="reference external" href="https://github.com/fastai/imagenette">FastAI Imagenette benchmarks</a></p></li>
 <li><p>Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture</p></li>
 <li><p>Simply add unlabeled data for improved image classification without any tricks</p></li>
 </ul>
-<p>Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know
-and cite the related paper below. Contributions are also welcome!</p>
+<p>Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know. Contributions are also welcome!</p>
 </div>
 </div>
 <div class="section" id="installation">
@@ -184,7 +183,7 @@ and cite the related paper below. Contributions are also welcome!</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/FlyreelAI/sesemi.git
 </pre></div>
 </div>
-<p>While the above installs the latest version from master, a version from PyPI can be installed instead as follows:</p>
+<p>While the above installs the latest version from the main branch, a version from PyPI can be installed instead as follows:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install sesemi
 </pre></div>
 </div>
@@ -205,22 +204,22 @@ $ docker build <span class="se">\</span>
 </div>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>This section will go through the process of using SESEMI to train a model on <a class="reference external" href="https://github.com/fastai/imagenette#imagewoof">FastAI’s imagewoof2 dataset</a>. If you don’t have access to a GPU machine,
+<p>You can find more detailed documentation which is hosted <a class="reference external" href="https://flyreelai.github.io/sesemi/">here</a>, however, this section will guide you through the process of using SESEMI to train a model on <a class="reference external" href="https://github.com/fastai/imagenette#imagewoof">FastAI’s imagewoof2 dataset</a>. If you don’t have access to a GPU machine,
 training will work but will take a very long time.</p>
 <ol class="arabic">
 <li><p>Create a directory for the experiment and enter it.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mkdir sesemi
-$ <span class="nb">cd</span> sesemi
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mkdir sesemi-experiments
+$ <span class="nb">cd</span> sesemi-experiments
+$ mkdir data runs .cache
 </pre></div>
 </div>
 </li>
 <li><p>Download and extract the imagewoof2 dataset to the data directory.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mkdir data
-$ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz <span class="p">|</span> tar -xzv -C ./data
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz <span class="p">|</span> tar -xzv -C ./data
 </pre></div>
 </div>
 </li>
-<li><p>Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the FastAI leaderboard, using a standard training protocol + unlabeled data - no fancy tricks.</p>
+<li><p>Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the <a class="reference external" href="https://github.com/fastai/imagenette#imagewoof-leaderboard">FastAI leaderboard</a>, using a standard training protocol + unlabeled data, without fancy tricks.</p>
 <blockquote>
 <div><p>If you’re not using docker this can be done as follows:</p>
 </div></blockquote>
@@ -234,9 +233,10 @@ If you use docker and have <span class="sb">`</span>nvidia-docker &lt;https://gi
        --gpus <span class="si">${</span><span class="nv">GPUS</span><span class="si">}</span> <span class="se">\</span>
        -u <span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
        --rm --ipc<span class="o">=</span>host <span class="se">\</span>
-       --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/data,dst<span class="o">=</span>/home/appuser/sesemi/data <span class="se">\</span>
+       --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
+       -w /home/appuser/sesemi-experiments <span class="se">\</span>
        <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-       python open_sesemi -cn imagewoof
+       open_sesemi -cn imagewoof
 
 The training logs with all relevant training statistics <span class="o">(</span>accuracy, losses, learning rate, etc.<span class="o">)</span> are written to the <span class="sb">``</span>./runs<span class="sb">``</span> directory. You can use <span class="sb">`</span>TensorBoard &lt;https://www.tensorflow.org/tensorboard&gt;<span class="sb">`</span>_ to view and monitor them <span class="k">in</span> your browser during training.
 </pre></div>
@@ -249,23 +249,26 @@ The training logs with all relevant training statistics <span class="o">(</span>
 <blockquote>
 <div><p>Without docker:</p>
 </div></blockquote>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ python open_sesemi -cn imagewoof <span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
+   $ open_sesemi -cn imagewoof <span class="se">\</span>
        run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
-       run.pretrained_checkpoint_path<span class="o">=</span>./runs/default/*/lightning_logs/checkpoints/last.ckpt
+       run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 
 With docker:
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi <span class="nv">GPUS</span><span class="o">=</span>all
+$ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
 $ docker run <span class="se">\</span>
     --gpus <span class="si">${</span><span class="nv">GPUS</span><span class="si">}</span> <span class="se">\</span>
     -u <span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
     --rm --ipc<span class="o">=</span>host <span class="se">\</span>
-    --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/data,dst<span class="o">=</span>/home/appuser/sesemi/data <span class="se">\</span>
+    --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
+    -w /home/appuser/sesemi-experiments <span class="se">\</span>
     <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-    python open_sesemi -cn imagewoof <span class="se">\</span>
+    open_sesemi -cn imagewoof <span class="se">\</span>
         run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
-        run.pretrained_checkpoint_path<span class="o">=</span>./runs/default/*/lightning_logs/checkpoints/last.ckpt
+        run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 </pre></div>
 </div>
 </li>
@@ -273,6 +276,7 @@ $ docker run <span class="se">\</span>
 </div>
 <div class="section" id="citation">
 <h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline">¶</a></h2>
+<p>If you find this work useful, consider citing the related paper:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@inproceedings</span><span class="p">{</span><span class="n">TranSESEMI</span><span class="p">,</span>
   <span class="n">title</span><span class="o">=</span><span class="s2">&quot;{Exploring Self-Supervised Regularization for Supervised and Semi-Supervised Learning}&quot;</span><span class="p">,</span>
   <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Phi</span> <span class="n">Vu</span> <span class="n">Tran</span><span class="p">},</span>

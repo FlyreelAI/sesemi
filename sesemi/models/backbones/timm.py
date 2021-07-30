@@ -14,10 +14,10 @@
 # limitations under the License.
 # ========================================================================#
 """Backbones from the rwightman/pytorch-image-models repository."""
-import torch
 import logging
 
 from .base import Backbone
+from ..utils import load_torch_hub_model
 
 PYTORCH_IMAGE_MODELS_REPO = "rwightman/pytorch-image-models"
 
@@ -124,25 +124,14 @@ class PyTorchImageModels(Backbone):
             )
 
         super().__init__()
-        try:
-            self.encoder = torch.hub.load(
-                PYTORCH_IMAGE_MODELS_REPO,
-                name,
-                pretrained,
-                num_classes=0,
-                global_pool=global_pool,
-                drop_rate=drop_rate,
-            )
-        except RuntimeError:
-            self.encoder = torch.hub.load(
-                PYTORCH_IMAGE_MODELS_REPO,
-                name,
-                pretrained,
-                num_classes=0,
-                global_pool=global_pool,
-                drop_rate=drop_rate,
-                force_reload=True,
-            )
+        self.encoder = load_torch_hub_model(
+            PYTORCH_IMAGE_MODELS_REPO,
+            name,
+            pretrained,
+            num_classes=0,
+            global_pool=global_pool,
+            drop_rate=drop_rate,
+        )
 
         self.out_features = self.encoder.num_features
         if global_pool == "catavgmax":

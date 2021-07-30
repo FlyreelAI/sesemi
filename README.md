@@ -8,7 +8,7 @@ SESEMI is an open source image classification library built on PyTorch and PyTor
 
 ### Highlights and Features
 
-* Integration with the popular [PyTorch Image Models](https://github.com/rwightman/pytorch-image-models) (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of [supported backbones](https://github.com/FlyreelAI/sesemi/blob/master/models/sesemi.py)
+* Integration with the popular [PyTorch Image Models](https://github.com/rwightman/pytorch-image-models) (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of [supported backbones](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/models/backbones/timm.py)
 * Demonstrated utility on large realistic image datasets and is currently competitive on the [FastAI Imagenette benchmarks](https://github.com/fastai/imagenette)
 * Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
 * Simply add unlabeled data for improved image classification without any tricks
@@ -49,20 +49,20 @@ Note that your OS user ID is obtained through the bash command `id -u`. This com
 
 ## Getting Started
 
-This section will go through the process of using SESEMI to train a model on [FastAI's imagewoof2 dataset](https://github.com/fastai/imagenette#imagewoof). If you don't have access to a GPU machine, 
+You can find more detailed documentation which is hosted [here](https://flyreelai.github.io/sesemi/), however, this section will guide you through the process of using SESEMI to train a model on [FastAI's imagewoof2 dataset](https://github.com/fastai/imagenette#imagewoof). If you don't have access to a GPU machine, 
 training will work but will take a very long time.
 
 1. Create a directory for the experiment and enter it.
 
     ```bash
-    $ mkdir sesemi
-    $ cd sesemi
+    $ mkdir sesemi-experiments
+    $ cd sesemi-experiments
+    $ mkdir data runs .cache
     ```
 
 2. Download and extract the imagewoof2 dataset to the data directory.
 
     ```bash
-    $ mkdir data
     $ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
     ```
 
@@ -82,7 +82,8 @@ training will work but will take a very long time.
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
-        --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
+        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
+        -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
         open_sesemi -cn imagewoof
     ```
@@ -98,24 +99,27 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ open_sesemi -cn imagewoof \
         run.mode=VALIDATE \
-        run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
+        run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
 
     With docker:
 
     ```bash
     $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi GPUS=all
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ docker run \
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
-        --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
+        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
+        -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
         open_sesemi -cn imagewoof \
             run.mode=VALIDATE \
-            run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
+            run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
 
 ## Citation

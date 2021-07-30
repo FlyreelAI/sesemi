@@ -269,7 +269,7 @@ class Classifier(pl.LightningModule):
 
             self.log(
                 "val/top1/best",
-                top1,
+                self.best_validation_top1_accuracy,
                 on_step=False,
                 on_epoch=True,
                 prog_bar=True,

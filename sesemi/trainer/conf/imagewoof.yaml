@@ -14,7 +14,7 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - standard
+  - base
 run:
   seed: 42
   gpus: 2

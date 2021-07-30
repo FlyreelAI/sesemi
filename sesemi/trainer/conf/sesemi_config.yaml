@@ -18,4 +18,4 @@ defaults:
   - learner: classifier
 hydra:
   run:
-    dir: ${run.dir}/${run.id}/${now:%Y-%m-%d-%H-%M-%S}
+    dir: ${run.dir}/${run.id}/${now:%Y%m%d_%H%M%S}

@@ -13,8 +13,7 @@ SESEMI is an open source image classification library built on PyTorch and PyTor
 * Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
 * Simply add unlabeled data for improved image classification without any tricks
 
-Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know
-and cite the related paper below. Contributions are also welcome!
+Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know. Contributions are also welcome!
 
 ## Installation
 Our preferred installation method is Docker, however, you can use any virtual environment tool to install the necessary Python dependencies. Below are instructions for both these methods.
@@ -27,7 +26,7 @@ To use pip, configure a virtual environment of choice with at least Python 3.6 (
 $ pip install git+https://github.com/FlyreelAI/sesemi.git
 ```
 
-While the above installs the latest version from master, a version from PyPI can be installed instead as follows:
+While the above installs the latest version from the main branch, a version from PyPI can be installed instead as follows:
 
 ```bash
 $ pip install sesemi
@@ -67,7 +66,7 @@ training will work but will take a very long time.
     $ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
     ```
 
-3. Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the FastAI leaderboard, using a standard training protocol + unlabeled data - no fancy tricks.
+3. Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the [FastAI leaderboard](https://github.com/fastai/imagenette#imagewoof-leaderboard), using a standard training protocol + unlabeled data, without fancy tricks.
 
     If you're not using docker this can be done as follows:
 
@@ -85,7 +84,7 @@ training will work but will take a very long time.
         --rm --ipc=host \
         --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
         ${SESEMI_IMAGE}:latest \
-        python open_sesemi -cn imagewoof
+        open_sesemi -cn imagewoof
     ```
 
     The training logs with all relevant training statistics (accuracy, losses, learning rate, etc.) are written to the `./runs` directory. You can use [TensorBoard](https://www.tensorflow.org/tensorboard) to view and monitor them in your browser during training.
@@ -99,9 +98,9 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
-    $ python open_sesemi -cn imagewoof \
+    $ open_sesemi -cn imagewoof \
         run.mode=VALIDATE \
-        run.pretrained_checkpoint_path=./runs/default/*/lightning_logs/checkpoints/last.ckpt
+        run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
     ```
 
     With docker:
@@ -114,12 +113,13 @@ training will work but will take a very long time.
         --rm --ipc=host \
         --mount type=bind,src=$(pwd)/data,dst=/home/appuser/sesemi/data \
         ${SESEMI_IMAGE}:latest \
-        python open_sesemi -cn imagewoof \
+        open_sesemi -cn imagewoof \
             run.mode=VALIDATE \
-            run.pretrained_checkpoint_path=./runs/default/*/lightning_logs/checkpoints/last.ckpt
+            run.pretrained_checkpoint_path=./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt
     ```
 
 ## Citation
+If you find this work useful, consider citing the related paper:
 
 ```
 @inproceedings{TranSESEMI,

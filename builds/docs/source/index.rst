@@ -1,4 +1,4 @@
-.. mdinclude:: ../../README.md
+.. mdinclude:: ../../../README.md
 
 Contents
 --------

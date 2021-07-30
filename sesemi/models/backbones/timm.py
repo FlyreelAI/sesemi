@@ -14,7 +14,6 @@
 # limitations under the License.
 # ========================================================================#
 """Backbones from the rwightman/pytorch-image-models repository."""
-import torch
 import logging
 
 from .base import Backbone

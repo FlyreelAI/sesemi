@@ -14,6 +14,10 @@
 # limitations under the License.
 # ========================================================================#
 """Top-level module imports."""
+
+# NOTE: Imports PyTorch Lightning first to mitigate an import error.
+import pytorch_lightning as _pl
+
 from torch.utils.data import DataLoader
 
 from .datasets import dataset

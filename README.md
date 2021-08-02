@@ -39,7 +39,7 @@ code in this repository. To build the image, run the following `bash` command :
 
 ```bash
 $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi
-$ docker build \
+$ DOCKER_BUILDKIT=1 docker build \
     --build-arg USER_ID=${USER_ID} \
     -t ${SESEMI_IMAGE}:latest https://github.com/FlyreelAI/sesemi.git
 ```

@@ -193,7 +193,7 @@
 <p>If you would like to use docker, then ensure you have it installed by following the instructions <a class="reference external" href="https://docs.docker.com/get-docker/">here</a>. The Dockerfile at the root can be used to build an image with the
 code in this repository. To build the image, run the following <code class="docutils literal notranslate"><span class="pre">bash</span></code> command :</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi
-$ docker build <span class="se">\</span>
+$ <span class="nv">DOCKER_BUILDKIT</span><span class="o">=</span><span class="m">1</span> docker build <span class="se">\</span>
     --build-arg <span class="nv">USER_ID</span><span class="o">=</span><span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
     -t <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest https://github.com/FlyreelAI/sesemi.git
 </pre></div>

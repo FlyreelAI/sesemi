@@ -20,7 +20,7 @@ import torch
 import logging
 
 from typing import Any, List, Optional, Union
-from torch.tensor import Tensor
+from torch import Tensor
 from torchvision.datasets import ImageFolder
 
 from itertools import combinations

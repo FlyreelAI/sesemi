@@ -11,7 +11,8 @@ with open(
 
 setup(
     name="sesemi",
-    version="0.1.0",
+    version="0.1.1",
+    description="Image Classification with Self-Supervised Regularization",
     author="Flyreel AI",
     author_email="ai@flyreel.co",
     packages=find_packages(include=["sesemi"]),
@@ -21,4 +22,12 @@ setup(
     install_requires=requirements,
     long_description=long_description,
     long_description_content_type="text/markdown",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Scientific/Engineering :: Artificial Intelligence"
+        "Topic :: Software Development :: Libraries",
+        "License :: OSI Approved :: Apache Software License",
+        "Intended Audience :: Science/Research",
+        "Development Status :: 4 - Beta",
+    ],
 )

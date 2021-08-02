@@ -20,10 +20,11 @@ import logging
 
 from math import ceil
 from torch.utils.data.dataset import Dataset
-from sesemi.config.structs import DataConfig, DataLoaderConfig, DatasetConfig
 from typing import Dict, List, Optional, Union
 from torch.utils.data import DataLoader, DistributedSampler
 from hydra.utils import instantiate, to_absolute_path
+
+from .config.structs import DataConfig, DataLoaderConfig, DatasetConfig
 
 logger = logging.getLogger(__name__)
 

@@ -24,7 +24,7 @@ setup(
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Scientific/Engineering :: Artificial Intelligence"
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development :: Libraries",
         "License :: OSI Approved :: Apache Software License",
         "Intended Audience :: Science/Research",

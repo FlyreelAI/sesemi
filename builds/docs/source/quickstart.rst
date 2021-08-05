@@ -192,7 +192,7 @@ configuration you can run::
 
 This assumes you have downloaded the imagewoof dataset to the *./data/imagewoof2* directory, but otherwise it should work out of the box.
 
-There is also a configuration file named standard that can be used as a starting point for custom configs or to train
+There is also a configuration file named base that can be used as a starting point for custom configs or to train
 baseline models.
 
 --------
@@ -229,7 +229,7 @@ Note that the name used for image folder datasets is *image_folder*. Additionall
 Example
 -------
 
-The following is a look at the standard configuration::
+The following is a look at the base configuration::
 
     defaults:
       - sesemi_config
@@ -370,7 +370,7 @@ For this example, we'll make use of the imagewoof dataset which can be downloade
 Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml::
 
   defaults:
-  - standard
+  - base
   run:
     seed: 42
     gpus: -1
@@ -378,7 +378,7 @@ Next, create a custom config file with the following sample contents and store i
     id: imagewoof
     data_root: ./data/imagewoof2
 
-This will use the built-in standard configuration and adds a couple of overrides. For a bare bones default
+This will use the built-in base configuration and adds a couple of overrides. For a bare bones default
 you can instead use sesemi_config. This example is the same as the provided imagewoof config.
 
 You can inspect your custom config file using::

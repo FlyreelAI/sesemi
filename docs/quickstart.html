@@ -351,7 +351,7 @@ configuration you can run:</p>
 </pre></div>
 </div>
 <p>This assumes you have downloaded the imagewoof dataset to the <em>./data/imagewoof2</em> directory, but otherwise it should work out of the box.</p>
-<p>There is also a configuration file named standard that can be used as a starting point for custom configs or to train
+<p>There is also a configuration file named base that can be used as a starting point for custom configs or to train
 baseline models.</p>
 </div>
 <div class="section" id="datasets">
@@ -384,7 +384,7 @@ format can be easily registered. The interface used to construct datasets is sho
 </div>
 <div class="section" id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
-<p>The following is a look at the standard configuration:</p>
+<p>The following is a look at the base configuration:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>defaults:
   - sesemi_config
 run:
@@ -520,7 +520,7 @@ CLI which is installed with the pip package in order to run experiments. An exam
 </div>
 <p>Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">defaults</span><span class="p">:</span>
-<span class="o">-</span> <span class="n">standard</span>
+<span class="o">-</span> <span class="n">base</span>
 <span class="n">run</span><span class="p">:</span>
   <span class="n">seed</span><span class="p">:</span> <span class="mi">42</span>
   <span class="n">gpus</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>
@@ -529,7 +529,7 @@ CLI which is installed with the pip package in order to run experiments. An exam
   <span class="n">data_root</span><span class="p">:</span> <span class="o">./</span><span class="n">data</span><span class="o">/</span><span class="n">imagewoof2</span>
 </pre></div>
 </div>
-<p>This will use the built-in standard configuration and adds a couple of overrides. For a bare bones default
+<p>This will use the built-in base configuration and adds a couple of overrides. For a bare bones default
 you can instead use sesemi_config. This example is the same as the provided imagewoof config.</p>
 <p>You can inspect your custom config file using:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">open_sesemi</span> <span class="o">-</span><span class="n">cd</span> <span class="n">configs</span> <span class="o">-</span><span class="n">cn</span> <span class="n">custom</span> <span class="o">--</span><span class="n">info</span>

@@ -33,6 +33,7 @@ from torchmetrics.average import AverageMeter
 
 from .config.structs import ClassifierHParams
 from .models.backbones.base import Backbone
+from .models.heads.base import LinearHead
 from .utils import reduce_tensor
 from .schedulers.weight import WeightScheduler
 
@@ -56,7 +57,10 @@ class Classifier(pl.LightningModule):
         self.shared_backbones = nn.ModuleDict()
         self.shared_backbones["backbone"] = instantiate(hparams.model.backbone)
 
-        self.fc = nn.Linear(self.backbone.out_features, hparams.num_classes)
+        self.shared_heads = nn.ModuleDict()
+        self.shared_heads["head"] = LinearHead(
+            self.backbone.out_features, hparams.num_classes
+        )
 
         self.supervised_loss = instantiate(
             hparams.model.supervised_loss.callable, reduction="none"
@@ -95,7 +99,7 @@ class Classifier(pl.LightningModule):
         self.num_regularization_losses = len(self.regularization_loss_heads)
 
         for head in self.regularization_loss_heads.values():
-            head.build(self.shared_backbones)
+            head.build(self.shared_backbones, self.shared_heads)
 
         self.training_accuracy = Accuracy(top_k=1, dist_sync_on_step=True)
         self.validation_top1_accuracy = Accuracy(top_k=1)
@@ -106,9 +110,14 @@ class Classifier(pl.LightningModule):
         """The supervised backbone."""
         return self.shared_backbones["backbone"]
 
+    @property
+    def head(self) -> Backbone:
+        """The supervised head."""
+        return self.shared_heads["head"]
+
     def forward(self, x):
         features = self.backbone(x)
-        logits = self.fc(features)
+        logits = self.head(features)
         return torch.softmax(logits, dim=-1)
 
     def configure_optimizers(self):
@@ -128,9 +137,10 @@ class Classifier(pl.LightningModule):
 
         inputs_t, targets_t = batch["supervised"][:2]
         features_t = self.backbone(inputs_t)
-        outputs_t = self.fc(features_t)
+        outputs_t = self.head(features_t)
 
         shared_features["backbone"] = features_t
+        shared_features["head"] = outputs_t
 
         supervised_loss = self.supervised_loss(outputs_t, targets_t)
 
@@ -138,6 +148,7 @@ class Classifier(pl.LightningModule):
             name: head(
                 data=batch,
                 backbones=self.shared_backbones,
+                heads=self.shared_heads,
                 features=shared_features,
                 step=self.global_step,
             )
@@ -240,7 +251,7 @@ class Classifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
-        outputs_t = self.fc(self.backbone(inputs_t))
+        outputs_t = self.head(self.backbone(inputs_t))
         probs_t = torch.softmax(outputs_t, dim=-1)
         loss_t = F.cross_entropy(outputs_t, targets_t, reduction="none")
         return probs_t, targets_t, loss_t

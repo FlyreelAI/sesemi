@@ -232,7 +232,6 @@ class Classifier(pl.LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            logger=False,
             logger=True,
         )
 

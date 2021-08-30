@@ -61,7 +61,12 @@ class Classifier(pl.LightningModule):
         self.supervised_loss = instantiate(
             hparams.model.supervised_loss.callable, reduction="none"
         )
-        self.supervised_loss_scheduler = hparams.model.supervised_loss.scheduler
+        if hparams.model.supervised_loss.scheduler is not None:
+            self.supervised_loss_scheduler: Optional[WeightScheduler] = instantiate(
+                hparams.model.supervised_loss.scheduler
+            )
+        else:
+            self.supervised_loss_scheduler = None
         self.supervised_loss_reduction_method = hparams.model.supervised_loss.reduction
 
         self.register_buffer(
@@ -121,7 +126,7 @@ class Classifier(pl.LightningModule):
     def training_step(self, batch, batch_index):
         shared_features = {}
 
-        inputs_t, targets_t = batch["supervised"]
+        inputs_t, targets_t = batch["supervised"][:2]
         features_t = self.backbone(inputs_t)
         outputs_t = self.fc(features_t)
 
@@ -165,9 +170,9 @@ class Classifier(pl.LightningModule):
         weighted_loss = loss_weight * reduced_loss
 
         if log_prefix is not None:
-            self.log(osp.join(log_prefix, "loss"), reduced_loss)
-            self.log(osp.join(log_prefix, "loss_weight"), loss_weight)
-            self.log(osp.join(log_prefix, "weighted_loss"), weighted_loss)
+            self.log(osp.join(log_prefix, "loss"), reduced_loss, on_step=True)
+            self.log(osp.join(log_prefix, "loss_weight"), loss_weight, on_step=True)
+            self.log(osp.join(log_prefix, "weighted_loss"), weighted_loss, on_step=True)
 
         return reduced_loss, weighted_loss, loss_weight
 
@@ -175,7 +180,7 @@ class Classifier(pl.LightningModule):
         optim = self.optimizers()
         param_group0_lr = optim.optimizer.param_groups[0]["lr"]
         for i, param_group in enumerate(optim.optimizer.param_groups):
-            self.log(f"optim/lr/param_group/{i}", param_group["lr"])
+            self.log(f"optim/lr/param_group/{i}", param_group["lr"], on_step=True)
 
         self.log(
             "lr",
@@ -228,6 +233,7 @@ class Classifier(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             logger=False,
+            logger=True,
         )
 
         self.training_accuracy.reset()

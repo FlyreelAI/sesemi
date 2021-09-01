@@ -48,7 +48,7 @@ def open_sesemi(config: SESEMIBaseConfig):
     random_seed = pl.seed_everything(config.run.seed)
 
     sesemi_config_attributes = SESEMIConfigAttributes()
-    OmegaConf.register_new_resolver("sesemi", sesemi_config_attributes)
+    OmegaConf.register_new_resolver("sesemi", sesemi_config_attributes, replace=True)
 
     # Expose trainer-specific attributes to config
     num_gpus = compute_num_gpus(config.run.gpus)

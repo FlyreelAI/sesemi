@@ -58,7 +58,7 @@ class Classifier(pl.LightningModule):
         self.shared_backbones["backbone"] = instantiate(hparams.model.backbone)
 
         self.shared_heads = nn.ModuleDict()
-        self.shared_heads["head"] = LinearHead(
+        self.shared_heads["supervised_head"] = LinearHead(
             self.backbone.out_features, hparams.num_classes
         )
 
@@ -89,7 +89,7 @@ class Classifier(pl.LightningModule):
             )
             if loss_head_config.scheduler is not None:
                 self.regularization_loss_schedulers[name] = instantiate(
-                    loss_head_config.scheduler, logger=self.logger
+                    loss_head_config.scheduler
                 )
             else:
                 self.regularization_loss_schedulers[name] = None
@@ -113,7 +113,7 @@ class Classifier(pl.LightningModule):
     @property
     def head(self) -> Backbone:
         """The supervised head."""
-        return self.shared_heads["head"]
+        return self.shared_heads["supervised_head"]
 
     def forward(self, x):
         features = self.backbone(x)
@@ -140,7 +140,7 @@ class Classifier(pl.LightningModule):
         outputs_t = self.head(features_t)
 
         shared_features["backbone"] = features_t
-        shared_features["head"] = outputs_t
+        shared_features["supervised_head"] = outputs_t
 
         supervised_loss = self.supervised_loss(outputs_t, targets_t)
 

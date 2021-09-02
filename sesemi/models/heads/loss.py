@@ -22,6 +22,7 @@ from typing import Dict, Any, Optional
 from pytorch_lightning.loggers.base import LightningLoggerBase
 
 from ..backbones.base import Backbone
+from ..heads.base import Head
 
 
 class LossHead(nn.Module):
@@ -43,7 +44,7 @@ class LossHead(nn.Module):
         super().__init__()
         self.logger = logger
 
-    def build(self, backbones: Dict[str, Backbone]):
+    def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         """Builds the loss head.
 
         Args:
@@ -51,12 +52,14 @@ class LossHead(nn.Module):
                 added. As this is actually an `nn.ModuleDict` which tracks the parameters,
                 these new backbones should not be saved to the loss head object to avoid
                 double-tracking.
+            heads: A dictionary of shared heads similar to the backbones
         """
 
     def forward(
         self,
         data: Dict[str, Any],
         backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
         **kwargs,
@@ -66,6 +69,7 @@ class LossHead(nn.Module):
         Args:
             data: A dictionary of data batches.
             backbones: A dictionary of shared backbones. This should not be altered.
+            heads: A dictionary of shared heads. This should not be altered.
             features: A dictionary of shared features. Additional tensors can be added to this.
             step: The training step number.
             **kwargs: Placeholder for other arguments that may be added.
@@ -93,13 +97,14 @@ class RotationPredictionLossHead(LossHead):
         self.input_data = input_data
         self.input_backbone = input_backbone
 
-    def build(self, backbones: Dict[str, Backbone]):
+    def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         self.fc_unlabeled = nn.Linear(backbones[self.input_backbone].out_features, 4)
 
     def forward(
         self,
         data: Dict[str, Any],
         backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
         **kwargs,

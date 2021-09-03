@@ -14,6 +14,7 @@
 # limitations under the License.
 # ========================================================================#
 """Loss heads."""
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -103,8 +104,7 @@ class RotationPredictionLossHead(LossHead):
 
     def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         self.fc_unsupervised = nn.Linear(
-            backbones[self.input_backbone].out_features,
-            self.num_pretext_classes
+            backbones[self.input_backbone].out_features, self.num_pretext_classes
         )
 
     def forward(
@@ -132,7 +132,7 @@ class EntropyMinimizationLossHead(LossHead):
         self,
         input_data: str,
         input_backbone: str = "backbone",
-        predict_fn = "supervised",
+        predict_fn="supervised",
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.

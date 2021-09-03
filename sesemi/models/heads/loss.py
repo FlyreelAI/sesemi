@@ -79,7 +79,9 @@ class LossHead(nn.Module):
 
 
 class RotationPredictionLossHead(LossHead):
-    """The rotation prediction loss head."""
+    """The rotation prediction loss head.
+    https://arxiv.org/abs/1803.07728
+    """
 
     def __init__(
         self,
@@ -123,7 +125,9 @@ class RotationPredictionLossHead(LossHead):
 
 
 class EntropyMinimizationLossHead(LossHead):
-    """The entropy minimization loss head."""
+    """The entropy minimization loss head.
+    https://papers.nips.cc/paper/2004/file/96f2b50b5d3613adf9c27049b2a888c7-Paper.pdf
+    """
 
     def __init__(
         self,

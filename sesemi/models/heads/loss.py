@@ -14,7 +14,6 @@
 # limitations under the License.
 # ========================================================================#
 """Loss heads."""
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -133,6 +132,7 @@ class EntropyMinimizationLossHead(LossHead):
         self,
         input_data: str,
         input_backbone: str = "backbone",
+        predict_fn = "supervised",
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
@@ -140,14 +140,13 @@ class EntropyMinimizationLossHead(LossHead):
         Args:
             input_data: The key used to get the unlabeled input data.
             input_backbone: The key used to get the backbone for feature extraction.
+            predict_fn: The prediction function used to compute loss statistics.
             logger: An optional PyTorch Lightning logger.
         """
         super().__init__(logger)
         self.input_data = input_data
         self.input_backbone = input_backbone
-
-    def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
-        self.fc_supervised = heads["supervised_head"]
+        self.predict_fn = predict_fn
 
     def forward(
         self,
@@ -160,7 +159,6 @@ class EntropyMinimizationLossHead(LossHead):
     ) -> Tensor:
         inputs_u, _ = data[self.input_data]
         x_u = backbones[self.input_backbone](inputs_u)
-        output_u = self.fc_supervised(x_u)
-        output_u = F.softmax(output_u, dim=1)
-        loss_u = (-output_u * torch.log(output_u + 1e-5)).sum(1)
+        output_u = heads[self.predict_fn](x_u)
+        loss_u = (-F.softmax(output_u, dim=-1) * F.log_softmax(output_u, dim=-1)).sum(1)
         return loss_u

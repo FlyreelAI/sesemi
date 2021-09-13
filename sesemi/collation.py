@@ -26,29 +26,39 @@ class RotationTransformer:
     Input images are rotated 0, 90, 180, and 270 degrees.
     """
 
+    def __init__(self, return_supervised_labels=False):
+        """Initializes the rotation collation callable.
+
+        Args:
+            return_supervised_labels: Whether to return supervised class labels or pretext labels.
+        """
+        self.return_supervised_labels = return_supervised_labels
+
     def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         """Generates a transformed data batch of rotation prediction data.
 
-        Arguments:
-            batch: A tuple containing a batch of input images and associated labels.
+        Args:
+            batch: A tuple containing a batch of input images and supervised labels.
 
         Returns:
-            A tuple of rotated images and their associated rotation prediction labels where:
+            A tuple of rotated images and their associated supervised or pretext labels, where:
 
                 0  corresponds to 0 degrees.
                 1  corresponds to 90 degrees.
                 2  corresponds to 180 degrees.
                 3  corresponds to 270 degrees.
         """
-        tensors, labels = [], []
-        for tensor, _ in batch:
+        tensors, labels, rotation_labels = [], [], []
+        for tensor, label in batch:
             for k in range(4):
                 if k == 0:
                     t = tensor
                 else:
                     t = torch.rot90(tensor, k, dims=[1, 2])
                 tensors.append(t)
-                labels.append(torch.LongTensor([k]))
+                labels.append(torch.LongTensor([label]))
+                rotation_labels.append(torch.LongTensor([k]))
         x = torch.stack(tensors, dim=0)
-        y = torch.cat(labels, dim=0)  # type: ignore
-        return (x, y)
+        y = torch.cat(labels, dim=0)
+        p = torch.cat(rotation_labels, dim=0)
+        return (x, y) if self.return_supervised_labels else (x, p)

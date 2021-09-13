@@ -162,6 +162,7 @@
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
@@ -276,6 +277,14 @@
   </ul></td>
 </tr></table>
 
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.EntropyMinimizationLossHead">EntropyMinimizationLossHead (class in sesemi.models.heads.loss)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -285,6 +294,10 @@
 
       <ul>
         <li><a href="sesemi.models.backbones.html#sesemi.models.backbones.timm.PyTorchImageModels.forward">(sesemi.models.backbones.timm.PyTorchImageModels method)</a>
+</li>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.LinearHead.forward">(sesemi.models.heads.base.LinearHead method)</a>
+</li>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.EntropyMinimizationLossHead.forward">(sesemi.models.heads.loss.EntropyMinimizationLossHead method)</a>
 </li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead.forward">(sesemi.models.heads.loss.LossHead method)</a>
 </li>
@@ -317,8 +330,14 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="sesemi.config.html#id41">head (sesemi.config.structs.LossHeadConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.LossHeadConfig.head">[1]</a>
+      <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.Head">Head (class in sesemi.models.heads.base)</a>
 </li>
+      <li><a href="sesemi.config.html#id41">head (sesemi.config.structs.LossHeadConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.LossHeadConfig.head">[1]</a>
+
+      <ul>
+        <li><a href="sesemi.html#sesemi.learners.Classifier.head">(sesemi.learners.Classifier property)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.config.html#id4">hparams (sesemi.config.structs.ClassifierConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.ClassifierConfig.hparams">[1]</a>
@@ -333,10 +352,16 @@
 </li>
       <li><a href="sesemi.html#sesemi.datasets.image_folder">image_folder() (in module sesemi.datasets)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.config.html#id27">image_transform (sesemi.config.structs.DatasetConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.DatasetConfig.image_transform">[1]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="sesemi.models.heads.html#id0">in_features (sesemi.models.heads.base.Head attribute)</a>, <a href="sesemi.models.heads.html#sesemi.models.heads.base.Head.in_features">[1]</a>
+
+      <ul>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.LinearHead.in_features">(sesemi.models.heads.base.LinearHead attribute)</a>
+</li>
+      </ul></li>
       <li><a href="sesemi.config.html#id32">interval (sesemi.config.structs.LRSchedulerConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.LRSchedulerConfig.interval">[1]</a>
 </li>
       <li><a href="sesemi.config.html#id0">iterations_per_epoch (sesemi.config.resolvers.SESEMIConfigAttributes attribute)</a>, <a href="sesemi.config.html#sesemi.config.resolvers.SESEMIConfigAttributes.iterations_per_epoch">[1]</a>
@@ -351,14 +376,16 @@
 </li>
       <li><a href="sesemi.config.html#sesemi.config.structs.LearnerConfig">LearnerConfig (class in sesemi.config.structs)</a>
 </li>
+      <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.LinearHead">LinearHead (class in sesemi.models.heads.base)</a>
+</li>
       <li><a href="sesemi.html#sesemi.utils.load_checkpoint">load_checkpoint() (in module sesemi.utils)</a>
 </li>
       <li><a href="sesemi.models.html#sesemi.models.utils.load_torch_hub_model">load_torch_hub_model() (in module sesemi.models.utils)</a>
 </li>
-      <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead.logger">logger (sesemi.models.heads.loss.LossHead attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead.logger">logger (sesemi.models.heads.loss.LossHead attribute)</a>
+</li>
       <li><a href="sesemi.config.html#sesemi.config.structs.LossCallableConfig">LossCallableConfig (class in sesemi.config.structs)</a>
 </li>
       <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead">LossHead (class in sesemi.models.heads.loss)</a>
@@ -410,6 +437,8 @@
         <li><a href="sesemi.models.backbones.html#module-sesemi.models.backbones.timm">sesemi.models.backbones.timm</a>
 </li>
         <li><a href="sesemi.models.heads.html#module-sesemi.models.heads">sesemi.models.heads</a>
+</li>
+        <li><a href="sesemi.models.heads.html#module-sesemi.models.heads.base">sesemi.models.heads.base</a>
 </li>
         <li><a href="sesemi.models.heads.html#module-sesemi.models.heads.loss">sesemi.models.heads.loss</a>
 </li>
@@ -482,12 +511,14 @@
 </li>
       <li><a href="sesemi.config.html#id8">optimizer (sesemi.config.structs.ClassifierHParams attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.ClassifierHParams.optimizer">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.models.backbones.html#id0">out_features (sesemi.models.backbones.base.Backbone attribute)</a>, <a href="sesemi.models.backbones.html#sesemi.models.backbones.base.Backbone.out_features">[1]</a>
 
       <ul>
         <li><a href="sesemi.models.backbones.html#sesemi.models.backbones.timm.PyTorchImageModels.out_features">(sesemi.models.backbones.timm.PyTorchImageModels attribute)</a>
+</li>
+        <li><a href="sesemi.models.heads.html#id1">(sesemi.models.heads.base.Head attribute)</a>, <a href="sesemi.models.heads.html#sesemi.models.heads.base.Head.out_features">[1]</a>
+</li>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.LinearHead.out_features">(sesemi.models.heads.base.LinearHead attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -663,6 +694,13 @@
         <li><a href="sesemi.models.heads.html#module-sesemi.models.heads">module</a>
 </li>
       </ul></li>
+      <li>
+    sesemi.models.heads.base
+
+      <ul>
+        <li><a href="sesemi.models.heads.html#module-sesemi.models.heads.base">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
@@ -793,10 +831,10 @@
 </li>
       <li><a href="sesemi.html#sesemi.datamodules.SESEMIDataModule.train_batch_sizes_per_gpu">train_batch_sizes_per_gpu (sesemi.datamodules.SESEMIDataModule attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.html#sesemi.datamodules.SESEMIDataModule.train_batch_sizes_per_iteration">train_batch_sizes_per_iteration (sesemi.datamodules.SESEMIDataModule attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.html#sesemi.datamodules.SESEMIDataModule.train_dataloader">train_dataloader() (sesemi.datamodules.SESEMIDataModule method)</a>
 </li>
       <li><a href="sesemi.html#sesemi.transforms.train_transforms">train_transforms() (in module sesemi.transforms)</a>
@@ -806,6 +844,10 @@
       <li><a href="sesemi.models.backbones.html#sesemi.models.backbones.timm.PyTorchImageModels.training">training (sesemi.models.backbones.timm.PyTorchImageModels attribute)</a>
 
       <ul>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.base.LinearHead.training">(sesemi.models.heads.base.LinearHead attribute)</a>
+</li>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.EntropyMinimizationLossHead.training">(sesemi.models.heads.loss.EntropyMinimizationLossHead attribute)</a>
+</li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead.training">(sesemi.models.heads.loss.LossHead attribute)</a>
 </li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.RotationPredictionLossHead.training">(sesemi.models.heads.loss.RotationPredictionLossHead attribute)</a>

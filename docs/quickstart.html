@@ -241,7 +241,7 @@ developed a brief primer on the subject. Please see that page for additional bac
 <p>The config shown by the help text above is actually defined using a set of Python data structures. In particular,
 data classes with type annotations are used. For example, some of the root configuration data structures are shown below:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">SESEMIConfig</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">SESEMIBaseConfig</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;The full SESEMI configuration.</span>
 
 <span class="sd">    Attributes:</span>
@@ -346,8 +346,8 @@ Any of the nested attributes can be set both through config files as well as thr
 <div class="section" id="built-in-configurations">
 <h2>Built-in Configurations<a class="headerlink" href="#built-in-configurations" title="Permalink to this headline">¶</a></h2>
 <p>We have a couple built-in configurations which are packaged with the library. For instance, to use the imagewoof
-configuration you can run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ open_sesemi -cn imagewoof
+configuration with rotation prediction you can run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ open_sesemi -cn imagewoof_rotpred
 </pre></div>
 </div>
 <p>This assumes you have downloaded the imagewoof dataset to the <em>./data/imagewoof2</em> directory, but otherwise it should work out of the box.</p>
@@ -519,8 +519,10 @@ CLI which is installed with the pip package in order to run experiments. An exam
 </pre></div>
 </div>
 <p>Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">defaults</span><span class="p">:</span>
-<span class="o">-</span> <span class="n">base</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># @package _global_</span>
+<span class="n">defaults</span><span class="p">:</span>
+<span class="o">-</span> <span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">supervised</span>
+<span class="o">-</span> <span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">model</span><span class="o">/</span><span class="n">rotation_prediction</span>
 <span class="n">run</span><span class="p">:</span>
   <span class="n">seed</span><span class="p">:</span> <span class="mi">42</span>
   <span class="n">gpus</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>

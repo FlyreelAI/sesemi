@@ -71,7 +71,7 @@ training will work but will take a very long time.
     If you're not using docker this can be done as follows:
 
     ```bash
-    $ open_sesemi -cn imagewoof
+    $ open_sesemi -cn imagewoof_rotpred
     ```
 
     If you use docker and have [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) installed you can instead use:

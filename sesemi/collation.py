@@ -25,6 +25,13 @@ class RotationTransformer:
 
     Input images are rotated 0, 90, 180, and 270 degrees.
     """
+    def __init__(self, return_supervised_labels=False):
+        """Initializes the rotation collation callable.
+
+        Args:
+            return_supervised_labels: Whether to return supervised class labels or pretext labels.
+        """
+        self.return_supervised_labels = return_supervised_labels
 
     def __init__(self, return_supervised_labels=False):
         """Initializes the rotation collation callable.

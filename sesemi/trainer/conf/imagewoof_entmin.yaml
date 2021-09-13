@@ -23,4 +23,3 @@ run:
   gpus: 2
   num_epochs: 100
   id: imagewoof_entmin
-

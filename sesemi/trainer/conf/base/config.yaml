@@ -1,3 +1,4 @@
+# @package _global_
 ##
 ## Copyright 2021, Flyreel. All Rights Reserved.
 ##
@@ -14,8 +15,8 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - sesemi_base_config
-  - learner: classifier
+  - /base/sesemi
+  - /learner: classifier
 hydra:
   run:
     dir: ${run.dir}/${run.id}/${now:%Y%m%d_%H%M%S}

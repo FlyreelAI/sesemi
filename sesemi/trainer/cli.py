@@ -34,11 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 config_store = ConfigStore.instance()
-config_store.store(name="sesemi_base_config", node=SESEMIBaseConfig)
+config_store.store(
+    name="sesemi", node=SESEMIBaseConfig, group="base", package="_global_"
+)
 config_store.store(name="classifier", node=ClassifierConfig, group="learner")
 
 
-@hydra.main(config_path="conf", config_name="sesemi_config")
+@hydra.main(config_path="conf", config_name="/base/config")
 def open_sesemi(config: SESEMIBaseConfig):
     """The trainer's main function.
 

@@ -21,10 +21,14 @@ import torch
 import torchvision.transforms.functional as TF
 
 from typing import Callable, Tuple
+from enum import Enum
 from torch import Tensor
 from torchvision import datasets, transforms
 
-from .collation import RotationTransformer
+from .collation import (
+    RotationTransformer,
+    JigsawTransformer
+)
 from .utils import validate_paths
 
 
@@ -45,7 +49,7 @@ class GammaCorrection:
         """Applies random gamma correction to the input image.
 
         Args:
-            x: The input image.
+            x: The input PIL image or tensor.
 
         Returns:
             The gamma corrected image.
@@ -62,7 +66,7 @@ def train_transforms(
     resize: int = 256,
     crop_dim: int = 224,
     scale: Tuple[float, float] = (0.2, 1.0),
-    interpolation: int = 3,
+    interpolation: Enum = TF.InterpolationMode.BILINEAR,
     gamma_range: Tuple[float, float] = (0.5, 1.5),
     p_hflip: float = 0.5,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
@@ -108,7 +112,7 @@ def train_transforms(
 def center_crop_transforms(
     resize: int = 256,
     crop_dim: int = 224,
-    interpolation: int = 3,
+    interpolation: Enum = TF.InterpolationMode.BILINEAR,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
         channel_mean,
         channel_std,
@@ -139,7 +143,7 @@ def multi_crop_transforms(
     resize: int = 256,
     crop_dim: int = 224,
     num_crop: int = 5,
-    interpolation: int = 3,
+    interpolation: Enum = TF.InterpolationMode.BILINEAR,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
         channel_mean,
         channel_std,
@@ -206,9 +210,10 @@ if __name__ == "__main__":
         help="apply channel-wise mean-std normalization",
     )
     parser.add_argument(
-        "--visualize-rotations",
-        action="store_true",
-        help="visualize rotation transformations",
+        "--visualization",
+        choices=["none", "rotation", "jigsaw"],
+        default="rotation",
+        help="visualize transformations on unlabeled data"
     )
     parser.add_argument(
         "--out-dir",
@@ -241,15 +246,19 @@ if __name__ == "__main__":
     print("dataset size: {}".format(len(dataset)))
     to_pil_image = transforms.ToPILImage()
     rotate = RotationTransformer()
+    jigsaw = JigsawTransformer(p_grayscale=0.5, norms=(mean, std))
     for i in trange(args.head):
         fpath = dataset.imgs[i][0]
         fname = fpath.split("/")[-1]
         x, dummy_label = dataset[i]
-        if args.visualize_rotations:
-            tensors, indices = rotate([(x, dummy_label)])
-            for x, ind in zip(*(tensors, indices)):
-                image = to_pil_image(x)
-                image.save(os.path.join(args.out_dir, f"rotated_{ind}_" + fname))
-        else:
+        if args.visualization == "none":
             image = to_pil_image(x)
             image.save(os.path.join(args.out_dir, fname))
+            continue
+        if args.visualization == "rotation":
+            tensors, indices = rotate([(x, dummy_label)])
+        elif args.visualization == "jigsaw":
+            tensors, indices = jigsaw([(x, dummy_label)])
+        for x, ind in zip(*(tensors, indices)):
+            image = to_pil_image(x)
+            image.save(os.path.join(args.out_dir, f"vis_{args.visualization}_{ind}_" + fname))

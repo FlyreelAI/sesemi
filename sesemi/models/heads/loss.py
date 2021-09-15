@@ -94,6 +94,7 @@ class RotationPredictionLossHead(LossHead):
         Args:
             input_data: The key used to get the rotation prediction input data.
             input_backbone: The key used to get the backbone for feature extraction.
+            num_pretext_classes: Number of pretext labels.
             logger: An optional PyTorch Lightning logger.
         """
         super().__init__(logger)
@@ -103,8 +104,7 @@ class RotationPredictionLossHead(LossHead):
 
     def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         self.fc_unsupervised = nn.Linear(
-            backbones[self.input_backbone].out_features,
-            self.num_pretext_classes
+            backbones[self.input_backbone].out_features, self.num_pretext_classes
         )
 
     def forward(
@@ -123,6 +123,26 @@ class RotationPredictionLossHead(LossHead):
         return loss_u
 
 
+class JigsawPredictionLossHead(RotationPredictionLossHead):
+    """The jigsaw prediction loss head.
+    Idea and implementation are adapted from
+    https://arxiv.org/abs/1903.06864
+    """
+    
+    def __init__(
+        self,
+        input_data: str,
+        input_backbone: str = "backbone",
+        num_pretext_classes: int = 6,
+        logger: Optional[LightningLoggerBase] = None,
+    ):
+        super().__init__(
+            input_data,
+            input_backbone,
+            num_pretext_classes,
+        )
+
+
 class EntropyMinimizationLossHead(LossHead):
     """The entropy minimization loss head.
     https://papers.nips.cc/paper/2004/file/96f2b50b5d3613adf9c27049b2a888c7-Paper.pdf
@@ -132,7 +152,7 @@ class EntropyMinimizationLossHead(LossHead):
         self,
         input_data: str,
         input_backbone: str = "backbone",
-        predict_fn = "supervised",
+        predict_fn: str = "supervised",
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.

@@ -1,8 +1,8 @@
 hydra-core
 omegaconf
-pytorch-lightning~=1.3.8
+pytorch-lightning
 scikit-learn
 tensorboard
-torch>=1.6.0
-torchvision>=0.7.0
+torch>=1.8.1
+torchvision>=0.9.1
 tqdm

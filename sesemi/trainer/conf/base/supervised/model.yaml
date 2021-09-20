@@ -21,7 +21,6 @@ run:
   num_epochs: 80
 learner:
   hparams:
-    num_classes: 10
     model:
       backbone:
         _target_: sesemi.PyTorchImageModels

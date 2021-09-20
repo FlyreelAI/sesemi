@@ -15,11 +15,13 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - /base/supervised
-  - /base/data/imagewang
-  - /base/model/rotation_entropy_minimization
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/rotation_entropy_minimization/model
+  - /base/rotation_entropy_minimization/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 8
   num_epochs: 80
   id: imagewang_rotpred_entropy

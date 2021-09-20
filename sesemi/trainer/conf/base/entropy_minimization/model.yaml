@@ -14,14 +14,13 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ## ========================================================================##
-defaults:
-  - /base/supervised/model
-  - /base/supervised/data/imagewang
-  - /base/entropy_minimization/model
-  - /base/entropy_minimization/data/imagenet
-run:
-  seed: 42
-  gpus: 2
-  batch_size_per_gpu: 16
-  num_epochs: 100
-  id: imagewang_entmin
+learner:
+  hparams:
+    model:
+      regularization_loss_heads:
+        entropy_minimization:
+          head:
+            _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
+            input_data: unsupervised
+            input_backbone: backbone
+            predict_fn: supervised

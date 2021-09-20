@@ -15,12 +15,14 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - /base/supervised
-  - /base/data/imagewoof
-  - /base/model/entropy_minimization
+  - /base/supervised/model
+  - /base/supervised/data/imagewoof
+  - /base/entropy_minimization/model
+  - /base/entropy_minimization/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 16
   num_epochs: 100
   id: imagewoof_entmin
 

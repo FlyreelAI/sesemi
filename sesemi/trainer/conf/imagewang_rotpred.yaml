@@ -15,11 +15,13 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - /base/supervised
-  - /base/data/imagewang
-  - /base/model/rotation_prediction
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/rotation_prediction/model
+  - /base/rotation_prediction/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 16
   num_epochs: 80
   id: imagewang_rotpred

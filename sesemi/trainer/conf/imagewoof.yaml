@@ -16,12 +16,10 @@
 ## ========================================================================##
 defaults:
   - /base/supervised/model
-  - /base/supervised/data/imagewang
-  - /base/entropy_minimization/model
-  - /base/entropy_minimization/data/imagenet
+  - /base/supervised/data/imagewoof
 run:
   seed: 42
   gpus: 2
-  batch_size_per_gpu: 16
+  batch_size_per_gpu: 32
   num_epochs: 100
-  id: imagewang_entmin
+  id: imagewoof

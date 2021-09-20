@@ -16,24 +16,6 @@
 ## ========================================================================##
 run:
   batch_size_per_gpu: 16
-data:
-  train:
-    rotation_prediction:
-      dataset:
-        name: ${...supervised.dataset.name}
-        subset: [train, val]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
-      collate_fn:
-        _target_: sesemi.collation.RotationTransformer
 learner:
   hparams:
     model:

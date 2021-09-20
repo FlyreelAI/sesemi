@@ -15,30 +15,29 @@
 ## limitations under the License.
 ## ========================================================================##
 run:
-  batch_size_per_gpu: 16
-data:
-  train:
-    unsupervised:
-      dataset:
-        name: ${...supervised.dataset.name}
-        subset: [train, val]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
+  batch_size_per_gpu: 8
 learner:
   hparams:
     model:
       regularization_loss_heads:
+        rotation_prediction:
+          head:
+            _target_: sesemi.models.heads.loss.RotationPredictionLossHead
+            input_data: unsupervised
+            input_backbone: backbone
+          scheduler:
+            _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
+            weight: 1.0
+            stop_rampup: 0
+          scale_factor: 1.0
         entropy_minimization:
           head:
             _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
             input_data: unsupervised
             input_backbone: backbone
             predict_fn: supervised
+          scheduler:
+            _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
+            weight: 1.0
+            stop_rampup: 0
+          scale_factor: 1.0

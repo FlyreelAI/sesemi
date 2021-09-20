@@ -16,7 +16,6 @@
 ## ========================================================================##
 learner:
   hparams:
-    num_classes: 10
     model:
       regularization_loss_heads:
         jigsaw_prediction:

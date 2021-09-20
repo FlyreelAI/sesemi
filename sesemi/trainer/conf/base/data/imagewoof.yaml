@@ -14,14 +14,36 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ## ========================================================================##
-defaults:
-  - /base/supervised/model
-  - /base/supervised/data/imagewoof
-  - /base/entropy_minimization/model
-  - /base/entropy_minimization/data/imagenet
 run:
-  seed: 42
-  gpus: 2
-  batch_size_per_gpu: 16
-  num_epochs: 100
-  id: imagewoof_entmin
+  data_root: ./data/imagewoof2
+learner:
+  hparams:
+    num_classes: 10
+data:
+  train:
+    supervised:
+      dataset:
+        name: image_folder
+        subset: train
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+          random_resized_crop: True
+          resize: 256
+          crop_dim: 224
+          scale: [0.3, 1.0]
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+  val:
+    dataset:
+      name: image_folder
+      subset: val
+      image_transform:
+        _target_: sesemi.transforms.center_crop_transforms
+        resize: 256
+        crop_dim: 224
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False

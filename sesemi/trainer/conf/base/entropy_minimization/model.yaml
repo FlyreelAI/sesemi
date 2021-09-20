@@ -23,4 +23,3 @@ learner:
             _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
             input_data: unsupervised
             input_backbone: backbone
-            predict_fn: supervised

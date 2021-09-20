@@ -79,7 +79,7 @@ The config shown by the help text above is actually defined using a set of Pytho
 data classes with type annotations are used. For example, some of the root configuration data structures are shown below::
 
     @dataclass
-    class SESEMIConfig:
+    class SESEMIBaseConfig:
         """The full SESEMI configuration.
 
         Attributes:
@@ -186,9 +186,9 @@ Built-in Configurations
 -----------------------
 
 We have a couple built-in configurations which are packaged with the library. For instance, to use the imagewoof
-configuration you can run::
+configuration with rotation prediction you can run::
 
-    $ open_sesemi -cn imagewoof
+    $ open_sesemi -cn imagewoof_rotpred
 
 This assumes you have downloaded the imagewoof dataset to the *./data/imagewoof2* directory, but otherwise it should work out of the box.
 
@@ -369,8 +369,10 @@ For this example, we'll make use of the imagewoof dataset which can be downloade
 
 Next, create a custom config file with the following sample contents and store it under ./configs/custom.yaml::
 
+  # @package _global_
   defaults:
-  - base
+  - /base/supervised
+  - /base/model/rotation_prediction
   run:
     seed: 42
     gpus: -1

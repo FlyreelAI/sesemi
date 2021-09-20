@@ -1,3 +1,4 @@
+# @package _global_
 ##
 ## Copyright 2021, Flyreel. All Rights Reserved.
 ##
@@ -14,35 +15,14 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - jigsaw_entropy_minimization
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/jigsaw_prediction/model
+  - /base/jigsaw_prediction/data/imagewang
+  - /base/entropy_minimization/model
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 6
   num_epochs: 100
-  id: imagewang_jigsaw_entropy
-  data_root: ./data/imagewang
-data:
-  train:
-    supervised:
-      batch_size_per_gpu: 6
-      collate_fn:
-        _target_: sesemi.collation.JigsawTransformer
-        return_supervised_labels: True
-    unsupervised:
-      dataset:
-        name: image_folder
-        subset: [train, val, unsup]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
-      batch_size_per_gpu: 6
-      collate_fn:
-        _target_: sesemi.collation.JigsawTransformer
-        return_supervised_labels: False
+  id: imagewang_jigpred

@@ -200,6 +200,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sesemi.models.heads.html">sesemi.models.heads package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="sesemi.models.heads.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sesemi.models.heads.html#module-sesemi.models.heads.base">sesemi.models.heads.base module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="sesemi.models.heads.html#module-sesemi.models.heads.loss">sesemi.models.heads.loss module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="sesemi.models.heads.html#module-sesemi.models.heads">Module contents</a></li>
 </ul>
@@ -248,7 +249,7 @@
 <p>PyTorch collation callables.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="sesemi.collation.RotationTransformer">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.collation.</span></span><span class="sig-name descname"><span class="pre">RotationTransformer</span></span><a class="headerlink" href="#sesemi.collation.RotationTransformer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sesemi.collation.</span></span><span class="sig-name descname"><span class="pre">RotationTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_supervised_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sesemi.collation.RotationTransformer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A collation callable to transform a data batch for use with a rotation prediction task.</p>
 <p>Input images are rotated 0, 90, 180, and 270 degrees.</p>
@@ -605,7 +606,7 @@ will have an argument <code class="docutils literal notranslate"><span class="pr
 <p>The SESEMI classifier.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="sesemi.learners.Classifier.backbone">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">backbone</span></span><em class="property"><span class="pre">:</span> <span class="pre">sesemi.models.backbones.base.Backbone</span></em><a class="headerlink" href="#sesemi.learners.Classifier.backbone" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">backbone</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="sesemi.models.backbones.html#sesemi.models.backbones.base.Backbone" title="sesemi.models.backbones.base.Backbone"><span class="pre">sesemi.models.backbones.base.Backbone</span></a></em><a class="headerlink" href="#sesemi.learners.Classifier.backbone" title="Permalink to this definition">¶</a></dt>
 <dd><p>The supervised backbone.</p>
 </dd></dl>
 
@@ -742,6 +743,12 @@ override the <code class="xref py py-meth docutils literal notranslate"><span cl
 <dd class="field-even"><p>Your model’s output</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sesemi.learners.Classifier.head">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">head</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="sesemi.models.backbones.html#sesemi.models.backbones.base.Backbone" title="sesemi.models.backbones.base.Backbone"><span class="pre">sesemi.models.backbones.base.Backbone</span></a></em><a class="headerlink" href="#sesemi.learners.Classifier.head" title="Permalink to this definition">¶</a></dt>
+<dd><p>The supervised head.</p>
 </dd></dl>
 
 <dl class="py method">

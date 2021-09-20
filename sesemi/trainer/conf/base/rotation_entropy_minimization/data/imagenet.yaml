@@ -14,14 +14,21 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ## ========================================================================##
-defaults:
-  - /base/supervised/model
-  - /base/supervised/data/imagewang
-  - /base/jigsaw_prediction/model
-  - /base/jigsaw_prediction/data/imagewang
-run:
-  seed: 42
-  gpus: 2
-  batch_size_per_gpu: 8
-  num_epochs: 100
-  id: imagewang_jigpred
+data:
+  train:
+    supervised:
+      collate_fn:
+        _target_: sesemi.collation.RotationTransformer
+        return_supervised_labels: True
+    unsupervised:
+      dataset:
+        name: ${...supervised.dataset.name}
+        subset: [train, val]
+        image_transform: ${...supervised.dataset.image_transform}
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+      collate_fn:
+        _target_: sesemi.collation.RotationTransformer
+        return_supervised_labels: False

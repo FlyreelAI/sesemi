@@ -1,3 +1,4 @@
+# @package _global_
 ##
 ## Copyright 2021, Flyreel. All Rights Reserved.
 ##
@@ -14,28 +15,13 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - entropy_minimization
+  - /base/supervised/model
+  - /base/supervised/data/imagewoof
+  - /base/entropy_minimization/model
+  - /base/entropy_minimization/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 16
   num_epochs: 100
   id: imagewoof_entmin
-  data_root: ./data/imagewoof2
-data:
-  train:
-    unsupervised:
-      dataset:
-        name: image_folder
-        subset: [train, val]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
-      batch_size_per_gpu: 16
-

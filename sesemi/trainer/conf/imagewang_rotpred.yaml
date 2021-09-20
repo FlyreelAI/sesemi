@@ -1,3 +1,4 @@
+# @package _global_
 ##
 ## Copyright 2021, Flyreel. All Rights Reserved.
 ##
@@ -14,29 +15,13 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - rotation_prediction
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/rotation_prediction/model
+  - /base/rotation_prediction/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 16
   num_epochs: 80
-  id: imagewang_rotation
-  data_root: ./data/imagewang
-data:
-  train:
-    unsupervised:
-      dataset:
-        name: image_folder
-        subset: [train, val, unsup]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
-      batch_size_per_gpu: 16
-      collate_fn:
-        _target_: sesemi.collation.RotationTransformer
+  id: imagewang_rotpred

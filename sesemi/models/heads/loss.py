@@ -14,6 +14,7 @@
 # limitations under the License.
 # ========================================================================#
 """Loss heads."""
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -128,7 +129,7 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
     Idea and implementation are adapted from
     https://arxiv.org/abs/1903.06864
     """
-    
+
     def __init__(
         self,
         input_data: str,

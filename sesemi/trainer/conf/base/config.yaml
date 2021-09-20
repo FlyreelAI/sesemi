@@ -15,13 +15,8 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - /base/supervised/model
-  - /base/supervised/data/imagewang
-  - /base/jigsaw_prediction/model
-  - /base/jigsaw_prediction/data/imagewang
-run:
-  seed: 42
-  gpus: 2
-  batch_size_per_gpu: 8
-  num_epochs: 100
-  id: imagewang_jigpred
+  - /base/sesemi
+  - /learner: classifier
+hydra:
+  run:
+    dir: ${run.dir}/${run.id}/${now:%Y%m%d_%H%M%S}

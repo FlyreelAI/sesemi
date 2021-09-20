@@ -14,14 +14,36 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ## ========================================================================##
-defaults:
-  - /base/supervised/model
-  - /base/supervised/data/imagewang
-  - /base/jigsaw_prediction/model
-  - /base/jigsaw_prediction/data/imagewang
 run:
-  seed: 42
-  gpus: 2
-  batch_size_per_gpu: 8
-  num_epochs: 100
-  id: imagewang_jigpred
+  data_root: ./data/ilsvrc2012
+learner:
+  hparams:
+    num_classes: 1000
+data:
+  train:
+    supervised:
+      dataset:
+        name: image_folder
+        subset: train
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+          random_resized_crop: True
+          resize: 256
+          crop_dim: 224
+          scale: [0.3, 1.0]
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+  val:
+    dataset:
+      name: image_folder
+      subset: val
+      image_transform:
+        _target_: sesemi.transforms.center_crop_transforms
+        resize: 256
+        crop_dim: 224
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False

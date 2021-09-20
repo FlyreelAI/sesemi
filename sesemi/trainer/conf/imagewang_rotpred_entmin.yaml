@@ -1,3 +1,4 @@
+# @package _global_
 ##
 ## Copyright 2021, Flyreel. All Rights Reserved.
 ##
@@ -14,35 +15,13 @@
 ## limitations under the License.
 ## ========================================================================##
 defaults:
-  - rotation_entropy_minimization
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/rotation_entropy_minimization/model
+  - /base/rotation_entropy_minimization/data/imagenet
 run:
   seed: 42
   gpus: 2
+  batch_size_per_gpu: 8
   num_epochs: 80
-  id: imagewang_rotation_entropy
-  data_root: ./data/imagewang
-data:
-  train:
-    supervised:
-      batch_size_per_gpu: 8
-      collate_fn:
-        _target_: sesemi.collation.RotationTransformer
-        return_supervised_labels: True
-    unsupervised:
-      dataset:
-        name: image_folder
-        subset: [train, val, unsup]
-        image_transform:
-          _target_: sesemi.transforms.train_transforms
-          random_resized_crop: True
-          resize: 256
-          crop_dim: 224
-          scale: [0.3, 1.0]
-      shuffle: True
-      pin_memory: True
-      num_workers: 4
-      drop_last: True
-      batch_size_per_gpu: 8
-      collate_fn:
-        _target_: sesemi.collation.RotationTransformer
-        return_supervised_labels: False
+  id: imagewang_rotpred_entropy

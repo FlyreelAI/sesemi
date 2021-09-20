@@ -35,6 +35,14 @@ class RotationTransformer:
         """
         self.return_supervised_labels = return_supervised_labels
 
+    def __init__(self, return_supervised_labels=False):
+        """Initializes the rotation collation callable.
+
+        Args:
+            return_supervised_labels: Whether to return supervised class labels or pretext labels.
+        """
+        self.return_supervised_labels = return_supervised_labels
+
     def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         """Generates a transformed batch of rotation prediction data.
 

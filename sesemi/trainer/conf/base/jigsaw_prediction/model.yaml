@@ -14,11 +14,6 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ## ========================================================================##
-defaults:
-  - /base/config
-run:
-  accelerator: dp
-  num_epochs: 80
 learner:
   hparams:
     num_classes: 10
@@ -30,27 +25,9 @@ learner:
         pretrained: False
         global_pool: avg
         drop_rate: 0.5
-      supervised_loss:
-        callable:
-          _target_: torch.nn.CrossEntropyLoss
-    optimizer:
-      _target_: torch.optim.SGD
-      lr: 0.1
-      momentum: 0.9
-      nesterov: True
-      weight_decay: 0.0005
-    lr_scheduler:
-      scheduler:
-        _target_: sesemi.PolynomialLR
-        warmup_epochs: 10
-        iters_per_epoch: ${sesemi:iterations_per_epoch}
-        warmup_lr: 0.001
-        lr_pow: 0.5
-        max_iters: ${sesemi:max_iterations}
-trainer:
-  callbacks:
-    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
-      monitor: val/top1
-      mode: max
-      save_top_k: 1
-      save_last: True
+      regularization_loss_heads:
+        jigsaw_prediction:
+          head:
+            _target_: sesemi.models.heads.loss.JigsawPredictionLossHead
+            input_data: unsupervised
+            input_backbone: backbone

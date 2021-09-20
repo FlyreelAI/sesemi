@@ -85,7 +85,7 @@ training will work but will take a very long time.
         --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
         -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
-        open_sesemi -cn imagewoof
+        open_sesemi -cn imagewoof_rotpred
     ```
 
     The training logs with all relevant training statistics (accuracy, losses, learning rate, etc.) are written to the `./runs` directory. You can use [TensorBoard](https://www.tensorflow.org/tensorboard) to view and monitor them in your browser during training.
@@ -100,7 +100,7 @@ training will work but will take a very long time.
 
     ```bash
     $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
-    $ open_sesemi -cn imagewoof \
+    $ open_sesemi -cn imagewoof_rotpred \
         run.mode=VALIDATE \
         run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
@@ -117,7 +117,7 @@ training will work but will take a very long time.
         --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
         -w /home/appuser/sesemi-experiments \
         ${SESEMI_IMAGE}:latest \
-        open_sesemi -cn imagewoof \
+        open_sesemi -cn imagewoof_rotpred \
             run.mode=VALIDATE \
             run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```

@@ -167,6 +167,7 @@
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
@@ -236,10 +237,10 @@
 </li>
       <li><a href="sesemi.config.html#sesemi.config.structs.ClassifierConfig">ClassifierConfig (class in sesemi.config.structs)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.config.html#sesemi.config.structs.ClassifierHParams">ClassifierHParams (class in sesemi.config.structs)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.config.html#sesemi.config.structs.ClassifierModelConfig">ClassifierModelConfig (class in sesemi.config.structs)</a>
 </li>
       <li><a href="sesemi.config.html#id18">collate_fn (sesemi.config.structs.DataLoaderConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.DataLoaderConfig.collate_fn">[1]</a>
@@ -247,6 +248,8 @@
       <li><a href="sesemi.html#sesemi.utils.compute_num_gpus">compute_num_gpus() (in module sesemi.utils)</a>
 </li>
       <li><a href="sesemi.html#sesemi.learners.Classifier.configure_optimizers">configure_optimizers() (sesemi.learners.Classifier method)</a>
+</li>
+      <li><a href="sesemi.html#sesemi.collation.JigsawTransformer.crop_patch">crop_patch() (sesemi.collation.JigsawTransformer method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -365,6 +368,18 @@
       <li><a href="sesemi.config.html#id32">interval (sesemi.config.structs.LRSchedulerConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.LRSchedulerConfig.interval">[1]</a>
 </li>
       <li><a href="sesemi.config.html#id0">iterations_per_epoch (sesemi.config.resolvers.SESEMIConfigAttributes attribute)</a>, <a href="sesemi.config.html#sesemi.config.resolvers.SESEMIConfigAttributes.iterations_per_epoch">[1]</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.JigsawPredictionLossHead">JigsawPredictionLossHead (class in sesemi.models.heads.loss)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="sesemi.html#sesemi.collation.JigsawTransformer">JigsawTransformer (class in sesemi.collation)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -833,10 +848,10 @@
 </li>
       <li><a href="sesemi.html#sesemi.datamodules.SESEMIDataModule.train_batch_sizes_per_iteration">train_batch_sizes_per_iteration (sesemi.datamodules.SESEMIDataModule attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.html#sesemi.datamodules.SESEMIDataModule.train_dataloader">train_dataloader() (sesemi.datamodules.SESEMIDataModule method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sesemi.html#sesemi.transforms.train_transforms">train_transforms() (in module sesemi.transforms)</a>
 </li>
       <li><a href="sesemi.config.html#id64">trainer (sesemi.config.structs.SESEMIBaseConfig attribute)</a>, <a href="sesemi.config.html#sesemi.config.structs.SESEMIBaseConfig.trainer">[1]</a>
@@ -848,6 +863,8 @@
 </li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.EntropyMinimizationLossHead.training">(sesemi.models.heads.loss.EntropyMinimizationLossHead attribute)</a>
 </li>
+        <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.JigsawPredictionLossHead.training">(sesemi.models.heads.loss.JigsawPredictionLossHead attribute)</a>
+</li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.LossHead.training">(sesemi.models.heads.loss.LossHead attribute)</a>
 </li>
         <li><a href="sesemi.models.heads.html#sesemi.models.heads.loss.RotationPredictionLossHead.training">(sesemi.models.heads.loss.RotationPredictionLossHead attribute)</a>
@@ -858,6 +875,8 @@
       <li><a href="sesemi.html#sesemi.learners.Classifier.training_step">training_step() (sesemi.learners.Classifier method)</a>
 </li>
       <li><a href="sesemi.html#sesemi.learners.Classifier.training_step_end">training_step_end() (sesemi.learners.Classifier method)</a>
+</li>
+      <li><a href="sesemi.html#sesemi.collation.JigsawTransformer.transform">transform() (sesemi.collation.JigsawTransformer method)</a>
 </li>
   </ul></td>
 </tr></table>

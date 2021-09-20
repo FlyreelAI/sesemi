@@ -236,7 +236,7 @@ If you use docker and have <span class="sb">`</span>nvidia-docker &lt;https://gi
        --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
        -w /home/appuser/sesemi-experiments <span class="se">\</span>
        <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-       open_sesemi -cn imagewoof
+       open_sesemi -cn imagewoof_rotpred
 
 The training logs with all relevant training statistics <span class="o">(</span>accuracy, losses, learning rate, etc.<span class="o">)</span> are written to the <span class="sb">``</span>./runs<span class="sb">``</span> directory. You can use <span class="sb">`</span>TensorBoard &lt;https://www.tensorflow.org/tensorboard&gt;<span class="sb">`</span>_ to view and monitor them <span class="k">in</span> your browser during training.
 </pre></div>
@@ -250,7 +250,7 @@ The training logs with all relevant training statistics <span class="o">(</span>
 <div><p>Without docker:</p>
 </div></blockquote>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
-   $ open_sesemi -cn imagewoof <span class="se">\</span>
+   $ open_sesemi -cn imagewoof_rotpred <span class="se">\</span>
        run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
        run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 
@@ -266,7 +266,7 @@ $ docker run <span class="se">\</span>
     --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
     -w /home/appuser/sesemi-experiments <span class="se">\</span>
     <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-    open_sesemi -cn imagewoof <span class="se">\</span>
+    open_sesemi -cn imagewoof_rotpred <span class="se">\</span>
         run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
         run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 </pre></div>

@@ -1,0 +1,48 @@
+##
+## Copyright 2021, Flyreel. All Rights Reserved.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+## ========================================================================##
+defaults:
+  - jigsaw_prediction
+run:
+  seed: 42
+  gpus: 2
+  num_epochs: 100
+  id: imagewang_jigsaw
+  data_root: ./data/imagewang
+data:
+  train:
+    supervised:
+      batch_size_per_gpu: 8
+      collate_fn:
+        _target_: sesemi.collation.JigsawTransformer
+        return_supervised_labels: True
+    unsupervised:
+      dataset:
+        name: image_folder
+        subset: [train, val, unsup]
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+          random_resized_crop: True
+          resize: 256
+          crop_dim: 224
+          scale: [0.3, 1.0]
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+      batch_size_per_gpu: 8
+      collate_fn:
+        _target_: sesemi.collation.JigsawTransformer
+        return_supervised_labels: False

@@ -71,18 +71,11 @@ class JigsawTransformer:
     We select a set of P=5 patch permutations for the jigsaw task by using the maximal Hamming distance.
     https://github.com/bbrattoli/JigsawPuzzlePytorch
     """
-
-    channel_mean = (0.485, 0.456, 0.406)
-    channel_std = (0.229, 0.224, 0.225)
     
     def __init__(
         self,
         grid_size: int = 3,
         p_grayscale: float = 0.1,
-        norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-            channel_mean,
-            channel_std,
-        ),
         return_supervised_labels: bool = False
     ):
         """Initializes the jigsaw collation callable.
@@ -90,13 +83,11 @@ class JigsawTransformer:
         Args:
             grid_size: grid of n x n patches.
             p_grayscale: probability of converting to grayscale.
-            norms: A tuple of the normalization mean and standard deviation.
             return_supervised_labels: Whether to return supervised class labels or pretext labels.
         """
         self.grid_size = grid_size
         self.num_grids = grid_size ** 2
         self.p_grayscale = p_grayscale
-        self.norms = norms
         self.return_supervised_labels = return_supervised_labels
         self.patch_permutations = torch.tensor([
             [5, 7, 2, 6, 0, 3, 8, 1, 4],
@@ -114,7 +105,7 @@ class JigsawTransformer:
         
         Args:
             x: the input tensor.
-            idx: the location index of the ith grid.
+            idx: the location index of the ith patch.
 
         Returns:
             A torchvision transformed tensor.
@@ -126,14 +117,13 @@ class JigsawTransformer:
         return self.transform()(patch)
 
     def transform(self) -> Callable:
-        """Image transformations via random grayscale and mean/std normalization.
+        """Image transformations.
 
         Returns:
             Torchvision transform.
         """
         return torchvision.transforms.Compose([
-            torchvision.transforms.RandomGrayscale(self.p_grayscale),
-            torchvision.transforms.Normalize(*self.norms)
+            torchvision.transforms.RandomGrayscale(self.p_grayscale)
         ])
     
     def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:

@@ -99,7 +99,7 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ open_sesemi -cn imagewoof_rotpred \
         run.mode=VALIDATE \
         run.pretrained_checkpoint_path=$CHECKPOINT_PATH
@@ -109,7 +109,7 @@ training will work but will take a very long time.
 
     ```bash
     $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi GPUS=all
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt)
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ docker run \
         --gpus ${GPUS} \
         -u ${USER_ID} \

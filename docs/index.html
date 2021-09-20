@@ -249,7 +249,7 @@ The training logs with all relevant training statistics <span class="o">(</span>
 <blockquote>
 <div><p>Without docker:</p>
 </div></blockquote>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
    $ open_sesemi -cn imagewoof_rotpred <span class="se">\</span>
        run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
        run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
@@ -258,7 +258,7 @@ With docker:
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi <span class="nv">GPUS</span><span class="o">=</span>all
-$ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
+$ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
 $ docker run <span class="se">\</span>
     --gpus <span class="si">${</span><span class="nv">GPUS</span><span class="si">}</span> <span class="se">\</span>
     -u <span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>

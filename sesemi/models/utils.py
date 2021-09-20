@@ -1,3 +1,6 @@
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+# =============================================#
 """Utilities to download and prepare models."""
 import torch
 

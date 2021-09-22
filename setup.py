@@ -11,11 +11,11 @@ with open(
 
 setup(
     name="sesemi",
-    version="0.1.1",
+    version="0.2.0",
     description="Image Classification with Self-Supervised Regularization",
     author="Flyreel AI",
     author_email="ai@flyreel.co",
-    packages=find_packages(include=["sesemi"]),
+    packages=find_packages(include=["sesemi*"]),
     entry_points={"console_scripts": ["open_sesemi = sesemi.trainer.cli:open_sesemi"]},
     url="https://github.com/FlyreelAI/sesemi/",
     include_package_data=True,

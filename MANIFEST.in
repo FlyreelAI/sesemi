@@ -1,4 +1,9 @@
+include *.txt
+include *.md
+include LICENSE
 recursive-include sesemi *.py
 recursive-include sesemi *.yaml
+recursive-include sesemi *.md
+recursive-include sesemi *.txt
 global-exclude *.pyc
 global-exclude __pycache__

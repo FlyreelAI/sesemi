@@ -1,0 +1,9 @@
+# @package _global_
+learner:
+  hparams:
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.1
+      momentum: 0.9
+      nesterov: True
+      weight_decay: 0.0005

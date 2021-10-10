@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /base/supervised/model
+  - /base/supervised/model/baseline
   - /base/supervised/data/imagewang
   - /base/jigsaw_prediction/model
   - /base/jigsaw_prediction/data/imagewang

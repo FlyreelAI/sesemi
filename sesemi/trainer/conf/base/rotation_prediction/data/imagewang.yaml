@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+- /base/rotation_prediction/data/imagenet
+data:
+  train:
+    rotation_prediction:
+      dataset:
+        subset: [train, val, unsup]

@@ -3,7 +3,7 @@ defaults:
   - /base/supervised/model/baseline
   - /base/supervised/data/imagewang
   - /base/entropy_minimization/model
-  - /base/entropy_minimization/data/imagenet
+  - /base/entropy_minimization/data/imagewang
 run:
   seed: 42
   gpus: 2

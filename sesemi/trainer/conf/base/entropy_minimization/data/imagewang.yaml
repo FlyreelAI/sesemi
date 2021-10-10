@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+- /base/entropy_minimization/data/imagenet
+data:
+  train:
+    unsupervised:
+      dataset:
+        subset: [train, val, unsup]

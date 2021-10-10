@@ -9,6 +9,9 @@ import torchvision.transforms.functional as TF
 from torch import Tensor
 from typing import List, Tuple, Callable
 
+from typing import Any, List, Optional, Tuple, Callable, Union
+from omegaconf.listconfig import ListConfig
+
 
 class RotationTransformer:
     """A collation callable to transform a data batch for use with a rotation prediction task.
@@ -154,3 +157,57 @@ class JigsawTransformer:
         y = torch.cat(labels, dim=0)
         p = torch.cat(jigsaw_labels, dim=0)
         return (x, y) if self.return_supervised_labels else (x, p)
+
+
+class MultiViewCollator:
+    """A multi-view example collator.
+    """
+
+    def __init__(
+        self,
+        num_views: int,
+        image_augmentations: Optional[Union[Callable, List[Callable]]] = None,
+        image_getter: Optional[Callable] = None,
+    ):
+        self.num_views = num_views
+        self.image_getter = image_getter
+
+        if isinstance(image_augmentations, (list, ListConfig)):
+            assert (
+                len(image_augmentations) == num_views
+            ), f"must provide {num_views} augmentations if multiple given"
+            self.image_augmentations = image_augmentations
+        else:
+            self.image_augmentations = [image_augmentations] * self.num_views
+
+    def __call__(self, batch: List[Any]) -> Tuple[Tensor, ...]:
+        """Generates a transformed data batch of rotation prediction data.
+
+        Arguments:
+            batch: A list of examples.
+
+        Returns:
+            A batch of images.
+        """
+
+        views: List[Tensor] = []
+        for i in range(self.num_views):
+            view_batch: List[Tensor] = []
+            for item in batch:
+                if self.image_getter is not None:
+                    item = self.image_getter(item)
+                elif isinstance(item, tuple):
+                    # Assumes that the image is the first element in the tuple by default.
+                    item = item[0]
+
+                if self.image_augmentations[i] is not None:
+                    view = self.image_augmentations[i](item)
+                else:
+                    view = item
+
+                view_batch.append(view)
+
+            view_batch_tensor = torch.cat(view_batch, dim=0)
+            views.append(view_batch_tensor)
+
+        return tuple(views)

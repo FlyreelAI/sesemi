@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+- /base/supervised/data/cifar10
+run:
+  data_root: ./data/cifar100
+learner:
+  hparams:
+    num_classes: 100

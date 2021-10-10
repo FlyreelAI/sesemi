@@ -8,27 +8,31 @@ import numpy as np
 import torch
 import torchvision.transforms.functional as TF
 
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 from torch import Tensor
 from torchvision import datasets, transforms
+import torchvision.transforms as T
 
-from .collation import (
-    RotationTransformer,
-    JigsawTransformer
-)
+import kornia.augmentation as K
+import kornia.filters as KF
+
+from .collation import RotationTransformer, JigsawTransformer
 from .utils import validate_paths
 
 
-channel_mean = (0.485, 0.456, 0.406)
-channel_std = (0.229, 0.224, 0.225)
+IMAGENET_CHANNEL_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_CHANNEL_STD = (0.229, 0.224, 0.225)
+
+CIFAR10_CHANNEL_MEAN = (0.4914, 0.4822, 0.4465)
+CIFAR10_CHANNEL_STD = (0.2023, 0.1994, 0.2010)
 
 modes_mapping = {
-    "nearest"  : TF.InterpolationMode.NEAREST,
-    "bilinear" : TF.InterpolationMode.BILINEAR,
-    "bicubic"  : TF.InterpolationMode.BICUBIC,
-    "box"      : TF.InterpolationMode.BOX,
-    "hamming"  : TF.InterpolationMode.HAMMING,
-    "lanczos"  : TF.InterpolationMode.LANCZOS,
+    "nearest": TF.InterpolationMode.NEAREST,
+    "bilinear": TF.InterpolationMode.BILINEAR,
+    "bicubic": TF.InterpolationMode.BICUBIC,
+    "box": TF.InterpolationMode.BOX,
+    "hamming": TF.InterpolationMode.HAMMING,
+    "lanczos": TF.InterpolationMode.LANCZOS,
 }
 
 
@@ -66,8 +70,8 @@ def train_transforms(
     gamma_range: Tuple[float, float] = (0.5, 1.5),
     p_hflip: float = 0.5,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
     p_erase: float = 0.0,
 ) -> Callable:
@@ -111,8 +115,8 @@ def center_crop_transforms(
     crop_dim: int = 224,
     interpolation: str = "bilinear",
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
 ) -> Callable:
     """Builds a center cropping transform.
@@ -142,8 +146,8 @@ def multi_crop_transforms(
     num_crop: int = 5,
     interpolation: str = "bilinear",
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
 ) -> Callable:
     """Builds a multi-crop transform.
@@ -178,6 +182,97 @@ def multi_crop_transforms(
     )
 
 
+def cifar_train_transform() -> Callable:
+    """Returns the standard CIFAR training transforms."""
+    return T.Compose(
+        [
+            T.RandomResizedCrop(32),
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomApply([T.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            T.RandomGrayscale(p=0.2),
+            T.ToTensor(),
+            T.Normalize(CIFAR10_CHANNEL_MEAN, CIFAR10_CHANNEL_STD),
+        ]
+    )
+
+
+def cifar_test_transform() -> Callable:
+    """Returns the standard CIFAR test-time transform."""
+    return T.Compose(
+        [
+            T.ToTensor(),
+            T.Normalize(CIFAR10_CHANNEL_MEAN, CIFAR10_CHANNEL_STD),
+        ]
+    )
+
+
+def simclr_image_augmentation(
+    horizontal_flip: bool = True,
+    strength: float = 0.5,
+    size=(224, 224),
+    interpolation: str = "BICUBIC",
+    mean: Tuple[float, float, float] = IMAGENET_CHANNEL_MEAN,
+    std: Tuple[float, float, float] = IMAGENET_CHANNEL_STD,
+    enable_blurring: bool = True,
+    scale: Tuple[float, float] = (0.08, 1.0),
+    ratio: Tuple[float, float] = (0.75, 1.3333333333),
+) -> Callable:
+    """SimCLR image augmentations.
+
+    Args:
+        horizontal_flip: Whether to perform random horizontal flipping.
+        strength: The strength of the color augmentations.
+        size: The crop size.
+        interpolation: The interpolation mode to use when rescaling the image.
+        mean: The mean to subtract from the image.
+        std: The standard deviation used to normalize the image.
+        enable_blurring: Whether to perform gaussian blurring.
+        scale: The scale range used when rescaling the image.
+        ratio: The aspect ratio used when rescaling the image.
+    
+    Returns:
+        A callable PyTorch transform.
+    """
+    size = tuple(size)
+    transformations: List[Callable] = [
+        T.ToTensor(),
+        K.RandomResizedCrop(
+            size=size,
+            scale=scale,
+            ratio=ratio,
+            resample=interpolation,
+        ),
+        K.RandomHorizontalFlip(
+            p=0.5 if horizontal_flip else 0.0,
+        ),
+        K.ColorJitter(
+            brightness=0.8 * strength,
+            contrast=0.8 * strength,
+            saturation=0.8 * strength,
+            hue=0.2 * strength,
+        ),
+        K.RandomGrayscale(
+            p=0.2,
+        ),
+    ]
+
+    if enable_blurring:
+        transformations.append(
+            KF.GaussianBlur2d(
+                kernel_size=(23, 23),
+                sigma=(0.1, 2.0),
+            )
+        )
+
+    transformations.extend(
+        [
+            K.Normalize(list(mean), list(std)),
+        ]
+    )
+
+    return T.Compose(transformations)
+
+
 if __name__ == "__main__":
     import argparse
     from tqdm import trange
@@ -210,7 +305,7 @@ if __name__ == "__main__":
         "--visualization",
         choices=["none", "rotation", "jigsaw"],
         default="rotation",
-        help="visualize transformations on unlabeled data"
+        help="visualize transformations on unlabeled data",
     )
     parser.add_argument(
         "--out-dir",
@@ -230,7 +325,7 @@ if __name__ == "__main__":
     p_erase = 0.5 if args.erase else 0.0
     gamma_range = (0.5, 1.5) if args.gamma else (1.0, 1.0)
     (mean, std) = (
-        (channel_mean, channel_std)
+        (IMAGENET_CHANNEL_MEAN, IMAGENET_CHANNEL_STD)
         if args.normalize
         else ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
     )
@@ -258,4 +353,6 @@ if __name__ == "__main__":
             tensors, indices = jigsaw([(x, dummy_label)])
         for x, ind in zip(*(tensors, indices)):
             image = to_pil_image(x)
-            image.save(os.path.join(args.out_dir, f"vis_{args.visualization}_{ind}_" + fname))
+            image.save(
+                os.path.join(args.out_dir, f"vis_{args.visualization}_{ind}_" + fname)
+            )

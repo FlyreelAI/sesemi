@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/data/stl10
+  - /base/simsiam/model
+  - /base/simsiam/data/stl10
+run:
+  seed: 42
+  gpus: 2
+  batch_size_per_gpu: 128
+  num_epochs: 200
+  id: stl10_simsiam

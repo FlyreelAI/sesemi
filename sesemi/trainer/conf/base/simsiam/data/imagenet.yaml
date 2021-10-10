@@ -1,0 +1,22 @@
+# @package _global_
+data:
+  train:
+    simclr:
+      dataset:
+        name: stl10
+        subset:
+        - train
+        - unlabeled
+      collate_fn:
+        _target_: sesemi.collation.MultiViewCollator
+        num_views: 2
+        image_augmentations:
+          _target_: sesemi.transforms.simclr_image_augmentation
+          size: [96, 96]
+          enable_blurring: false
+          scale: [0.2, 1.0]
+          strength: 0.5
+      shuffle: True
+      pin_memory: True
+      num_workers: 16
+      drop_last: True

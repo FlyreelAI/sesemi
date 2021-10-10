@@ -1,0 +1,25 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      supervised_loss:
+        callable:
+          _target_: torch.nn.CrossEntropyLoss
+        scale_factor: 1.0
+        scheduler:
+          _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
+          weight: 1.0
+          stop_rampup: ${sesemi:max_iterations}
+      regularization_loss_heads:
+        simsiam:
+          head:
+            _target_: sesemi.models.heads.loss.SimSiamLossHead
+            input_data: simclr
+            input_backbone: backbone
+          scale_factor: 0.5
+          scheduler:
+            _target_: sesemi.schedulers.weight.SigmoidRampdownScheduler
+            weight: 1.0
+            stop_rampdown: ${sesemi:max_iterations}
+trainer:
+  sync_batchnorm: true

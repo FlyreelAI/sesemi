@@ -13,6 +13,13 @@ from pytorch_lightning.loggers.base import LightningLoggerBase
 from ..backbones.base import Backbone
 from ..heads.base import Head
 
+from .mlp import (
+    SimSiamProjectionHead,
+    SimSiamPredictionHead,
+)
+
+from ...losses import simsiam_loss
+
 
 class LossHead(nn.Module):
     """The interface for loss heads.
@@ -171,3 +178,61 @@ class EntropyMinimizationLossHead(LossHead):
         output_u = heads[self.predict_fn](x_u)
         loss_u = (-F.softmax(output_u, dim=-1) * F.log_softmax(output_u, dim=-1)).sum(1)
         return loss_u
+
+
+class SimSiamLossHead(LossHead):
+    """The SimSiam loss head."""
+
+    def __init__(
+        self,
+        projection_dim: int = 256,
+        prediction_dim: int = 256,
+        input_data: str = "simclr",
+        input_backbone: str = "backbone",
+        logger: Optional[LightningLoggerBase] = None,
+    ):
+        """Initializes the loss head.
+
+        Args:
+            projection_dim: The output dimension of the projection head.
+            prediction_dim: The output dimension of the prediction head.
+            input_data: The key used to get the SimSiam input data.
+            input_backbone: The key used to get the backbone for feature extraction.
+            logger: An optional PyTorch Lightning logger.
+        """
+        super().__init__(logger)
+        self.projection_dim = projection_dim
+        self.prediction_dim = prediction_dim
+        self.input_data = input_data
+        self.input_backbone = input_backbone
+
+    def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
+        self.projection_head = SimSiamProjectionHead(
+            backbones[self.input_backbone].out_features, self.projection_dim
+        )
+        self.prediction_head = SimSiamPredictionHead(
+            self.projection_dim, self.prediction_dim
+        )
+
+    def forward(
+        self,
+        data: Dict[str, Any],
+        backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
+        features: Dict[str, Any],
+        step: int,
+        **kwargs,
+    ) -> Tensor:
+        view1, view2 = data[self.input_data]
+        backbone = backbones[self.input_backbone]
+
+        feats1, feats2 = backbone(view1), backbone(view2)
+
+        proj1, proj2 = self.projection_head(feats1), self.projection_head(feats2)
+        pred1, pred2 = self.prediction_head(proj1), self.prediction_head(proj2)
+
+        loss12 = simsiam_loss(pred1, proj2.detach())
+        loss21 = simsiam_loss(pred2, proj1.detach())
+
+        loss = (loss12 + loss21) / 2.0
+        return loss

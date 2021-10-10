@@ -10,10 +10,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import logging
+import numpy as np
 import os.path as osp
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
+from sklearn.neighbors import KNeighborsClassifier
 
 from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
@@ -26,6 +28,7 @@ from .utils import reduce_tensor
 from .schedulers.weight import WeightScheduler
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Classifier(pl.LightningModule):
@@ -218,7 +221,7 @@ class Classifier(pl.LightningModule):
 
         self.training_accuracy.update(outputs["probs"], outputs["targets"])
 
-        self.log("train/loss", loss)
+        self.log("train/loss", loss, on_step=True)
 
         self._log_learning_rates()
 
@@ -254,12 +257,51 @@ class Classifier(pl.LightningModule):
         self.validation_top1_accuracy.reset()
         self.validation_average_loss.reset()
 
+        val_features = np.concatenate([x[0] for x in outputs], axis=0)
+        val_targets = np.concatenate([x[1] for x in outputs], axis=0)
+
+        knn_evaluation_score = None
+        try:
+
+            train_features_l = []
+            train_targets_l = []
+
+            supervised_dataloader = self.trainer.datamodule.train_dataloader()[
+                "supervised"
+            ]
+            for image, targets in supervised_dataloader:
+                feats = self.backbone(image.to(self.device))
+                train_features_l.append(feats.cpu().numpy())
+                train_targets_l.append(targets.cpu().numpy())
+
+            train_features = np.concatenate(train_features_l, axis=0)
+            train_targets = np.concatenate(train_targets_l, axis=0)
+
+            knn_model = KNeighborsClassifier()
+            knn_model.fit(train_features, train_targets)
+            knn_evaluation_score = knn_model.score(val_features, val_targets)
+        except Exception as e:
+            global logger
+            logger.warning(
+                f"encountered exception trying to compute knn evaluation score: {e!r}"
+            )
+
         if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
             if top1 > self.best_validation_top1_accuracy:
                 self.best_validation_top1_accuracy = torch.tensor(
                     float(top1),
                     dtype=self.best_validation_top1_accuracy.dtype,
                     device=self.best_validation_top1_accuracy.device,
+                )
+
+            if knn_evaluation_score is not None:
+                self.log(
+                    "val/knn_evaluation/top1",
+                    knn_evaluation_score,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=True,
+                    logger=True,
                 )
 
             self.log(

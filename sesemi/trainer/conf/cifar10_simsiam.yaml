@@ -1,0 +1,19 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/data/cifar10
+  - /base/simsiam/model
+  - /base/simsiam/data/cifar10
+run:
+  seed: 42
+  gpus: 1
+  batch_size_per_gpu: 512
+  num_epochs: 800
+  id: cifar10_simsiam
+learner:
+  hparams:
+    model:
+      backbone:
+        _target_: sesemi.models.backbones.resnet.CIFARResNet
+        n: 18
+        drop_rate: 0.5

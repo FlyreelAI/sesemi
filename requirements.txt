@@ -6,3 +6,4 @@ tensorboard
 torch>=1.8.1
 torchvision>=0.9.1
 tqdm
+kornia~=0.5.11

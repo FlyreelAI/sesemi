@@ -4,12 +4,10 @@ defaults:
   - /base/supervised/backbone/cifar_resnet
   - /base/supervised/optimizer/sgd
   - /base/supervised/lr_scheduler/polynomial
-  - /base/supervised/data/cifar10
-  - /base/simsiam/model
-  - /base/simsiam/data/cifar10
+  - /base/supervised/data/cifar100
 run:
   seed: 42
   gpus: 1
-  batch_size_per_gpu: 384
+  batch_size_per_gpu: 512
   num_epochs: 800
-  id: cifar10_simsiam
+  id: cifar100

@@ -241,15 +241,17 @@ class Classifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
+        features_t = self.backbone(inputs_t)
         outputs_t = self.head(self.backbone(inputs_t))
         probs_t = torch.softmax(outputs_t, dim=-1)
         loss_t = F.cross_entropy(outputs_t, targets_t, reduction="none")
-        return probs_t, targets_t, loss_t
+        return probs_t, targets_t, loss_t, features_t
 
     def validation_step_end(self, outputs):
-        outputs_t, targets_t, loss_t = outputs
+        outputs_t, targets_t, loss_t, features_t = outputs
         self.validation_top1_accuracy.update(outputs_t, targets_t)
         self.validation_average_loss.update(loss_t)
+        return features_t.cpu().numpy(), targets_t.cpu().numpy()
 
     def validation_epoch_end(self, outputs):
         top1 = self.validation_top1_accuracy.compute()

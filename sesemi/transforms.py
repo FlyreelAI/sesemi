@@ -182,7 +182,7 @@ def multi_crop_transforms(
     )
 
 
-def cifar_train_transform() -> Callable:
+def cifar_train_transforms() -> Callable:
     """Returns the standard CIFAR training transforms."""
     return T.Compose(
         [
@@ -196,7 +196,7 @@ def cifar_train_transform() -> Callable:
     )
 
 
-def cifar_test_transform() -> Callable:
+def cifar_test_transforms() -> Callable:
     """Returns the standard CIFAR test-time transform."""
     return T.Compose(
         [

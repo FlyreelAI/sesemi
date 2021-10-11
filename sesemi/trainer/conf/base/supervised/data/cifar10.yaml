@@ -18,8 +18,8 @@ data:
       drop_last: True
   val:
     dataset:
-      name: image_folder
-      subset: val
+      name: cifar10
+      subset: test
       image_transform:
         _target_: sesemi.transforms.cifar_test_transforms
     shuffle: False

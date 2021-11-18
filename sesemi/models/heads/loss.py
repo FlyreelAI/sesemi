@@ -109,10 +109,10 @@ class RotationPredictionLossHead(LossHead):
         step: int,
         **kwargs,
     ) -> Tensor:
-        inputs_u, targets_u = data[self.input_data]
-        x_u = backbones[self.input_backbone](inputs_u)
-        output_u = self.fc_unsupervised(x_u)
-        loss_u = F.cross_entropy(output_u, targets_u, reduction="none")
+        inputs, targets = data[self.input_data]
+        feats = backbones[self.input_backbone](inputs)
+        logits = self.fc_unsupervised(feats)
+        loss_u = F.cross_entropy(logits, targets, reduction="none")
         return loss_u
 
 
@@ -170,10 +170,10 @@ class EntropyMinimizationLossHead(LossHead):
         step: int,
         **kwargs,
     ) -> Tensor:
-        inputs_u, _ = data[self.input_data]
-        x_u = backbones[self.input_backbone](inputs_u)
-        output_u = heads[self.predict_fn](x_u)
-        loss_u = (-F.softmax(output_u, dim=-1) * F.log_softmax(output_u, dim=-1)).sum(1)
+        inputs, _ = data[self.input_data]
+        feats = backbones[self.input_backbone](inputs)
+        logits = heads[self.predict_fn](feats)
+        loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
         return loss_u
 
 

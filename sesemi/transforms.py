@@ -4,12 +4,12 @@
 """Image transforms."""
 import os
 import numpy as np
+from PIL import ImageFilter
+from typing import Callable, Tuple
 
 import torch
-import torchvision.transforms.functional as TF
-
-from typing import Callable, Tuple
 from torch import Tensor
+import torchvision.transforms.functional as TF
 from torchvision import datasets, transforms
 
 from .collation import (
@@ -34,7 +34,7 @@ modes_mapping = {
 
 class GammaCorrection:
     def __init__(self, gamma_range: Tuple[float, float] = (0.5, 2.0)):
-        """Initializes the gamma correction transform.
+        """Initializes the gamma correction augmentation.
 
         Args:
             gamma_range: A tuple defining the lower and upper bound of the range.
@@ -57,6 +57,35 @@ class GammaCorrection:
         return self.__class__.__name__ + "(r={})".format(self.gamma_range)
 
 
+class GaussianBlur:
+    """Gaussian blur augmentation in SimCLR
+    https://arxiv.org/abs/2002.05709
+    """
+
+    def __init__(self, sigma_range: Tuple[float, float] = (0.1, 2.0)):
+        """Initializes the Gaussian blur augmentation.
+
+        Args:
+            sigma_range: A tuple defining the lower and upper bound of the range.
+        """
+        self.sigma_range = sigma_range
+
+    def __call__(self, x):
+        """Applies random Gaussian blur to the input image.
+
+        Args:
+            x: The input PIL image.
+
+        Returns:
+            The Gaussian blurred image.
+        """
+        sigma = np.random.uniform(*self.sigma_range)
+        return x.filter(ImageFilter.GaussianBlur(radius=sigma))
+    
+    def __repr__(self) -> str:
+        return self.__class__.__name__ + "(s={})".format(self.sigma_range)
+
+
 def train_transforms(
     random_resized_crop: bool = True,
     resize: int = 256,
@@ -64,6 +93,9 @@ def train_transforms(
     scale: Tuple[float, float] = (0.2, 1.0),
     interpolation: str = "bilinear",
     gamma_range: Tuple[float, float] = (0.5, 1.5),
+    sigma_range: Tuple[float, float] = (0.1, 2.0),
+    p_blur: float = 0.0,
+    p_grayscale: float = 0.0,
     p_hflip: float = 0.5,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
         channel_mean,
@@ -77,8 +109,12 @@ def train_transforms(
         random_resized_crop: Whether to apply random resized cropping.
         resize: The image size to resize to if random cropping is not applied.
         crop_dim: The output crop dimension.
+        scale: The scale of the random crop.
         interpolation: The interpolation mode to use when resizing.
         gamma_range: The gamma correction range.
+        sigma_range: The Gaussian blur range.
+        p_blur: The probability of applying Gaussian blur.
+        p_grayscale: The probability of applying random grayscale.
         p_hflip: The horiziontal random flip probability.
         norms: A tuple of the normalization mean and standard deviation.
         p_erase: The probability of random erasing.
@@ -87,8 +123,10 @@ def train_transforms(
         A torchvision transform.
     """
     interpolation = modes_mapping[interpolation]
-    default_transforms = [
+    augmentations = [
         GammaCorrection(gamma_range),
+        transforms.RandomGrayscale(p_grayscale),
+        transforms.RandomApply([GaussianBlur(sigma_range)], p_blur),
         transforms.RandomHorizontalFlip(p_hflip),
         transforms.ToTensor(),
         transforms.Normalize(*norms),
@@ -97,13 +135,70 @@ def train_transforms(
     if random_resized_crop:
         return transforms.Compose(
             [transforms.RandomResizedCrop(crop_dim, scale, interpolation=interpolation)]
-            + default_transforms
+            + augmentations
         )
     else:
         return transforms.Compose(
             [transforms.Resize(resize, interpolation), transforms.RandomCrop(crop_dim)]
-            + default_transforms
+            + augmentations
         )
+
+
+class TwoViewsTransform:
+    """Randomly crops two views of the same image."""
+    
+    def __init__(
+        self,
+        crop_dim: int = 224,
+        scale: Tuple[float, float] = (0.2, 1.0),
+        interpolation: str = "bilinear",
+        gamma_range: Tuple[float, float] = (0.5, 1.5),
+        sigma_range: Tuple[float, float] = (0.1, 2.0),
+        p_blur: float = 0.0,
+        p_grayscale: float = 0.0,
+        p_hflip: float = 0.5,
+        norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
+            channel_mean,
+            channel_std,
+        )
+    ):
+        """Initializes the two-views transform using torchvision.
+
+        Args:
+            crop_dim: The output crop dimension.
+            scale: The scale of the random crop.
+            interpolation: The interpolation mode to use when resizing.
+            gamma_range: The gamma correction range.
+            sigma_range: The Gaussian blur range.
+            p_blur: The probability of applying Gaussian blur.
+            p_grayscale: The probability of applying random grayscale.
+            p_hflip: The horiziontal random flip probability.
+            norms: A tuple of the normalization mean and standard deviation.
+        """
+        interpolation = modes_mapping[interpolation]
+        augmentations = [
+            transforms.RandomResizedCrop(crop_dim, scale, interpolation=interpolation),
+            GammaCorrection(gamma_range),
+            transforms.RandomGrayscale(p_grayscale),
+            transforms.RandomApply([GaussianBlur(sigma_range)], p_blur),
+            transforms.RandomHorizontalFlip(p_hflip),
+            transforms.ToTensor(),
+            transforms.Normalize(*norms)
+        ]
+        self.base_transform = transforms.Compose(augmentations)
+    
+    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Applies random two-views transform to the input image.
+
+        Args:
+            x: The input tensor.
+
+        Returns:
+            A tuple of two randomly cropped views with augmentations.
+        """
+        one = self.base_transform(x)
+        two = self.base_transform(x)
+        return (one, two)
 
 
 def center_crop_transforms(

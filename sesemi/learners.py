@@ -17,7 +17,7 @@ from pytorch_lightning.trainer.states import RunningStage
 
 from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
-from torchmetrics.average import AverageMeter
+from torchmetrics import MeanMetric
 
 from .config.structs import ClassifierHParams
 from .models.backbones.base import Backbone
@@ -91,7 +91,7 @@ class Classifier(pl.LightningModule):
 
         self.training_accuracy = Accuracy(top_k=1, dist_sync_on_step=True)
         self.validation_top1_accuracy = Accuracy(top_k=1)
-        self.validation_average_loss = AverageMeter()
+        self.validation_average_loss = MeanMetric()
 
     @property
     def backbone(self) -> Backbone:

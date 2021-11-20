@@ -7,12 +7,17 @@ import os, errno
 import torch
 import logging
 
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from torch import Tensor
 from torchvision.datasets import ImageFolder
 
+from omegaconf.base import SCMode
+from omegaconf.omegaconf import OmegaConf
+
 from itertools import combinations
 from torch import nn
+
+from omegaconf import DictConfig
 
 logger = logging.getLogger(__name__)
 
@@ -147,3 +152,11 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str):
         logger.info("---")
         logger.info("\n".join(incompatible_keys.unexpected_keys))
         logger.info("")
+
+
+def copy_config(
+    config: DictConfig, structured_config_mode: SCMode = SCMode.DICT
+) -> Dict[str, Any]:
+    return OmegaConf.to_container(
+        config, resolve=True, structured_config_mode=structured_config_mode
+    )

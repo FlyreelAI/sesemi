@@ -133,6 +133,7 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
             input_data,
             input_backbone,
             num_pretext_classes,
+            logger=logger,
         )
 
 
@@ -199,19 +200,18 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             loss_fn: The loss function to compute the consistency between two views.
             logger: An optional PyTorch Lightning logger.
         """
-        super().__init__(
-            input_data,
-            input_backbone,
-            predict_fn
-        )
+        super().__init__(input_data, input_backbone, predict_fn, logger=logger)
         if loss_fn == "mse":
             self.loss_fn = softmax_mse_loss
         elif loss_fn == "kl_div":
             self.loss_fn = softmax_kl_loss
         else:
-            raise ValueError(loss_fn, "is not a supported consistency loss function. "
-                             "Choose between `mse` or `kl_div`. Default `mse`.")
-        
+            raise ValueError(
+                loss_fn,
+                "is not a supported consistency loss function. "
+                "Choose between `mse` or `kl_div`. Default `mse`.",
+            )
+
     def forward(
         self,
         data: Dict[str, Any],
@@ -228,4 +228,3 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         logits2 = heads[self.predict_fn](feats2)
         loss_u = self.loss_fn(logits1, logits2)
         return loss_u
-

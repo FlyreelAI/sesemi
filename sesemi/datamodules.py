@@ -12,6 +12,8 @@ from typing import Dict, List, Optional, Union
 from torch.utils.data import DataLoader, DistributedSampler
 from hydra.utils import instantiate, to_absolute_path
 
+from sesemi.utils import copy_config
+
 from .config.structs import DataConfig, DataLoaderConfig, DatasetConfig
 
 logger = logging.getLogger(__name__)
@@ -67,11 +69,11 @@ class SESEMIDataModule(pl.LightningDataModule):
         else:
             dataset_root = to_absolute_path(osp.join(self.data_root, config.root))
 
-        dataset_kwargs = dict(config)  # type: ignore
-        dataset_kwargs.pop("root")
+        dataset_config = copy_config(config)
+        dataset_config.pop("root")
 
         return instantiate(
-            dataset_kwargs,
+            dataset_config,
             root=dataset_root,
         )
 
@@ -129,15 +131,15 @@ class SESEMIDataModule(pl.LightningDataModule):
 
         train_dataloaders = {}
         for key, dataset in self.train.items():
-            dataloader_kwargs = dict(self.config.train[key])  # type: ignore
-            dataloader_kwargs.pop("dataset")
-            dataloader_kwargs.pop("batch_size")
-            dataloader_kwargs.pop("batch_size_per_gpu")
+            dataset_config = copy_config(self.config.train[key])
+            dataset_config.pop("dataset")
+            dataset_config.pop("batch_size")
+            dataset_config.pop("batch_size_per_gpu")
 
             if self.accelerator == "ddp":
-                dataloader_kwargs.pop("shuffle")
+                dataset_config.pop("shuffle")
                 train_dataloaders[key] = instantiate(
-                    dataloader_kwargs,
+                    dataset_config,
                     dataset=dataset,
                     batch_size=self.train_batch_sizes[key],
                     sampler=DistributedSampler(
@@ -148,7 +150,7 @@ class SESEMIDataModule(pl.LightningDataModule):
                 )
             else:
                 train_dataloaders[key] = instantiate(
-                    dataloader_kwargs,
+                    dataset_config,
                     dataset=dataset,
                     batch_size=self.train_batch_sizes[key],
                 )
@@ -158,10 +160,10 @@ class SESEMIDataModule(pl.LightningDataModule):
     def _build_evaluation_data_loader(
         self, config: DataLoaderConfig, dataset: Dataset
     ) -> DataLoader:
-        dataloader_kwargs = dict(config)  # type: ignore
-        dataloader_kwargs.pop("dataset")
-        dataloader_kwargs.pop("batch_size")
-        dataloader_kwargs.pop("batch_size_per_gpu")
+        dataset_config = copy_config(config)
+        dataset_config.pop("dataset")
+        dataset_config.pop("batch_size")
+        dataset_config.pop("batch_size_per_gpu")
 
         assert (
             config.batch_size is None or config.batch_size_per_gpu is None
@@ -184,7 +186,7 @@ class SESEMIDataModule(pl.LightningDataModule):
                 or 1
             )
 
-        return instantiate(dataloader_kwargs, dataset=dataset, batch_size=batch_size)
+        return instantiate(dataset_config, dataset=dataset, batch_size=batch_size)
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         assert self.val is not None

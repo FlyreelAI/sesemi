@@ -16,7 +16,7 @@ from math import ceil
 from ..config.resolvers import SESEMIConfigAttributes
 from ..config.structs import SESEMIBaseConfig, ClassifierConfig, RunMode
 from ..datamodules import SESEMIDataModule
-from ..utils import compute_num_gpus, load_checkpoint
+from ..utils import compute_num_gpus, copy_config, load_checkpoint
 
 logger = logging.getLogger(__name__)
 
@@ -82,15 +82,13 @@ def open_sesemi(config: SESEMIBaseConfig):
 
     learner = instantiate(config.learner, _recursive_=False)
 
-    trainer_config = config.trainer or {}
-    callbacks = trainer_config.get("callbacks", [])
-    callbacks = [instantiate(c) for c in callbacks]
-
-    trainer_kwargs: Dict[str, Any] = dict(trainer_config)
-    trainer_kwargs["callbacks"] = callbacks
+    trainer_config = copy_config(config.trainer) if config.trainer is not None else {}
+    trainer_config["callbacks"] = [
+        instantiate(c) for c in trainer_config.get("callbacks", [])
+    ]
 
     trainer = pl.Trainer(
-        **trainer_kwargs,
+        **trainer_config,
         max_epochs=config.run.num_epochs,
         max_steps=config.run.num_iterations,
         accelerator=accelerator,

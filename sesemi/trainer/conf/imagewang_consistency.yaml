@@ -17,8 +17,7 @@ data:
         subset: [train, val, unsup]
         image_transform:
           _target_: sesemi.transforms.TwoViewsTransform
-          crop_dim: 224
-          scale: [0.3, 1.0]
+          transform: ${data.train.supervised.dataset.image_transform}
       shuffle: True
       pin_memory: True
       num_workers: 4

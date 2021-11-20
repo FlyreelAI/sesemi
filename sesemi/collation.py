@@ -15,15 +15,8 @@ class RotationTransformer:
 
     Input images are rotated 0, 90, 180, and 270 degrees.
     """
+
     def __init__(self, return_supervised_labels: bool = False):
-        """Initializes the rotation collation callable.
-
-        Args:
-            return_supervised_labels: Whether to return supervised class labels or pretext labels.
-        """
-        self.return_supervised_labels = return_supervised_labels
-
-    def __init__(self, return_supervised_labels=False):
         """Initializes the rotation collation callable.
 
         Args:
@@ -63,16 +56,16 @@ class RotationTransformer:
 
 class JigsawTransformer:
     """A collation callable to transform a data batch for use with a jigsaw prediction task.
-    
+
     We select a set of P=5 patch permutations for the jigsaw task by using the maximal Hamming distance.
     https://github.com/bbrattoli/JigsawPuzzlePytorch
     """
-    
+
     def __init__(
         self,
         grid_size: int = 3,
         p_grayscale: float = 0.1,
-        return_supervised_labels: bool = False
+        return_supervised_labels: bool = False,
     ):
         """Initializes the jigsaw collation callable.
 
@@ -85,20 +78,22 @@ class JigsawTransformer:
         self.num_grids = grid_size ** 2
         self.p_grayscale = p_grayscale
         self.return_supervised_labels = return_supervised_labels
-        self.patch_permutations = torch.tensor([
-            [5, 7, 2, 6, 0, 3, 8, 1, 4],
-            [0, 1, 3, 2, 4, 5, 6, 7, 8],
-            [1, 0, 4, 3, 2, 6, 5, 8, 7],
-            [2, 3, 0, 1, 5, 8, 7, 4, 6],
-            [3, 2, 1, 0, 8, 7, 4, 6, 5]
-        ])
+        self.patch_permutations = torch.tensor(
+            [
+                [5, 7, 2, 6, 0, 3, 8, 1, 4],
+                [0, 1, 3, 2, 4, 5, 6, 7, 8],
+                [1, 0, 4, 3, 2, 6, 5, 8, 7],
+                [2, 3, 0, 1, 5, 8, 7, 4, 6],
+                [3, 2, 1, 0, 8, 7, 4, 6, 5],
+            ]
+        )
         # The number of jigsaw labels is P + 1, with the last label
         # indicating no patch permutation (no shuffling) applied.
         self.num_jigsaw_labels = self.patch_permutations.size(0) + 1
 
     def crop_patch(self, x: Tensor, idx: int) -> Tensor:
         """Crops a patch of equal height and width dimensions from an input tensor.
-        
+
         Args:
             x: the input tensor.
             idx: the location index of the ith patch.
@@ -118,10 +113,10 @@ class JigsawTransformer:
         Returns:
             Torchvision transform.
         """
-        return torchvision.transforms.Compose([
-            torchvision.transforms.RandomGrayscale(self.p_grayscale)
-        ])
-    
+        return torchvision.transforms.Compose(
+            [torchvision.transforms.RandomGrayscale(self.p_grayscale)]
+        )
+
     def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         """Generates a transformed batch of jigsaw prediction data.
 
@@ -150,7 +145,7 @@ class JigsawTransformer:
                 jigsaw_labels.append(torch.LongTensor([perm_idx]))
         tensors = torch.stack(tensors, dim=0)
         x = torch.zeros(b, c, h, w)
-        x[..., :tensors.size(2), :tensors.size(3)] = tensors
+        x[..., : tensors.size(2), : tensors.size(3)] = tensors
         y = torch.cat(labels, dim=0)
         p = torch.cat(jigsaw_labels, dim=0)
         return (x, y) if self.return_supervised_labels else (x, p)

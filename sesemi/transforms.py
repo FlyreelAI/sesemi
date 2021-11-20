@@ -12,10 +12,10 @@ from torch import Tensor
 import torchvision.transforms.functional as TF
 from torchvision import datasets, transforms
 
-from .collation import (
-    RotationTransformer,
-    JigsawTransformer
-)
+from hydra.utils import instantiate
+from omegaconf import DictConfig
+
+from .collation import RotationTransformer, JigsawTransformer
 from .utils import validate_paths
 
 
@@ -23,12 +23,12 @@ channel_mean = (0.485, 0.456, 0.406)
 channel_std = (0.229, 0.224, 0.225)
 
 modes_mapping = {
-    "nearest"  : TF.InterpolationMode.NEAREST,
-    "bilinear" : TF.InterpolationMode.BILINEAR,
-    "bicubic"  : TF.InterpolationMode.BICUBIC,
-    "box"      : TF.InterpolationMode.BOX,
-    "hamming"  : TF.InterpolationMode.HAMMING,
-    "lanczos"  : TF.InterpolationMode.LANCZOS,
+    "nearest": TF.InterpolationMode.NEAREST,
+    "bilinear": TF.InterpolationMode.BILINEAR,
+    "bicubic": TF.InterpolationMode.BICUBIC,
+    "box": TF.InterpolationMode.BOX,
+    "hamming": TF.InterpolationMode.HAMMING,
+    "lanczos": TF.InterpolationMode.LANCZOS,
 }
 
 
@@ -81,7 +81,7 @@ class GaussianBlur:
         """
         sigma = np.random.uniform(*self.sigma_range)
         return x.filter(ImageFilter.GaussianBlur(radius=sigma))
-    
+
     def __repr__(self) -> str:
         return self.__class__.__name__ + "(s={})".format(self.sigma_range)
 
@@ -146,21 +146,10 @@ def train_transforms(
 
 class TwoViewsTransform:
     """Randomly crops two views of the same image."""
-    
+
     def __init__(
         self,
-        crop_dim: int = 224,
-        scale: Tuple[float, float] = (0.2, 1.0),
-        interpolation: str = "bilinear",
-        gamma_range: Tuple[float, float] = (0.5, 1.5),
-        sigma_range: Tuple[float, float] = (0.1, 2.0),
-        p_blur: float = 0.0,
-        p_grayscale: float = 0.0,
-        p_hflip: float = 0.5,
-        norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-            channel_mean,
-            channel_std,
-        )
+        transform: Callable,
     ):
         """Initializes the two-views transform using torchvision.
 
@@ -175,18 +164,8 @@ class TwoViewsTransform:
             p_hflip: The horiziontal random flip probability.
             norms: A tuple of the normalization mean and standard deviation.
         """
-        interpolation = modes_mapping[interpolation]
-        augmentations = [
-            transforms.RandomResizedCrop(crop_dim, scale, interpolation=interpolation),
-            GammaCorrection(gamma_range),
-            transforms.RandomGrayscale(p_grayscale),
-            transforms.RandomApply([GaussianBlur(sigma_range)], p_blur),
-            transforms.RandomHorizontalFlip(p_hflip),
-            transforms.ToTensor(),
-            transforms.Normalize(*norms)
-        ]
-        self.base_transform = transforms.Compose(augmentations)
-    
+        self.transform = transform
+
     def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
         """Applies random two-views transform to the input image.
 
@@ -196,8 +175,8 @@ class TwoViewsTransform:
         Returns:
             A tuple of two randomly cropped views with augmentations.
         """
-        one = self.base_transform(x)
-        two = self.base_transform(x)
+        one = self.transform(x)
+        two = self.transform(x)
         return (one, two)
 
 
@@ -305,7 +284,7 @@ if __name__ == "__main__":
         "--visualization",
         choices=["none", "rotation", "jigsaw"],
         default="rotation",
-        help="visualize transformations on unlabeled data"
+        help="visualize transformations on unlabeled data",
     )
     parser.add_argument(
         "--out-dir",
@@ -353,4 +332,6 @@ if __name__ == "__main__":
             tensors, indices = jigsaw([(x, dummy_label)])
         for x, ind in zip(*(tensors, indices)):
             image = to_pil_image(x)
-            image.save(os.path.join(args.out_dir, f"vis_{args.visualization}_{ind}_" + fname))
+            image.save(
+                os.path.join(args.out_dir, f"vis_{args.visualization}_{ind}_" + fname)
+            )

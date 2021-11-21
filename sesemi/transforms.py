@@ -151,18 +151,10 @@ class TwoViewsTransform:
         self,
         transform: Callable,
     ):
-        """Initializes the two-views transform using torchvision.
+        """Initializes the two-views transform.
 
         Args:
-            crop_dim: The output crop dimension.
-            scale: The scale of the random crop.
-            interpolation: The interpolation mode to use when resizing.
-            gamma_range: The gamma correction range.
-            sigma_range: The Gaussian blur range.
-            p_blur: The probability of applying Gaussian blur.
-            p_grayscale: The probability of applying random grayscale.
-            p_hflip: The horiziontal random flip probability.
-            norms: A tuple of the normalization mean and standard deviation.
+            transform: The base transform.
         """
         self.transform = transform
 

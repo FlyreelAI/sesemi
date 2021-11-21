@@ -156,7 +156,16 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str):
 
 def copy_config(
     config: DictConfig, structured_config_mode: SCMode = SCMode.DICT
-) -> Dict[str, Any]:
+) -> Union[Dict[str, Any], DictConfig]:
+    """Copies an omegaconf configuration by resolving interpolatons.
+
+    Args:
+        config: The config to copy.
+        structured_config_mode: The format to return.
+
+    Returns:
+        The copied config.
+    """
     return OmegaConf.to_container(
         config, resolve=True, structured_config_mode=structured_config_mode
     )

@@ -12,6 +12,10 @@ from pytorch_lightning.loggers.base import LightningLoggerBase
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
+from ...losses import (
+    softmax_mse_loss,
+    kl_div_loss,
+)
 
 
 class LossHead(nn.Module):
@@ -105,10 +109,10 @@ class RotationPredictionLossHead(LossHead):
         step: int,
         **kwargs,
     ) -> Tensor:
-        inputs_u, targets_u = data[self.input_data]
-        x_u = backbones[self.input_backbone](inputs_u)
-        output_u = self.fc_unsupervised(x_u)
-        loss_u = F.cross_entropy(output_u, targets_u, reduction="none")
+        inputs, targets = data[self.input_data]
+        feats = backbones[self.input_backbone](inputs)
+        logits = self.fc_unsupervised(feats)
+        loss_u = F.cross_entropy(logits, targets, reduction="none")
         return loss_u
 
 
@@ -129,6 +133,7 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
             input_data,
             input_backbone,
             num_pretext_classes,
+            logger=logger,
         )
 
 
@@ -166,8 +171,60 @@ class EntropyMinimizationLossHead(LossHead):
         step: int,
         **kwargs,
     ) -> Tensor:
-        inputs_u, _ = data[self.input_data]
-        x_u = backbones[self.input_backbone](inputs_u)
-        output_u = heads[self.predict_fn](x_u)
-        loss_u = (-F.softmax(output_u, dim=-1) * F.log_softmax(output_u, dim=-1)).sum(1)
+        inputs, _ = data[self.input_data]
+        feats = backbones[self.input_backbone](inputs)
+        logits = heads[self.predict_fn](feats)
+        loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
+        return loss_u
+
+
+class ConsistencyLossHead(EntropyMinimizationLossHead):
+    """The consistency loss head following the Pi Model.
+    https://arxiv.org/abs/1610.02242
+    """
+
+    def __init__(
+        self,
+        input_data: str,
+        input_backbone: str = "backbone",
+        predict_fn: str = "supervised",
+        loss_fn: str = "mse",
+        logger: Optional[LightningLoggerBase] = None,
+    ):
+        """
+        Args:
+            input_data: The key used to get the unlabeled input data,
+                which in this case returns two views of the same image.
+            input_backbone: The key used to get the backbone for feature extraction.
+            predict_fn: The prediction function used to compute output logits.
+            loss_fn: The loss function to compute the consistency between two views.
+            logger: An optional PyTorch Lightning logger.
+        """
+        super().__init__(input_data, input_backbone, predict_fn, logger=logger)
+        if loss_fn == "mse":
+            self.loss_fn = softmax_mse_loss
+        elif loss_fn == "kl_div":
+            self.loss_fn = kl_div_loss
+        else:
+            raise ValueError(
+                loss_fn,
+                "is not a supported consistency loss function. "
+                "Choose between `mse` or `kl_div`. Default `mse`.",
+            )
+
+    def forward(
+        self,
+        data: Dict[str, Any],
+        backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
+        features: Dict[str, Any],
+        step: int,
+        **kwargs,
+    ) -> Tensor:
+        (view1, view2), _ = data[self.input_data]
+        feats1 = backbones[self.input_backbone](view1)
+        feats2 = backbones[self.input_backbone](view2)
+        logits1 = heads[self.predict_fn](feats1)
+        logits2 = heads[self.predict_fn](feats2)
+        loss_u = self.loss_fn(logits1, logits2)
         return loss_u

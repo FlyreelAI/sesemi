@@ -1,0 +1,17 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      regularization_loss_heads:
+        consistency_minimization:
+          head:
+            _target_: sesemi.models.heads.loss.ConsistencyLossHead
+            input_data: unsupervised
+            input_backbone: backbone
+            loss_fn: mse
+          scheduler:
+            _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
+            weight: 10.0
+            stop_rampup: 12000
+          scale_factor: 1.0
+        

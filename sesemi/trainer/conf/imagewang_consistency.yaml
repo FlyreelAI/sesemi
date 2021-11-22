@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/data/imagewang
+  - /base/consistency_minimization/model
+run:
+  seed: 42
+  gpus: 2
+  batch_size_per_gpu: 16
+  num_epochs: 100
+  id: imagewang_consistency
+data:
+  train:
+    unsupervised:
+      dataset:
+        name: ${...supervised.dataset.name}
+        subset: [train, val, unsup]
+        image_transform:
+          _target_: sesemi.transforms.TwoViewsTransform
+          transform: ${data.train.supervised.dataset.image_transform}
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True

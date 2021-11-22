@@ -14,7 +14,7 @@ from ..backbones.base import Backbone
 from ..heads.base import Head
 from ...losses import (
     softmax_mse_loss,
-    softmax_kl_loss,
+    kl_div_loss,
 )
 
 
@@ -204,7 +204,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         if loss_fn == "mse":
             self.loss_fn = softmax_mse_loss
         elif loss_fn == "kl_div":
-            self.loss_fn = softmax_kl_loss
+            self.loss_fn = kl_div_loss
         else:
             raise ValueError(
                 loss_fn,

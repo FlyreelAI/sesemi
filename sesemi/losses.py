@@ -16,7 +16,7 @@ def softmax_mse_loss(input: Tensor, target: Tensor) -> Tensor:
     return loss
 
 
-def softmax_kl_loss(input: Tensor, target: Tensor) -> Tensor:
+def kl_div_loss(input: Tensor, target: Tensor) -> Tensor:
     """Computes the Kullback–Leibler divergence loss between two probability distributions."""
 
     loss = F.kl_div(

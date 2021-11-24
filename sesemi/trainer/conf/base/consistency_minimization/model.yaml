@@ -5,10 +5,11 @@ learner:
       regularization_loss_heads:
         consistency_minimization:
           head:
-            _target_: sesemi.models.heads.loss.ConsistencyLossHead
+            _target_: sesemi.models.heads.loss.EMAConsistencyLossHead
             input_data: unsupervised
             input_backbone: backbone
             loss_fn: mse
+            ema_decay: 0.999
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 10.0

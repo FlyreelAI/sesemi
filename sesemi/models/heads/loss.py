@@ -117,8 +117,7 @@ class RotationPredictionLossHead(LossHead):
 
 
 class JigsawPredictionLossHead(RotationPredictionLossHead):
-    """The jigsaw prediction loss head.
-    Idea and implementation are adapted from
+    """The jigsaw prediction loss head. Idea and implementation are adapted from
     https://arxiv.org/abs/1903.06864
     """
 
@@ -129,12 +128,7 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
         num_pretext_classes: int = 6,
         logger: Optional[LightningLoggerBase] = None,
     ):
-        super().__init__(
-            input_data,
-            input_backbone,
-            num_pretext_classes,
-            logger=logger,
-        )
+        super().__init__(input_data, input_backbone, num_pretext_classes, logger)
 
 
 class EntropyMinimizationLossHead(LossHead):
@@ -146,7 +140,7 @@ class EntropyMinimizationLossHead(LossHead):
         self,
         input_data: str,
         input_backbone: str = "backbone",
-        predict_fn: str = "supervised",
+        predict_head: str = "supervised",
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
@@ -160,7 +154,7 @@ class EntropyMinimizationLossHead(LossHead):
         super().__init__(logger)
         self.input_data = input_data
         self.input_backbone = input_backbone
-        self.predict_fn = predict_fn
+        self.predict_head = predict_head
 
     def forward(
         self,
@@ -173,7 +167,7 @@ class EntropyMinimizationLossHead(LossHead):
     ) -> Tensor:
         inputs, _ = data[self.input_data]
         feats = backbones[self.input_backbone](inputs)
-        logits = heads[self.predict_fn](feats)
+        logits = heads[self.predict_head](feats)
         loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
         return loss_u
 
@@ -187,7 +181,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         self,
         input_data: str,
         input_backbone: str = "backbone",
-        predict_fn: str = "supervised",
+        predict_head: str = "supervised",
         loss_fn: str = "mse",
         logger: Optional[LightningLoggerBase] = None,
     ):
@@ -196,11 +190,11 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             input_data: The key used to get the unlabeled input data,
                 which in this case returns two views of the same image.
             input_backbone: The key used to get the backbone for feature extraction.
-            predict_fn: The prediction function used to compute output logits.
+            predict_head: The prediction module used to compute output logits.
             loss_fn: The loss function to compute the consistency between two views.
             logger: An optional PyTorch Lightning logger.
         """
-        super().__init__(input_data, input_backbone, predict_fn, logger=logger)
+        super().__init__(input_data, input_backbone, predict_head, logger)
         if loss_fn == "mse":
             self.loss_fn = softmax_mse_loss
         elif loss_fn == "kl_div":
@@ -224,7 +218,54 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         (view1, view2), _ = data[self.input_data]
         feats1 = backbones[self.input_backbone](view1)
         feats2 = backbones[self.input_backbone](view2)
-        logits1 = heads[self.predict_fn](feats1)
-        logits2 = heads[self.predict_fn](feats2)
+        logits1 = heads[self.predict_head](feats1)
+        logits2 = heads[self.predict_head](feats2)
         loss_u = self.loss_fn(logits1, logits2)
         return loss_u
+
+
+class EMAConsistencyLossHead(ConsistencyLossHead):
+    """The EMA consistency loss head following Mean Teacher.
+    https://arxiv.org/abs/1703.01780
+    """
+
+    def __init__(
+        self,
+        input_data: str,
+        input_backbone: str = "backbone",
+        predict_head: str = "supervised",
+        loss_fn: str = "mse",
+        ema_decay: float = 0.999,
+        logger: Optional[LightningLoggerBase] = None,
+    ):
+        """
+        Args:
+            input_data: The key used to get the unlabeled input data,
+                which in this case returns two views of the same image.
+            input_backbone: The key used to get the backbone for feature extraction.
+            predict_head: The prediction module used to compute output logits.
+            loss_fn: The loss function to compute the consistency between two views.
+            ema_decay: The exponential moving average decay hyperparameter.
+            logger: An optional PyTorch Lightning logger.
+        """
+        super().__init__(input_data, input_backbone, predict_head, loss_fn, logger)
+        assert 0.0 <= ema_decay <= 1.0, \
+            "`ema_decay` value should be between [0, 1]. Default 0.999."
+    
+    def forward(
+        self,
+        data: Dict[str, Any],
+        backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
+        features: Dict[str, Any],
+        step: int,
+        **kwargs,
+    ) -> Tensor:
+        (view1, view2), _ = data[self.input_data]
+        feats = backbones["backbone"](view1)
+        feats_ema = backbones["backbone_ema"](view2)
+        logits = heads["supervised"](feats)
+        logits_ema = heads["supervised_ema"](feats_ema)
+        loss_u = self.loss_fn(logits, logits_ema)
+        return loss_u
+

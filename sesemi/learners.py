@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import copy
 import logging
 import os.path as osp
 import pytorch_lightning as pl
@@ -42,6 +43,7 @@ class Classifier(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(hparams)
 
+        # Instantiate shared nn.Modules
         self.shared_backbones = nn.ModuleDict()
         self.shared_backbones["backbone"] = instantiate(hparams.model.backbone)
 
@@ -50,6 +52,7 @@ class Classifier(pl.LightningModule):
             self.backbone.out_features, hparams.num_classes
         )
 
+        # Instantiate the supervised loss, and its scheduler and reduction options.
         self.supervised_loss = instantiate(
             hparams.model.supervised_loss.callable, reduction="none"
         )
@@ -66,15 +69,19 @@ class Classifier(pl.LightningModule):
             torch.tensor(0.0, dtype=torch.float32, device=self.device),
         )
 
+        # Instantiate the regularization loss heads,
+        # and their optional scheduler and reduction methods.
         self.regularization_loss_heads = nn.ModuleDict()
         self.regularization_loss_schedulers = {}
         self.regularization_loss_reduction_methods = {}
+        self.ema_values = []
 
         regularization_loss_head_configs = hparams.model.regularization_loss_heads or {}
         for name, loss_head_config in regularization_loss_head_configs.items():
             self.regularization_loss_heads[name] = instantiate(
                 loss_head_config.head, logger=self.logger
             )
+            self.ema_values.append(loss_head_config.head.get("ema_decay", None))
             if loss_head_config.scheduler is not None:
                 self.regularization_loss_schedulers[name] = instantiate(
                     loss_head_config.scheduler
@@ -85,23 +92,48 @@ class Classifier(pl.LightningModule):
                 loss_head_config.reduction or "mean"
             )
         self.num_regularization_losses = len(self.regularization_loss_heads)
-
+        # If the `ema_decay` argument exists in a regularization loss head,
+        # then instantiate the EMA modules.
+        self.ema_values = [v for v in self.ema_values if v is not None]
+        if self.ema_values:
+            self.shared_backbones["backbone_ema"] = self._copy_and_detach(self.backbone)
+            self.shared_heads["supervised_ema"] = self._copy_and_detach(self.head)
+        
+        # Build the regularization loss heads.
         for head in self.regularization_loss_heads.values():
             head.build(self.shared_backbones, self.shared_heads)
 
+        # Initialize training and validation metrics.
         self.training_accuracy = Accuracy(top_k=1, dist_sync_on_step=True)
         self.validation_top1_accuracy = Accuracy(top_k=1)
         self.validation_average_loss = MeanMetric()
 
+    def _copy_and_detach(self, module):
+        """Detaches a new module from the computational graph after copying."""
+        new_module = copy.deepcopy(module)
+        for param in new_module.parameters():
+            param.detach_()
+        return new_module
+    
     @property
     def backbone(self) -> Backbone:
         """The supervised backbone."""
         return self.shared_backbones["backbone"]
+    
+    @property
+    def backbone_ema(self) -> Backbone:
+        """The supervised backbone with EMA weights."""
+        return self.shared_backbones["backbone_ema"]
 
     @property
-    def head(self) -> Backbone:
+    def head(self) -> LinearHead:
         """The supervised head."""
         return self.shared_heads["supervised"]
+    
+    @property
+    def head_ema(self) -> LinearHead:
+        """The supervised head with EMA weights."""
+        return self.shared_heads["supervised_ema"]
 
     def forward(self, x):
         features = self.backbone(x)
@@ -142,7 +174,7 @@ class Classifier(pl.LightningModule):
             )
             for name, head in self.regularization_loss_heads.items()
         }
-
+        
         return {
             "supervised_loss": supervised_loss,
             "regularization_losses": regularization_losses,
@@ -189,6 +221,13 @@ class Classifier(pl.LightningModule):
             prog_bar=True,
             logger=False,
         )
+    
+    def _update_ema(self, ema_module, module, step, decay):
+        """Computes in-place the EMA parameters from the original parameters."""
+        # Use the true average until the exponential average is more correct.
+        decay = min(1.0 - 1.0 / (step + 1.0), decay)
+        for ema_param, param in zip(ema_module.parameters(), module.parameters()):
+            ema_param.data.mul_(decay).add_(param.data, alpha=(1.0 - decay))
 
     def training_step_end(self, outputs):
         _, weighted_supervised_loss, _ = self._compute_weighted_training_loss(
@@ -221,7 +260,15 @@ class Classifier(pl.LightningModule):
         self.log("train/loss", loss)
 
         self._log_learning_rates()
-
+        
+        if self.ema_values:
+            self._update_ema(
+                self.backbone_ema, self.backbone, self.global_step, self.ema_values[0]
+            )
+            self._update_ema(
+                self.head_ema, self.head, self.global_step, self.ema_values[0]
+            )
+        
         return loss
 
     def training_epoch_end(self, outputs) -> None:

@@ -7,30 +7,9 @@ run:
 learner:
   hparams:
     model:
-      backbone:
-        _target_: sesemi.PyTorchImageModels
-        name: resnet50d
-        freeze: False
-        pretrained: False
-        global_pool: avg
-        drop_rate: 0.5
       supervised_loss:
         callable:
           _target_: torch.nn.CrossEntropyLoss
-    optimizer:
-      _target_: torch.optim.SGD
-      lr: 0.1
-      momentum: 0.9
-      nesterov: True
-      weight_decay: 0.0005
-    lr_scheduler:
-      scheduler:
-        _target_: sesemi.PolynomialLR
-        warmup_epochs: 10
-        iters_per_epoch: ${sesemi:iterations_per_epoch}
-        warmup_lr: 0.001
-        lr_pow: 0.5
-        max_iters: ${sesemi:max_iterations}
 trainer:
   callbacks:
     - _target_: pytorch_lightning.callbacks.ModelCheckpoint

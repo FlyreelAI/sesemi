@@ -4,23 +4,26 @@
 """Image transforms."""
 import os
 import numpy as np
+
+from torch import Tensor
 from PIL import ImageFilter
 from typing import Callable, Tuple
 
 import torch
-from torch import Tensor
 import torchvision.transforms.functional as TF
-from torchvision import datasets, transforms
+import torchvision.transforms as T
 
-from hydra.utils import instantiate
-from omegaconf import DictConfig
+from torchvision import datasets, transforms
 
 from .collation import RotationTransformer, JigsawTransformer
 from .utils import validate_paths
 
 
-channel_mean = (0.485, 0.456, 0.406)
-channel_std = (0.229, 0.224, 0.225)
+IMAGENET_CHANNEL_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_CHANNEL_STD = (0.229, 0.224, 0.225)
+
+CIFAR_CHANNEL_MEAN = (0.4914, 0.4822, 0.4465)
+CIFAR_CHANNEL_STD = (0.2023, 0.1994, 0.2010)
 
 modes_mapping = {
     "nearest": TF.InterpolationMode.NEAREST,
@@ -98,8 +101,8 @@ def train_transforms(
     p_grayscale: float = 0.0,
     p_hflip: float = 0.5,
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
     p_erase: float = 0.0,
 ) -> Callable:
@@ -177,8 +180,8 @@ def center_crop_transforms(
     crop_dim: int = 224,
     interpolation: str = "bilinear",
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
 ) -> Callable:
     """Builds a center cropping transform.
@@ -208,8 +211,8 @@ def multi_crop_transforms(
     num_crop: int = 5,
     interpolation: str = "bilinear",
     norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        channel_mean,
-        channel_std,
+        IMAGENET_CHANNEL_MEAN,
+        IMAGENET_CHANNEL_STD,
     ),
 ) -> Callable:
     """Builds a multi-crop transform.
@@ -240,6 +243,30 @@ def multi_crop_transforms(
             multi_crop(crop_dim),  # this is a list of PIL Images
             Lambda(lambda crops: torch.stack([to_tensor(crop) for crop in crops])),
             Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops])),
+        ]
+    )
+
+
+def cifar_train_transforms() -> Callable:
+    """Returns the standard CIFAR training transforms."""
+    return T.Compose(
+        [
+            T.RandomResizedCrop(32),
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomApply([T.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            T.RandomGrayscale(p=0.2),
+            T.ToTensor(),
+            T.Normalize(CIFAR_CHANNEL_MEAN, CIFAR_CHANNEL_STD),
+        ]
+    )
+
+
+def cifar_test_transforms() -> Callable:
+    """Returns the standard CIFAR test-time transform."""
+    return T.Compose(
+        [
+            T.ToTensor(),
+            T.Normalize(CIFAR_CHANNEL_MEAN, CIFAR_CHANNEL_STD),
         ]
     )
 
@@ -296,7 +323,7 @@ if __name__ == "__main__":
     p_erase = 0.5 if args.erase else 0.0
     gamma_range = (0.5, 1.5) if args.gamma else (1.0, 1.0)
     (mean, std) = (
-        (channel_mean, channel_std)
+        (IMAGENET_CHANNEL_MEAN, IMAGENET_CHANNEL_STD)
         if args.normalize
         else ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
     )

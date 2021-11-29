@@ -97,6 +97,8 @@ class Classifier(pl.LightningModule):
         self.num_regularization_losses = len(self.regularization_loss_heads)
 
         if self.ema is not None:
+            assert 0.0 <= self.ema.decay <= 1.0, \
+                "EMA decay value should be between [0, 1]. Default 0.999."
             self.shared_backbones["backbone_ema"] = self._copy_and_detach(self.backbone)
             self.shared_heads["supervised_ema"] = self._copy_and_detach(self.head)
 
@@ -225,7 +227,7 @@ class Classifier(pl.LightningModule):
             logger=False,
         )
 
-    def _update_ema(self, ema_module, module, step, decay):
+    def _ema_update(self, ema_module, module, step, decay):
         """Computes in-place the EMA parameters from the original parameters."""
         # Use the true average until the exponential average is more correct.
         decay = min(1.0 - 1.0 / (step + 1.0), decay)
@@ -265,10 +267,8 @@ class Classifier(pl.LightningModule):
         self._log_learning_rates()
 
         if self.ema is not None:
-            self._update_ema(
-                self.backbone_ema, self.backbone, self.global_step, self.ema.decay
-            )
-            self._update_ema(self.head_ema, self.head, self.global_step, self.ema.decay)
+            self._ema_update(self.backbone_ema, self.backbone, self.global_step, self.ema.decay)
+            self._ema_update(self.head_ema, self.head, self.global_step, self.ema.decay)
 
         return loss
 

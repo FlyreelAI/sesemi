@@ -63,9 +63,14 @@ class Classifier(pl.LightningModule):
         else:
             self.supervised_loss_scheduler = None
         self.supervised_loss_reduction_method = hparams.model.supervised_loss.reduction
+        self.ema = hparams.model.ema
 
         self.register_buffer(
             "best_validation_top1_accuracy",
+            torch.tensor(0.0, dtype=torch.float32, device=self.device),
+        )
+        self.register_buffer(
+            "best_ema_validation_top1_accuracy",
             torch.tensor(0.0, dtype=torch.float32, device=self.device),
         )
 
@@ -74,14 +79,12 @@ class Classifier(pl.LightningModule):
         self.regularization_loss_heads = nn.ModuleDict()
         self.regularization_loss_schedulers = {}
         self.regularization_loss_reduction_methods = {}
-        self.ema_values = []
 
         regularization_loss_head_configs = hparams.model.regularization_loss_heads or {}
         for name, loss_head_config in regularization_loss_head_configs.items():
             self.regularization_loss_heads[name] = instantiate(
                 loss_head_config.head, logger=self.logger
             )
-            self.ema_values.append(loss_head_config.head.get("ema_decay", None))
             if loss_head_config.scheduler is not None:
                 self.regularization_loss_schedulers[name] = instantiate(
                     loss_head_config.scheduler
@@ -92,13 +95,13 @@ class Classifier(pl.LightningModule):
                 loss_head_config.reduction or "mean"
             )
         self.num_regularization_losses = len(self.regularization_loss_heads)
-        # If the `ema_decay` argument exists in a regularization loss head,
-        # then instantiate the EMA modules.
-        self.ema_values = [v for v in self.ema_values if v is not None]
-        if self.ema_values:
+
+        if self.ema is not None:
+            assert 0.0 <= self.ema.decay <= 1.0, \
+                "EMA decay value should be between [0, 1]. Default 0.999."
             self.shared_backbones["backbone_ema"] = self._copy_and_detach(self.backbone)
             self.shared_heads["supervised_ema"] = self._copy_and_detach(self.head)
-        
+
         # Build the regularization loss heads.
         for head in self.regularization_loss_heads.values():
             head.build(self.shared_backbones, self.shared_heads)
@@ -107,6 +110,8 @@ class Classifier(pl.LightningModule):
         self.training_accuracy = Accuracy(top_k=1, dist_sync_on_step=True)
         self.validation_top1_accuracy = Accuracy(top_k=1)
         self.validation_average_loss = MeanMetric()
+        self.ema_validation_top1_accuracy = Accuracy(top_k=1)
+        self.ema_validation_average_loss = MeanMetric()
 
     def _copy_and_detach(self, module):
         """Detaches a new module from the computational graph after copying."""
@@ -114,12 +119,12 @@ class Classifier(pl.LightningModule):
         for param in new_module.parameters():
             param.detach_()
         return new_module
-    
+
     @property
     def backbone(self) -> Backbone:
         """The supervised backbone."""
         return self.shared_backbones["backbone"]
-    
+
     @property
     def backbone_ema(self) -> Backbone:
         """The supervised backbone with EMA weights."""
@@ -129,7 +134,7 @@ class Classifier(pl.LightningModule):
     def head(self) -> LinearHead:
         """The supervised head."""
         return self.shared_heads["supervised"]
-    
+
     @property
     def head_ema(self) -> LinearHead:
         """The supervised head with EMA weights."""
@@ -174,7 +179,7 @@ class Classifier(pl.LightningModule):
             )
             for name, head in self.regularization_loss_heads.items()
         }
-        
+
         return {
             "supervised_loss": supervised_loss,
             "regularization_losses": regularization_losses,
@@ -221,8 +226,8 @@ class Classifier(pl.LightningModule):
             prog_bar=True,
             logger=False,
         )
-    
-    def _update_ema(self, ema_module, module, step, decay):
+
+    def _ema_update(self, ema_module, module, step, decay):
         """Computes in-place the EMA parameters from the original parameters."""
         # Use the true average until the exponential average is more correct.
         decay = min(1.0 - 1.0 / (step + 1.0), decay)
@@ -260,15 +265,11 @@ class Classifier(pl.LightningModule):
         self.log("train/loss", loss)
 
         self._log_learning_rates()
-        
-        if self.ema_values:
-            self._update_ema(
-                self.backbone_ema, self.backbone, self.global_step, self.ema_values[0]
-            )
-            self._update_ema(
-                self.head_ema, self.head, self.global_step, self.ema_values[0]
-            )
-        
+
+        if self.ema is not None:
+            self._ema_update(self.backbone_ema, self.backbone, self.global_step, self.ema.decay)
+            self._ema_update(self.head_ema, self.head, self.global_step, self.ema.decay)
+
         return loss
 
     def training_epoch_end(self, outputs) -> None:
@@ -283,23 +284,82 @@ class Classifier(pl.LightningModule):
 
         self.training_accuracy.reset()
 
+    def compute_validation_outputs(self, inputs, targets, backbone, head):
+        outputs_t = head(backbone(inputs))
+        probs_t = torch.softmax(outputs_t, dim=-1)
+        loss_t = F.cross_entropy(outputs_t, targets, reduction="none")
+        return probs_t, loss_t
+
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
-        outputs_t = self.head(self.backbone(inputs_t))
-        probs_t = torch.softmax(outputs_t, dim=-1)
-        loss_t = F.cross_entropy(outputs_t, targets_t, reduction="none")
-        return probs_t, targets_t, loss_t
+
+        regular_outputs = self.compute_validation_outputs(
+            inputs_t, targets_t, self.backbone, self.head
+        )
+
+        ema_outputs = (
+            self.compute_validation_outputs(
+                inputs_t, targets_t, self.backbone_ema, self.head_ema
+            )
+            if self.ema is not None
+            else None
+        )
+
+        return targets_t, regular_outputs, ema_outputs
 
     def validation_step_end(self, outputs):
-        outputs_t, targets_t, loss_t = outputs
+        targets_t, regular_outputs, ema_outputs = outputs
+
+        outputs_t, loss_t = regular_outputs
         self.validation_top1_accuracy.update(outputs_t, targets_t)
         self.validation_average_loss.update(loss_t)
+
+        if ema_outputs is not None:
+            ema_outputs_t, ema_loss_t = ema_outputs
+            self.ema_validation_top1_accuracy.update(ema_outputs_t, targets_t)
+            self.ema_validation_average_loss.update(ema_loss_t)
+
+    def log_validation_metrics(self, top1, best_top1, loss, prefix: str = "val"):
+        self.log(
+            f"{prefix}/top1",
+            top1,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+
+        self.log(
+            f"{prefix}/top1/best",
+            best_top1,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+
+        self.log(
+            f"{prefix}/loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
 
     def validation_epoch_end(self, outputs):
         top1 = self.validation_top1_accuracy.compute()
         loss = self.validation_average_loss.compute()
         self.validation_top1_accuracy.reset()
         self.validation_average_loss.reset()
+
+        ema_top1: Optional[float] = None
+        ema_loss: Optional[float] = None
+        if self.ema is not None:
+            ema_top1 = self.ema_validation_top1_accuracy.compute()
+            ema_loss = self.ema_validation_average_loss.compute()
+            self.ema_validation_top1_accuracy.reset()
+            self.ema_validation_average_loss.reset()
 
         if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
             if top1 > self.best_validation_top1_accuracy:
@@ -309,29 +369,21 @@ class Classifier(pl.LightningModule):
                     device=self.best_validation_top1_accuracy.device,
                 )
 
-            self.log(
-                "val/top1",
-                top1,
-                on_step=False,
-                on_epoch=True,
-                prog_bar=True,
-                logger=True,
+            self.log_validation_metrics(
+                top1, self.best_validation_top1_accuracy, loss, prefix="val"
             )
 
-            self.log(
-                "val/top1/best",
-                self.best_validation_top1_accuracy,
-                on_step=False,
-                on_epoch=True,
-                prog_bar=True,
-                logger=True,
-            )
+            if self.ema is not None:
+                if ema_top1 > self.best_ema_validation_top1_accuracy:
+                    self.best_ema_validation_top1_accuracy = torch.tensor(
+                        float(ema_top1),
+                        dtype=self.best_ema_validation_top1_accuracy.dtype,
+                        device=self.best_ema_validation_top1_accuracy.device,
+                    )
 
-            self.log(
-                "val/loss",
-                loss,
-                on_step=False,
-                on_epoch=True,
-                prog_bar=True,
-                logger=True,
-            )
+                self.log_validation_metrics(
+                    ema_top1,
+                    self.best_ema_validation_top1_accuracy,
+                    ema_loss,
+                    prefix="ema/val",
+                )

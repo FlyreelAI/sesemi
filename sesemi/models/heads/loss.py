@@ -266,9 +266,9 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         **kwargs,
     ) -> Tensor:
         (view1, view2), _ = data[self.input_data]
-        feats = backbones[self.student_backbone](view1)
-        feats_ema = backbones[self.teacher_backbone](view2)
-        logits = heads[self.student_head](feats)
-        logits_ema = heads[self.teacher_head](feats_ema)
-        loss_u = self.loss_fn(logits, logits_ema)
+        student_feats = backbones[self.student_backbone](view1)
+        teacher_feats = backbones[self.teacher_backbone](view2)
+        student_logits = heads[self.student_head](student_feats)
+        teacher_logits = heads[self.teacher_head](teacher_feats)
+        loss_u = self.loss_fn(student_logits, teacher_logits)
         return loss_u

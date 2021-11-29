@@ -268,8 +268,15 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
 
 
 class FixMatchLossHead(LossHead):
-    """The entropy minimization loss head.
-    https://papers.nips.cc/paper/2004/file/96f2b50b5d3613adf9c27049b2a888c7-Paper.pdf
+    """The FixMatch loss head.
+
+    @article{Sohn2020FixMatchSS,
+        title={FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence},
+        author={Kihyuk Sohn and David Berthelot and Chun-Liang Li and Zizhao Zhang and Nicholas Carlini and Ekin Dogus Cubuk and Alexey Kurakin and Han Zhang and Colin Raffel},
+        journal={ArXiv},
+        year={2020},
+        volume={abs/2001.07685}
+    }
     """
 
     def __init__(
@@ -287,7 +294,13 @@ class FixMatchLossHead(LossHead):
 
         Args:
             data: The data key.
-            backbone: The backbone key.
+            student_backbone: The student's backbone key.
+            teacher_backbone: The teacher's backbone key. Defaults to the student's.
+            student_head: The student's head key.
+            teacher_head: The teacher's head key. Defaults to the student's.
+            threshold: The threshold used to filter low confidence predictions
+                made by the teacher.
+            temperature: The softmax temperature of the student's logits.
             logger: An optional PyTorch Lightning logger.
         """
         super().__init__(logger)

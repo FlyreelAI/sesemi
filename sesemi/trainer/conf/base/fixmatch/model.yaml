@@ -1,0 +1,9 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      regularization_loss_heads:
+        fixmatch:
+          head:
+            _target_: sesemi.models.heads.loss.FixMatchLossHead
+            data: fixmatch

@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+- /base/fixmatch/data/imagenet
+run:
+  data_root: ./data/imagewang
+learner:
+  hparams:
+    num_classes: 10
+data:
+  train:
+    fixmatch:
+      dataset:
+        subset: [train, val, unsup]

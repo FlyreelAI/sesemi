@@ -4,16 +4,15 @@
 """Image transforms."""
 import os
 import numpy as np
-from PIL import ImageFilter
-from typing import Callable, Tuple
+from PIL import ImageFilter, Image
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 import torchvision.transforms.functional as TF
 from torchvision import datasets, transforms
 
-from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import ListConfig
 
 from .collation import RotationTransformer, JigsawTransformer
 from .utils import validate_paths
@@ -170,6 +169,72 @@ class TwoViewsTransform:
         one = self.transform(x)
         two = self.transform(x)
         return (one, two)
+
+
+class MultiViewTransform:
+    """Randomly crops two views of the same image."""
+
+    def __init__(
+        self,
+        transform: Callable,
+    ):
+        """Initializes the two-views transform.
+
+        Args:
+            transform: The base transform.
+        """
+        self.transform = transform
+
+    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Applies random two-views transform to the input image.
+
+        Args:
+            x: The input tensor.
+
+        Returns:
+            A tuple of two randomly cropped views with augmentations.
+        """
+        one = self.transform(x)
+        two = self.transform(x)
+        return (one, two)
+
+
+class MultiViewTransform:
+    """A multi-view example collator."""
+
+    def __init__(
+        self,
+        num_views: int,
+        image_augmentations: Optional[Union[Callable, List[Callable]]] = None,
+    ):
+        self.num_views = num_views
+
+        if isinstance(image_augmentations, (list, ListConfig)):
+            assert (
+                len(image_augmentations) == num_views
+            ), f"must provide {num_views} augmentations if multiple given"
+            self.image_augmentations = image_augmentations
+        else:
+            self.image_augmentations = [image_augmentations] * self.num_views
+
+    def __call__(self, image) -> Tuple[Any, ...]:
+        """Generates a transformed data batch of rotation prediction data.
+
+        Arguments:
+            batch: A list of examples.
+
+        Returns:
+            A batch of images.
+        """
+
+        views = []
+        for i in range(self.num_views):
+            if self.image_augmentations[i] is not None:
+                view = self.image_augmentations[i](image)
+            else:
+                view = image
+            views.append(view)
+        return tuple(views)
 
 
 def center_crop_transforms(

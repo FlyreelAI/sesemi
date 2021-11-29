@@ -2,6 +2,8 @@
 learner:
   hparams:
     model:
+      ema:
+        decay: 0.999
       regularization_loss_heads:
         consistency_minimization:
           head:
@@ -9,7 +11,6 @@ learner:
             input_data: unsupervised
             input_backbone: backbone
             loss_fn: mse
-            ema_decay: 0.999
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 10.0

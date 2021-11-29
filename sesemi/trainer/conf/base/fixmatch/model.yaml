@@ -2,8 +2,14 @@
 learner:
   hparams:
     model:
+      ema:
+        decay: 0.999
       regularization_loss_heads:
         fixmatch:
           head:
             _target_: sesemi.models.heads.loss.FixMatchLossHead
             data: fixmatch
+            student_backbone: backbone
+            student_head: supervised
+            teacher_backbone: backbone_ema
+            teacher_head: supervised_ema

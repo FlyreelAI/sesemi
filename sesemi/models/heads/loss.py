@@ -235,7 +235,6 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         input_backbone: str = "backbone",
         predict_head: str = "supervised",
         loss_fn: str = "mse",
-        ema_decay: float = 0.999,
         logger: Optional[LightningLoggerBase] = None,
     ):
         """
@@ -249,9 +248,6 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
             logger: An optional PyTorch Lightning logger.
         """
         super().__init__(input_data, input_backbone, predict_head, loss_fn, logger)
-        assert (
-            0.0 <= ema_decay <= 1.0
-        ), "`ema_decay` value should be between [0, 1]. Default 0.999."
 
     def forward(
         self,

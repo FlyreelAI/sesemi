@@ -220,6 +220,17 @@ class LRSchedulerConfig:
 
 
 @dataclass
+class EMAConfig:
+    """A configuration for EMA models.
+
+    Attributes:
+        decay: The decay rate of the exponential moving average.
+    """
+
+    decay: float = 0.999
+
+
+@dataclass
 class ClassifierModelConfig:
     """The classifier learner's model configuration.
 
@@ -232,6 +243,7 @@ class ClassifierModelConfig:
     backbone: Any = MISSING
     supervised_loss: LossCallableConfig = LossCallableConfig()
     regularization_loss_heads: Optional[Dict[str, LossHeadConfig]] = None
+    ema: Optional[EMAConfig] = None
 
 
 @dataclass

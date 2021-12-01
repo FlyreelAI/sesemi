@@ -287,7 +287,6 @@ class FixMatchLossHead(LossHead):
         student_head: str = "supervised",
         teacher_head: Optional[str] = None,
         threshold: float = 0.5,
-        temperature: float = 0.5,
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
@@ -300,7 +299,6 @@ class FixMatchLossHead(LossHead):
             teacher_head: The teacher's head key. Defaults to the student's.
             threshold: The threshold used to filter low confidence predictions
                 made by the teacher.
-            temperature: The softmax temperature of the student's logits.
             logger: An optional PyTorch Lightning logger.
         """
         super().__init__(logger)
@@ -310,7 +308,6 @@ class FixMatchLossHead(LossHead):
         self.student_head = student_head
         self.teacher_head = teacher_head or student_head
         self.threshold = threshold
-        self.temperature = temperature
 
     def forward(
         self,
@@ -330,7 +327,7 @@ class FixMatchLossHead(LossHead):
         weakly_augmented_features = teacher_backbone(weakly_augmented)
         strongly_augmented_features = student_backbone(strongly_augmented)
 
-        weakly_augmented_logits = teacher_head(weakly_augmented_features)
+        weakly_augmented_logits = teacher_head(weakly_augmented_features).detach()
         strongly_augmented_logits = student_head(strongly_augmented_features)
 
         weakly_augmented_probs = torch.softmax(weakly_augmented_logits, dim=-1)
@@ -344,7 +341,7 @@ class FixMatchLossHead(LossHead):
 
         loss = (
             F.cross_entropy(
-                strongly_augmented_logits / self.temperature,
+                strongly_augmented_logits,
                 weakly_augmented_labels,
                 reduction="none",
             )

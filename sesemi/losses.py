@@ -7,19 +7,14 @@ import torch.nn.functional as F
 from torch import Tensor
 
 
-def softmax_mse_loss(input: Tensor, target: Tensor) -> Tensor:
+def softmax_mse_loss(inputs: Tensor, targets: Tensor) -> Tensor:
     """Computes the mean squared error loss after softmax."""
 
-    loss = F.mse_loss(
-        F.softmax(input, dim=-1), F.softmax(target, dim=-1), reduction="none"
-    )
-    return loss
+    return F.mse_loss(F.softmax(inputs, dim=-1), F.softmax(targets, dim=-1), reduction="none")
 
 
-def kl_div_loss(input: Tensor, target: Tensor) -> Tensor:
+def kl_div_loss(inputs: Tensor, targets: Tensor) -> Tensor:
     """Computes the Kullback–Leibler divergence loss between two probability distributions."""
 
-    loss = F.kl_div(
-        F.log_softmax(input, dim=-1), F.softmax(target, dim=-1), reduction="none"
-    )
-    return loss
+    return F.kl_div(F.log_softmax(inputs, dim=-1), F.softmax(targets, dim=-1), reduction="none")
+

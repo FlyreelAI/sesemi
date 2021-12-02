@@ -9,7 +9,10 @@ learner:
           head:
             _target_: sesemi.models.heads.loss.EMAConsistencyLossHead
             input_data: unsupervised
-            input_backbone: backbone
+            student_backbone: backbone
+            teacher_backbone: backbone_ema
+            student_head: supervised
+            teacher_head: supervised_ema
             loss_fn: mse
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler

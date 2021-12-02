@@ -172,35 +172,7 @@ class TwoViewsTransform:
 
 
 class MultiViewTransform:
-    """Randomly crops two views of the same image."""
-
-    def __init__(
-        self,
-        transform: Callable,
-    ):
-        """Initializes the two-views transform.
-
-        Args:
-            transform: The base transform.
-        """
-        self.transform = transform
-
-    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        """Applies random two-views transform to the input image.
-
-        Args:
-            x: The input tensor.
-
-        Returns:
-            A tuple of two randomly cropped views with augmentations.
-        """
-        one = self.transform(x)
-        two = self.transform(x)
-        return (one, two)
-
-
-class MultiViewTransform:
-    """A multi-view example collator."""
+    """A multi-view image transform."""
 
     def __init__(
         self,
@@ -221,10 +193,10 @@ class MultiViewTransform:
         """Generates a transformed data batch of rotation prediction data.
 
         Arguments:
-            batch: A list of examples.
+            image: An input image.
 
         Returns:
-            A batch of images.
+            A tuple of augmented views.
         """
 
         views = []

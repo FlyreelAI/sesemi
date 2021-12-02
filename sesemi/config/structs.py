@@ -238,6 +238,7 @@ class ClassifierModelConfig:
         backbone: A backbone config that can be instantiated.
         supervised_loss: A callable loss config.
         regularization_loss_heads: An optional dictionary of loss head configs.
+        ema: An optional config for the ema decay coefficient.
     """
 
     backbone: Any = MISSING

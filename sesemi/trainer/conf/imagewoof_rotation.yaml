@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /base/supervised/model
+  - /base/supervised/model/baseline
   - /base/supervised/data/imagewoof
   - /base/rotation_prediction/model
   - /base/rotation_prediction/data/imagenet

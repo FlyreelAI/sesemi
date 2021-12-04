@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/backbone/cifar_resnet
+  - /base/supervised/optimizer/sgd
+  - /base/supervised/lr_scheduler/polynomial
+  - /base/supervised/data/cifar100
+run:
+  seed: 42
+  gpus: 1
+  batch_size_per_gpu: 512
+  num_epochs: 800
+  id: cifar100

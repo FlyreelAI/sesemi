@@ -1,10 +1,10 @@
 # @package _global_
 defaults:
   - /base/supervised/model/baseline
-  - /base/supervised/data/imagewang
+  - /base/supervised/data/stl10
 run:
   seed: 42
   gpus: 2
-  batch_size_per_gpu: 32
+  batch_size_per_gpu: 128
   num_epochs: 800
-  id: imagewang
+  id: stl10

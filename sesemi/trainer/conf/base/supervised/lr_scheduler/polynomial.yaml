@@ -1,0 +1,11 @@
+# @package _global_
+learner:
+  hparams:
+    lr_scheduler:
+      scheduler:
+        _target_: sesemi.PolynomialLR
+        warmup_epochs: 10
+        iters_per_epoch: ${sesemi:iterations_per_epoch}
+        warmup_lr: 0.001
+        lr_pow: 0.5
+        max_iters: ${sesemi:max_iterations}

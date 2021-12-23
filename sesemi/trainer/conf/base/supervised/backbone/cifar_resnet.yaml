@@ -1,0 +1,8 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      backbone:
+        _target_: sesemi.models.backbones.resnet.CIFARResNet
+        n: 18
+        drop_rate: 0.5

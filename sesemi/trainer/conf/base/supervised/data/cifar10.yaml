@@ -1,0 +1,28 @@
+# @package _global_
+run:
+  data_root: ./data/cifar10
+learner:
+  hparams:
+    num_classes: 10
+data:
+  train:
+    supervised:
+      dataset:
+        name: cifar10
+        subset: train
+        image_transform:
+          _target_: sesemi.transforms.cifar_train_transforms
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+  val:
+    dataset:
+      name: cifar10
+      subset: test
+      image_transform:
+        _target_: sesemi.transforms.cifar_test_transforms
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False

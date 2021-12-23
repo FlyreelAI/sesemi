@@ -116,7 +116,7 @@ def validate_paths(paths: List[str]):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
 
-def load_checkpoint(model: nn.Module, checkpoint_path: str):
+def load_checkpoint(model: nn.Module, checkpoint_path: str, strict: bool = False):
     """Loads the classifier checkpoint.
 
     Args:
@@ -131,27 +131,30 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str):
     pretrained_state_dict = checkpoint["state_dict"]
     pretrained_state_dict.pop("best_validation_top1_accuracy", None)
 
-    current_state_dict = model.state_dict()
-    if "fc.weight" in pretrained_state_dict:
-        if "fc.weight" not in current_state_dict or (
-            pretrained_state_dict["fc.weight"].shape
-            != current_state_dict["fc.weight"].shape
-        ):
-            pretrained_state_dict.pop("fc.weight")
-            pretrained_state_dict.pop("fc.bias")
+    if not strict:
+        current_state_dict = model.state_dict()
+        if "fc.weight" in pretrained_state_dict:
+            if "fc.weight" not in current_state_dict or (
+                pretrained_state_dict["fc.weight"].shape
+                != current_state_dict["fc.weight"].shape
+            ):
+                pretrained_state_dict.pop("fc.weight")
+                pretrained_state_dict.pop("fc.bias")
 
-    incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
-    if incompatible_keys.missing_keys:
-        logger.info("missing keys:")
-        logger.info("---")
-        logger.info("\n".join(incompatible_keys.missing_keys))
-        logger.info("")
+        incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
+        if incompatible_keys.missing_keys:
+            logger.info("missing keys:")
+            logger.info("---")
+            logger.info("\n".join(incompatible_keys.missing_keys))
+            logger.info("")
 
-    if incompatible_keys.unexpected_keys:
-        logger.info("unexpected keys:")
-        logger.info("---")
-        logger.info("\n".join(incompatible_keys.unexpected_keys))
-        logger.info("")
+        if incompatible_keys.unexpected_keys:
+            logger.info("unexpected keys:")
+            logger.info("---")
+            logger.info("\n".join(incompatible_keys.unexpected_keys))
+            logger.info("")
+    else:
+        model.load_state_dict(pretrained_state_dict, strict=True)
 
 
 def copy_config(

@@ -274,3 +274,15 @@ class ClassifierConfig(LearnerConfig):
 
     hparams: ClassifierHParams = ClassifierHParams()
     _target_: str = "sesemi.Classifier"
+
+
+@dataclass
+class PseudoDatasetRunConfig:
+    checkpoint_path: str = MISSING
+    output_dir: str = MISSING
+    unlabeled_data_loader: DataLoaderConfig = MISSING
+
+
+@dataclass
+class SESEMIPseudoDatasetConfig(SESEMIBaseConfig):
+    pseudo_dataset_run: PseudoDatasetRunConfig = PseudoDatasetRunConfig()

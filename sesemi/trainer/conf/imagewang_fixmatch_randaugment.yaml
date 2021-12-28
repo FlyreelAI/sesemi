@@ -1,0 +1,46 @@
+# @package _global_
+defaults:
+  - /base/supervised/model/baseline
+  - /base/supervised/data/imagewang
+  - /base/fixmatch/model
+  - /base/fixmatch/data/imagewang
+run:
+  seed: 42
+  gpus: 2
+  batch_size_per_gpu: 16
+  num_epochs: 100
+  id: imagewang_fixmatch
+data:
+  train:
+    fixmatch:
+      dataset:
+        image_transform:
+          image_augmentations:
+            - _target_: sesemi.T.Compose
+              transforms:
+              - _target_: sesemi.T.Resize
+                size: 256
+              - _target_: sesemi.T.CenterCrop
+                size: 224
+              - _target_: sesemi.T.RandomHorizontalFlip
+                p: 0.5
+              - _target_: sesemi.T.RandomAffine
+                degrees: 0
+                translate: [0.125, 0.125]
+              - _target_: sesemi.T.ToTensor
+              - _target_: sesemi.T.Normalize
+                mean: [0.485, 0.456, 0.406]
+                std: [0.229, 0.224, 0.225]
+            - _target_: sesemi.T.Compose
+              transforms:
+              - _target_: sesemi.T.Resize
+                size: 256
+              - _target_: sesemi.T.CenterCrop
+                size: 224
+              - _target_: sesemi.T.RandAugment
+                num_ops: 2
+                magnitude: 9
+              - _target_: sesemi.T.ToTensor
+              - _target_: sesemi.T.Normalize
+                mean: [0.485, 0.456, 0.406]
+                std: [0.229, 0.224, 0.225]

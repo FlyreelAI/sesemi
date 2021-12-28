@@ -128,7 +128,9 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
         num_pretext_classes: int = 6,
         logger: Optional[LightningLoggerBase] = None,
     ):
-        super(JigsawPredictionLossHead, self).__init__(input_data, num_pretext_classes=num_pretext_classes)
+        super(JigsawPredictionLossHead, self).__init__(
+            input_data, num_pretext_classes=num_pretext_classes
+        )
 
 
 class EntropyMinimizationLossHead(LossHead):
@@ -272,3 +274,91 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         teacher_logits = heads[self.teacher_head](teacher_feats)
         loss_u = self.loss_fn(student_logits, teacher_logits)
         return loss_u
+
+
+class FixMatchLossHead(LossHead):
+    """The FixMatch loss head.
+
+    @article{Sohn2020FixMatchSS,
+        title={FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence},
+        author={Kihyuk Sohn and David Berthelot and Chun-Liang Li and Zizhao Zhang and Nicholas Carlini and Ekin Dogus Cubuk and Alexey Kurakin and Han Zhang and Colin Raffel},
+        journal={ArXiv},
+        year={2020},
+        volume={abs/2001.07685}
+    }
+    """
+
+    def __init__(
+        self,
+        data: str,
+        student_backbone: str = "backbone",
+        teacher_backbone: Optional[str] = None,
+        student_head: str = "supervised",
+        teacher_head: Optional[str] = None,
+        threshold: float = 0.5,
+        logger: Optional[LightningLoggerBase] = None,
+    ):
+        """Initializes the loss head.
+
+        Args:
+            data: The data key.
+            student_backbone: The student's backbone key.
+            teacher_backbone: The teacher's backbone key. Defaults to the student's.
+            student_head: The student's head key.
+            teacher_head: The teacher's head key. Defaults to the student's.
+            threshold: The threshold used to filter low confidence predictions
+                made by the teacher.
+            logger: An optional PyTorch Lightning logger.
+        """
+        super().__init__(logger)
+        self.data = data
+        self.student_backbone = student_backbone
+        self.teacher_backbone = teacher_backbone or student_backbone
+        self.student_head = student_head
+        self.teacher_head = teacher_head or student_head
+        self.threshold = threshold
+
+    def forward(
+        self,
+        data: Dict[str, Any],
+        backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
+        features: Dict[str, Any],
+        step: int,
+        **kwargs,
+    ) -> Tensor:
+        weakly_augmented, strongly_augmented = data[self.data]
+        student_backbone = backbones[self.student_backbone]
+        student_head = heads[self.student_head]
+        teacher_backbone = backbones[self.teacher_backbone]
+        teacher_head = heads[self.teacher_head]
+
+        weakly_augmented_features = teacher_backbone(weakly_augmented)
+        strongly_augmented_features = student_backbone(strongly_augmented)
+
+        weakly_augmented_logits = teacher_head(weakly_augmented_features).detach()
+        strongly_augmented_logits = student_head(strongly_augmented_features)
+
+        weakly_augmented_probs = torch.softmax(weakly_augmented_logits, dim=-1)
+        weakly_augmented_labels = torch.argmax(weakly_augmented_probs, dim=-1).to(
+            torch.long
+        )
+
+        loss_weight = (weakly_augmented_probs.max(dim=-1)[0] >= self.threshold).to(
+            torch.float32
+        )
+
+        loss = (
+            F.cross_entropy(
+                strongly_augmented_logits,
+                weakly_augmented_labels,
+                reduction="none",
+            )
+            * loss_weight
+        )
+
+        total_loss_weight = torch.sum(loss_weight)
+        total_loss = torch.sum(loss)
+
+        loss = total_loss / (total_loss_weight + 1e-8)
+        return loss

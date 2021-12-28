@@ -3,9 +3,14 @@
 # =============================================#
 """SESEMI datasets and registry."""
 import os
+import yaml
+import h5py
+import numpy as np
 
 from torch.utils.data import ConcatDataset, Dataset, IterableDataset
 from torchvision.datasets import ImageFolder, CIFAR10, CIFAR100, STL10
+
+from PIL import Image
 
 from typing import Callable, Dict, List, Optional, Type, Union
 
@@ -13,6 +18,55 @@ DatasetBuilder = Callable[..., Union[Dataset, IterableDataset]]
 ImageTransform = Callable
 
 DATASET_REGISTRY: Dict[str, DatasetBuilder] = {}
+
+EXIF_FILE_NAME_TAG = 50827
+
+
+class _ImageFolder(ImageFolder):
+    def __getitem__(self, index: int):
+        sample, target = super().__getitem__(index)
+        if isinstance(sample, Image.Image):
+            exif = sample.getexif()
+            exif[EXIF_FILE_NAME_TAG] = self.samples[index][0].encode()
+        return sample, target
+
+
+class PseudoDataset(Dataset):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        use_probability_target: bool = False,
+    ):
+        super().__int__()
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        self.use_probability_target = use_probability_target
+
+        with open(os.path.join(self.root, "metadata.yaml"), "r") as f:
+            self.metadata = yaml.safe_load(f)
+
+    def __len__(self) -> int:
+        return len(self.metadata["ids"])
+
+    def __getitem__(self, index: int):
+        id_ = self.metadata["ids"][index]
+        image = Image.open(os.path.join(self.root, "images", f"{id_}.jpg"))
+        if self.transform is not None:
+            image = self.transform(image)
+
+        prediction = h5py.File(os.path.join(self.root, "predictions", f"{id_}.h5"), "r")
+        probabilities = np.array(prediction["probabilities"])
+        label = probabilities.argmax()
+
+        if self.use_probability_target:
+            target = probabilities
+        else:
+            target = label
+
+        return image, target
 
 
 def register_dataset(builder: DatasetBuilder) -> DatasetBuilder:
@@ -48,7 +102,7 @@ def image_folder(
         An `ImageFolder` dataset.
     """
     if isinstance(subset, str):
-        return ImageFolder(os.path.join(root, subset), transform=image_transform)
+        return _ImageFolder(os.path.join(root, subset), transform=image_transform)
     else:
         if subset is None:
             subsets = [
@@ -60,11 +114,59 @@ def image_folder(
             subsets = subset
 
         dsts = [
-            ImageFolder(os.path.join(root, s), transform=image_transform)
+            _ImageFolder(os.path.join(root, s), transform=image_transform)
             for s in subsets
         ]
 
         return ConcatDataset(dsts)
+
+
+@register_dataset
+def pseudo(
+    root: str,
+    subset: Optional[Union[str, List[str]]] = None,
+    image_transform: Optional[ImageTransform] = None,
+    **kwargs,
+) -> Dataset:
+    """An image folder dataset builder.
+
+    Args:
+        root: The path to the image folder dataset.
+        subset: The subset(s) to use.
+        image_transform: The image transformations to apply.
+
+    Returns:
+        An `ImageFolder` dataset.
+    """
+    assert subset is None, "psuedo-labeled datasets don't have subsets"
+    return PseudoDataset(
+        root=root,
+        transform=image_transform,
+        **kwargs,
+    )
+
+
+@register_dataset
+def concat(
+    datasets: List[Dataset],
+    root: str = "",
+    subset: Optional[Union[str, List[str]]] = None,
+    image_transform: Optional[ImageTransform] = None,
+    **kwargs,
+) -> Dataset:
+    """An image folder dataset builder.
+
+    Args:
+        root: This is ignored for concat datasets.
+        subset: The subset(s) to use.
+        image_transform: The image transformations to apply.
+
+    Returns:
+        An `ImageFolder` dataset.
+    """
+    assert subset is None, "concat datasets don't support subsets"
+    assert image_transform is None, "concat datasets don't support image transforms"
+    return ConcatDataset(datasets)
 
 
 def _cifar(

@@ -3,7 +3,7 @@
 # =============================================#
 """Omegaconf structured configurations."""
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from omegaconf.omegaconf import MISSING
 from enum import Enum
 
@@ -277,12 +277,13 @@ class ClassifierConfig(LearnerConfig):
 
 
 @dataclass
-class PseudoDatasetRunConfig:
+class SESEMIPseudoDatasetConfig:
     checkpoint_path: str = MISSING
+    seed: Optional[int] = None
     output_dir: str = MISSING
-    unlabeled_data_loader: DataLoaderConfig = MISSING
-
-
-@dataclass
-class SESEMIPseudoDatasetConfig(SESEMIBaseConfig):
-    pseudo_dataset_run: PseudoDatasetRunConfig = PseudoDatasetRunConfig()
+    datasets: List[DatasetConfig] = MISSING
+    preprocessing_transform: Any = None
+    test_time_augmentation: Any = None
+    postaugmentation_transform: Any = None
+    image_getter: Any = None
+    gpu: Optional[int] = None

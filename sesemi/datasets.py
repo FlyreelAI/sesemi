@@ -114,6 +114,47 @@ class ImageFile(Dataset):
         return image
 
 
+def get_image_files(directory: str, is_valid_file: Callable[[str], bool]) -> List[str]:
+    directory = os.path.expanduser(directory)
+
+    files: List[str] = []
+    for root, _, fnames in sorted(os.walk(directory, followlinks=True)):
+        for fname in sorted(fnames):
+            if is_valid_file(fname):
+                path = os.path.join(root, fname)
+                files.append(path)
+
+    return files
+
+
+def default_is_vaild_file(path: str) -> bool:
+    return has_file_allowed_extension(path, IMG_EXTENSIONS)
+
+
+class ImageFile(Dataset):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        loader: Callable[[str], Any] = default_loader,
+        is_valid_file: Callable[[str], bool] = default_is_vaild_file,
+    ):
+        super().__init__()
+        self.transform = transform
+        self.loader = loader
+        self.is_valid_file = is_valid_file
+        self.image_files = get_image_files(root, self.is_valid_file)
+
+    def __len__(self) -> int:
+        return len(self.image_files)
+
+    def __getitem__(self, index: int):
+        image = self.loader(self.image_files[index])
+        if self.transform is not None:
+            image = self.transform(image)
+        return image
+
+
 def register_dataset(builder: DatasetBuilder) -> DatasetBuilder:
     """A decorator to register a dataset builder.
 

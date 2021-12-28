@@ -2,7 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """Omegaconf structured configurations."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from omegaconf.omegaconf import MISSING
 from enum import Enum
@@ -39,6 +39,7 @@ class DatasetConfig:
     root: Optional[str] = None
     subset: Any = None
     image_transform: Any = None
+    kwargs: Dict[str, Any] = field(default_factory=lambda: {})
     _target_: str = "sesemi.dataset"
 
 

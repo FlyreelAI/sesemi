@@ -73,8 +73,7 @@ class SESEMIDataModule(pl.LightningDataModule):
         dataset_config.pop("root")
 
         return instantiate(
-            dataset_config,
-            root=dataset_root,
+            dataset_config, root=dataset_root, **dataset_config.pop("kwargs")
         )
 
     def _build(self):

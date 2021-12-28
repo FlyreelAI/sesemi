@@ -5,8 +5,10 @@
 import os
 import yaml
 import h5py
+import torch
 import numpy as np
 
+from hydra.utils import to_absolute_path
 from torch.utils.data import ConcatDataset, Dataset, IterableDataset
 from torchvision.datasets import ImageFolder, CIFAR10, CIFAR100, STL10
 from torchvision.datasets.folder import (
@@ -43,7 +45,7 @@ class PseudoDataset(Dataset):
         target_transform: Optional[Callable] = None,
         use_probability_target: bool = False,
     ):
-        super().__int__()
+        super().__init__()
         self.root = root
         self.transform = transform
         self.target_transform = target_transform
@@ -57,7 +59,11 @@ class PseudoDataset(Dataset):
 
     def __getitem__(self, index: int):
         id_ = self.metadata["ids"][index]
-        image = Image.open(os.path.join(self.root, "images", f"{id_}.jpg"))
+        image_path = os.path.join(self.root, "images", f"{id_}.jpg")
+        image = Image.open(image_path)
+        exif = image.getexif()
+        exif[EXIF_FILE_NAME_TAG] = image_path.encode()
+
         if self.transform is not None:
             image = self.transform(image)
 
@@ -66,7 +72,7 @@ class PseudoDataset(Dataset):
         label = probabilities.argmax()
 
         if self.use_probability_target:
-            target = probabilities
+            target = torch.tensor(probabilities)
         else:
             target = label
 
@@ -234,10 +240,11 @@ def pseudo(
 
 @register_dataset
 def concat(
-    datasets: List[Dataset],
-    root: str = "",
+    root: str,
+    *,
     subset: Optional[Union[str, List[str]]] = None,
     image_transform: Optional[ImageTransform] = None,
+    datasets: List[Dataset],
     **kwargs,
 ) -> Dataset:
     """An image folder dataset builder.
@@ -251,7 +258,6 @@ def concat(
         An `ImageFolder` dataset.
     """
     assert subset is None, "concat datasets don't support subsets"
-    assert image_transform is None, "concat datasets don't support image transforms"
     return ConcatDataset(datasets)
 
 
@@ -470,5 +476,5 @@ def dataset(
         The dataset.
     """
     return DATASET_REGISTRY[name](
-        root, subset=subset, image_transform=image_transform, **kwargs
+        to_absolute_path(root), subset=subset, image_transform=image_transform, **kwargs
     )

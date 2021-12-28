@@ -1,0 +1,31 @@
+# @package _global_
+data:
+  train:
+    fixmatch:
+      dataset:
+        name: image_file
+        subset: [train, val]
+        image_transform:
+          _target_: sesemi.transforms.MultiViewTransform
+          num_views: 2
+          image_augmentations:
+            - _target_: sesemi.T.Compose
+              transforms:
+              - _target_: sesemi.T.Resize
+                size: 256
+              - _target_: sesemi.T.CenterCrop
+                size: 224
+              - _target_: sesemi.T.RandomHorizontalFlip
+                p: 0.5
+              - _target_: sesemi.T.RandomAffine
+                degrees: 0
+                translate: [0.125, 0.125]
+              - _target_: sesemi.T.ToTensor
+              - _target_: sesemi.T.Normalize
+                mean: [0.485, 0.456, 0.406]
+                std: [0.229, 0.224, 0.225]
+            - ${data.train.supervised.dataset.image_transform}
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True

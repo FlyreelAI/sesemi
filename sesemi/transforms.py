@@ -5,6 +5,9 @@
 import os
 import numpy as np
 
+from PIL import ImageFilter
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 from torch import Tensor
 from PIL import ImageFilter
 from typing import Callable, Tuple
@@ -13,6 +16,7 @@ import torch
 import torchvision.transforms.functional as TF
 import torchvision.transforms as T
 
+from omegaconf import ListConfig
 from torchvision import datasets, transforms
 
 from .collation import RotationTransformer, JigsawTransformer
@@ -173,6 +177,44 @@ class TwoViewsTransform:
         one = self.transform(x)
         two = self.transform(x)
         return (one, two)
+
+
+class MultiViewTransform:
+    """A multi-view image transform."""
+
+    def __init__(
+        self,
+        num_views: int,
+        image_augmentations: Optional[Union[Callable, List[Callable]]] = None,
+    ):
+        self.num_views = num_views
+
+        if isinstance(image_augmentations, (list, ListConfig)):
+            assert (
+                len(image_augmentations) == num_views
+            ), f"must provide {num_views} augmentations if multiple given"
+            self.image_augmentations = image_augmentations
+        else:
+            self.image_augmentations = [image_augmentations] * self.num_views
+
+    def __call__(self, image) -> Tuple[Any, ...]:
+        """Generates a transformed data batch of rotation prediction data.
+
+        Arguments:
+            image: An input image.
+
+        Returns:
+            A tuple of augmented views.
+        """
+
+        views = []
+        for i in range(self.num_views):
+            if self.image_augmentations[i] is not None:
+                view = self.image_augmentations[i](image)
+            else:
+                view = image
+            views.append(view)
+        return tuple(views)
 
 
 def center_crop_transforms(

@@ -144,7 +144,7 @@ class Classifier(pl.LightningModule):
     def forward(self, x):
         features = self.backbone(x)
         logits = self.head(features)
-        return torch.softmax(logits, dim=-1)
+        return logits
 
     def configure_optimizers(self):
         optimizer = instantiate(self.hparams.optimizer, params=self.parameters())

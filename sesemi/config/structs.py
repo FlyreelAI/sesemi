@@ -3,7 +3,8 @@
 # =============================================#
 """Omegaconf structured configurations."""
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
+from omegaconf.dictconfig import DictConfig
 from omegaconf.omegaconf import MISSING
 from enum import Enum
 
@@ -22,8 +23,7 @@ class RunMode(Enum):
     TEST = "test"
 
 
-@dataclass
-class DatasetConfig:
+class DatasetConfig(DictConfig):
     """The SESEMI dataset configuration.
 
     Attributes:
@@ -36,11 +36,22 @@ class DatasetConfig:
     """
 
     name: str
-    root: Optional[str] = None
-    subset: Any = None
-    image_transform: Any = None
-    kwargs: Dict[str, Any] = field(default_factory=lambda: {})
-    _target_: str = "sesemi.dataset"
+    root: Optional[str]
+    subset: Any
+    image_transform: Any
+    _target_: str
+
+    def __init__(self, defaults: Optional[Mapping[str, Any]] = None):
+        super().__init__(
+            {
+                "root": None,
+                "subset": None,
+                "image_transform": None,
+                "_target_": "sesemi.dataset",
+            }
+        )
+        if defaults is not None:
+            self.update(defaults)
 
 
 @dataclass
@@ -68,7 +79,7 @@ class DataLoaderConfig:
         * https://pytorch.org/docs/1.6.0/data.html?highlight=dataloader#torch.utils.data.DataLoader
     """
 
-    dataset: DatasetConfig
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: Optional[int] = None
     batch_size_per_gpu: Optional[int] = None
     shuffle: bool = False
@@ -279,12 +290,71 @@ class ClassifierConfig(LearnerConfig):
 
 @dataclass
 class SESEMIPseudoDatasetConfig:
+    """The pseudo-dataset generation config.
+
+    Attributes:
+        checkpoint_path: The path to the checkpoint to load.
+        seed: The random seed used on initialization.
+        output_dir: The directory to save the pseudo-labeled dataset.
+        dataset: The dataset configuration.
+        preprocessing_transform: The preprocessing transform.
+        test_time_augmentation: The test-time augmentation that takes an image
+            and returns a list of augmented versions of that image.
+        postaugmentation_transform: A transform to apply after test-time
+            augmentations and which should return a tensor.
+        image_getter: The function to extract the source image from
+            an example in the dataset.
+        gpus: Either an integer specifying the number of GPUs to use, a list of
+            GPU integer IDs, a comma-separated list of GPU IDs, or None to
+            train on the CPU. Setting this to -1 uses all GPUs and setting it
+            to 0 also uses the CPU.
+        batch_size: The data loading and inference batch size.
+        num_workers: The number of workers to use for data loaders.
+        symlink_images: Whether to use symlinks for images in the
+            pseudo-labeled dataset rather than copying the image.
+    """
+
     checkpoint_path: str = MISSING
-    seed: Optional[int] = None
+    seed: int = 42
     output_dir: str = MISSING
-    datasets: List[DatasetConfig] = MISSING
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)
     preprocessing_transform: Any = None
     test_time_augmentation: Any = None
     postaugmentation_transform: Any = None
     image_getter: Any = None
-    gpu: Optional[int] = None
+    gpus: Any = -1
+    batch_size: int = 16
+    num_workers: int = 6
+    symlink_images: bool = True
+
+
+@dataclass
+class SESEMIInferenceConfig:
+    """The inference operation config.
+
+    Attributes:
+        checkpoint_path: The path to the saved checkpoint.
+        no_cuda: Whether to disable CUDA.
+        data_dir: Path to test dataset with one or more subdirs containing images.
+        batch_size: Mini-batch size.
+        workers: Number of data loading workers.
+        oversample: Whether to oversample.
+        ncrops: Number of crops to oversample.
+        topk: Return topk predictions.
+        resize: Resize smaller edge to this resolution while maintaining
+            aspect ratio.
+        crop_dim: Dimension for center or multi cropping.
+        outfile: File to write predictions to.
+    """
+
+    checkpoint_path: str = MISSING
+    no_cuda: bool = False
+    data_dir: str = MISSING
+    batch_size: int = 16
+    workers: int = 6
+    oversample: bool = False
+    ncrops: int = 5
+    topk: int = 1
+    resize: int = 256
+    crop_dim: int = 224
+    outfile: str = MISSING

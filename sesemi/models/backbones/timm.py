@@ -96,6 +96,7 @@ class PyTorchImageModels(Backbone):
         global_pool: str = "avg",
         drop_rate: float = 0.0,
         freeze: bool = False,
+        **kwargs,
     ):
         """Builds the pytorch-image-models backbone.
 
@@ -119,6 +120,7 @@ class PyTorchImageModels(Backbone):
             num_classes=0,
             global_pool=global_pool,
             drop_rate=drop_rate,
+            **kwargs,
         )
 
         self.out_features = self.encoder.num_features

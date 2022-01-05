@@ -31,11 +31,11 @@ data:
           name: image_folder
           root: ./data/imagewang
           subset: train
-          image_transform: ${..image_transform}
+          image_transform: ${...image_transform}
         - _target_: sesemi.dataset
           name: pseudo
           root: ./data/pseudo_stage_1
-          image_transform: ${..image_transform}
+          image_transform: ${...image_transform}
       shuffle: True
       pin_memory: True
       num_workers: 4

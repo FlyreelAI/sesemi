@@ -1,0 +1,54 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/backbone/timm
+  - /base/supervised/optimizer/sgd
+  - /base/supervised/lr_scheduler/polynomial
+  - /base/noisy_student/model
+run:
+  seed: 42
+  gpus: 2
+  batch_size_per_gpu: 32
+  num_epochs: 100
+  id: imagewang_noisy_student_stage_n
+  data_root: ./data/imagewang
+learner:
+  hparams:
+    num_classes: 10
+data:
+  train:
+    supervised:
+      dataset:
+        name: concat
+        image_transform:
+          _target_: sesemi.transforms.train_transforms
+          random_resized_crop: True
+          resize: 256
+          crop_dim: 224
+          scale: [0.3, 1.0]
+        datasets:
+        - _target_: sesemi.dataset
+          name: image_folder
+          root: ./data/imagewang
+          subset: train
+          image_transform: ${..image_transform}
+        - _target_: sesemi.dataset
+          name: pseudo
+          root: ./data/pseudo_stage_1
+          image_transform: ${..image_transform}
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+  val:
+    dataset:
+      name: image_folder
+      subset: val
+      image_transform:
+        _target_: sesemi.transforms.center_crop_transforms
+        resize: 256
+        crop_dim: 224
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False

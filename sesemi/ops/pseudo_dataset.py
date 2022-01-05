@@ -49,12 +49,12 @@ T = TypeVar("T")
 
 
 def _identity(x: T) -> T:
-    """The identify function used as a default transform."""
+    """The identity function used as a default transform."""
     return x
 
 
 def default_test_time_augmentation(x: T) -> List[T]:
-    """An identify test-time augmentation."""
+    """An identity test-time augmentation."""
     return [x]
 
 
@@ -181,14 +181,14 @@ def task(
     num_tasks: int,
     device: str,
 ) -> Dict[str, Dict[str, Any]]:
-    """
+    """A task to generate a subset of the pseudo-labeled dataset.
 
     Args:
         config: The operation's configuration.
         hydra_config: The global hydra configuration.
         task_id: The assigned task id from 0 to num_tasks-1.
         num_tasks: The number of tasks running.
-        device: The device to move the model to.
+        device: The device to use for inference.
 
     Returns:
         A dictionary of detailed metadata for each image by its assigned

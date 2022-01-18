@@ -72,10 +72,7 @@ class SESEMIDataModule(pl.LightningDataModule):
         dataset_config = copy_config(config)
         dataset_config.pop("root")
 
-        return instantiate(
-            dataset_config,
-            root=dataset_root,
-        )
+        return instantiate(dataset_config, root=dataset_root)
 
     def _build(self):
         self.train, self.val, self.test = None, None, None

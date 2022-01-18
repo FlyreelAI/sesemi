@@ -69,6 +69,36 @@ def compute_num_gpus(gpus: Union[int, str, List[int]]) -> int:
     return num_gpus
 
 
+def compute_device_names(gpus: Union[int, str, List[int]]) -> List[str]:
+    """Computes the device names for the given GPU config.
+
+    Args:
+        gpus: Either an integer specifying the number of GPUs to use, a list of GPU
+            integer IDs, a comma-separated list of GPU IDs, or None to train on the CPU. Setting
+            this to -1 uses all GPUs and setting it to 0 also uses the CPU.
+
+    Returns:
+        The torch devices that will be used.
+    """
+    if gpus is not None:
+        num_available_gpus = torch.cuda.device_count()
+        if isinstance(gpus, int):
+            num_gpus = gpus if gpus >= 0 else num_available_gpus
+            return [f"cuda:{i}" for i in range(num_gpus)]
+        elif isinstance(gpus, str):
+            gpu_ids = [x.strip() for x in gpus.split(",")]
+            if len(gpu_ids) > 1:
+                return [f"cuda:{x}" for x in gpu_ids]
+            elif len(gpu_ids) == 1:
+                if int(gpu_ids[0]) < 0:
+                    return [f"cuda:{i}" for i in range(num_available_gpus)]
+                else:
+                    return [f"cuda:{gpu_ids[0]}"]
+        else:
+            return [f"cuda:{x}" for x in gpus]
+    return ["cpu"]
+
+
 def sigmoid_rampup(curr_iter: int, rampup_iters: int) -> float:
     """Computes the sigmoid ramp-up value.
 
@@ -116,7 +146,7 @@ def validate_paths(paths: List[str]):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
 
-def load_checkpoint(model: nn.Module, checkpoint_path: str):
+def load_checkpoint(model: nn.Module, checkpoint_path: str, strict: bool = False):
     """Loads the classifier checkpoint.
 
     Args:
@@ -131,27 +161,30 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str):
     pretrained_state_dict = checkpoint["state_dict"]
     pretrained_state_dict.pop("best_validation_top1_accuracy", None)
 
-    current_state_dict = model.state_dict()
-    if "fc.weight" in pretrained_state_dict:
-        if "fc.weight" not in current_state_dict or (
-            pretrained_state_dict["fc.weight"].shape
-            != current_state_dict["fc.weight"].shape
-        ):
-            pretrained_state_dict.pop("fc.weight")
-            pretrained_state_dict.pop("fc.bias")
+    if not strict:
+        current_state_dict = model.state_dict()
+        if "fc.weight" in pretrained_state_dict:
+            if "fc.weight" not in current_state_dict or (
+                pretrained_state_dict["fc.weight"].shape
+                != current_state_dict["fc.weight"].shape
+            ):
+                pretrained_state_dict.pop("fc.weight")
+                pretrained_state_dict.pop("fc.bias")
 
-    incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
-    if incompatible_keys.missing_keys:
-        logger.info("missing keys:")
-        logger.info("---")
-        logger.info("\n".join(incompatible_keys.missing_keys))
-        logger.info("")
+        incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
+        if incompatible_keys.missing_keys:
+            logger.info("missing keys:")
+            logger.info("---")
+            logger.info("\n".join(incompatible_keys.missing_keys))
+            logger.info("")
 
-    if incompatible_keys.unexpected_keys:
-        logger.info("unexpected keys:")
-        logger.info("---")
-        logger.info("\n".join(incompatible_keys.unexpected_keys))
-        logger.info("")
+        if incompatible_keys.unexpected_keys:
+            logger.info("unexpected keys:")
+            logger.info("---")
+            logger.info("\n".join(incompatible_keys.unexpected_keys))
+            logger.info("")
+    else:
+        model.load_state_dict(pretrained_state_dict, strict=True)
 
 
 def copy_config(

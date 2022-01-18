@@ -3,7 +3,12 @@
 # =============================================#
 """SESEMI datasets and registry."""
 import os
+import yaml
+import h5py
+import torch
+import numpy as np
 
+from hydra.utils import to_absolute_path
 from torch.utils.data import ConcatDataset, Dataset, IterableDataset
 from torchvision.datasets import ImageFolder, CIFAR10, CIFAR100, STL10
 from torchvision.datasets.folder import (
@@ -12,6 +17,7 @@ from torchvision.datasets.folder import (
     IMG_EXTENSIONS,
 )
 
+from PIL import Image
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 DatasetBuilder = Callable[..., Union[Dataset, IterableDataset]]
@@ -20,7 +26,76 @@ ImageTransform = Callable
 DATASET_REGISTRY: Dict[str, DatasetBuilder] = {}
 
 
+class _ImageFolder(ImageFolder):
+    """An ImageFolder dataset that adds metadata to loaded PIL images."""
+
+    def __getitem__(self, index: int):
+        sample, target = super().__getitem__(index)
+        if isinstance(sample, Image.Image):
+            sample.info["filename"] = self.samples[index][0]
+        return sample, target
+
+
+class PseudoDataset(Dataset):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        use_probability_target: bool = False,
+    ):
+        """A pseudo-labeled dataset.
+
+        Args:
+            root: The path to the dataset root.
+            transform: An optional image transform.
+            target_transform: An optional target transform.
+            use_probability_target: Whether to use the probabilities
+                as learning targets rather than integer labels.
+        """
+        super().__init__()
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        self.use_probability_target = use_probability_target
+
+        with open(os.path.join(self.root, "metadata.yaml"), "r") as f:
+            self.metadata = yaml.safe_load(f)
+
+    def __len__(self) -> int:
+        return len(self.metadata["ids"])
+
+    def __getitem__(self, index: int):
+        id_ = self.metadata["ids"][index]
+        image_path = os.path.join(self.root, "images", f"{id_}.jpg")
+        image = Image.open(image_path)
+        image.info["filename"] = image_path
+
+        if self.transform is not None:
+            image = self.transform(image)
+
+        prediction = h5py.File(os.path.join(self.root, "predictions", f"{id_}.h5"), "r")
+        probabilities = np.array(prediction["probabilities"])
+        label = probabilities.argmax()
+
+        if self.use_probability_target:
+            target = torch.tensor(probabilities)
+        else:
+            target = label
+
+        return image, target
+
+
 def get_image_files(directory: str, is_valid_file: Callable[[str], bool]) -> List[str]:
+    """Finds the full list of image files recursively under a directory path.
+
+    Args:
+        directory: The root directory to search for image files.
+        is_valid_file: A callable to determine if a file is a valid image.
+
+    Returns:
+        The list of paths to the image files.
+    """
     directory = os.path.expanduser(directory)
 
     files: List[str] = []
@@ -34,6 +109,7 @@ def get_image_files(directory: str, is_valid_file: Callable[[str], bool]) -> Lis
 
 
 def default_is_vaild_file(path: str) -> bool:
+    """The default callable to determine if a file is a valid image."""
     return has_file_allowed_extension(path, IMG_EXTENSIONS)
 
 
@@ -45,6 +121,14 @@ class ImageFile(Dataset):
         loader: Callable[[str], Any] = default_loader,
         is_valid_file: Callable[[str], bool] = default_is_vaild_file,
     ):
+        """An image-file dataset.
+
+        Args:
+            root: The path to the dataset root.
+            transform: An optional image transform.
+            loader: The image loading callable.
+            is_valid_file: A callable to determine if a file is a valid image.
+        """
         super().__init__()
         self.transform = transform
         self.loader = loader
@@ -94,7 +178,7 @@ def image_folder(
         An `ImageFolder` dataset.
     """
     if isinstance(subset, str):
-        return ImageFolder(os.path.join(root, subset), transform=image_transform)
+        return _ImageFolder(os.path.join(root, subset), transform=image_transform)
     else:
         if subset is None:
             subsets = [
@@ -106,11 +190,59 @@ def image_folder(
             subsets = subset
 
         dsts = [
-            ImageFolder(os.path.join(root, s), transform=image_transform)
+            _ImageFolder(os.path.join(root, s), transform=image_transform)
             for s in subsets
         ]
 
         return ConcatDataset(dsts)
+
+
+@register_dataset
+def pseudo(
+    root: str,
+    subset: Optional[Union[str, List[str]]] = None,
+    image_transform: Optional[ImageTransform] = None,
+    **kwargs,
+) -> Dataset:
+    """An image folder dataset builder.
+
+    Args:
+        root: The path to the image folder dataset.
+        subset: The subset(s) to use.
+        image_transform: The image transformations to apply.
+
+    Returns:
+        An `ImageFolder` dataset.
+    """
+    assert subset is None, "psuedo-labeled datasets don't have subsets"
+    return PseudoDataset(
+        root=root,
+        transform=image_transform,
+        **kwargs,
+    )
+
+
+@register_dataset
+def concat(
+    root: str,
+    *,
+    subset: Optional[Union[str, List[str]]] = None,
+    image_transform: Optional[ImageTransform] = None,
+    datasets: List[Dataset],
+    **kwargs,
+) -> Dataset:
+    """An image folder dataset builder.
+
+    Args:
+        root: This is ignored for concat datasets.
+        subset: The subset(s) to use.
+        image_transform: The image transformations to apply.
+
+    Returns:
+        An `ImageFolder` dataset.
+    """
+    assert subset is None, "concat datasets don't support subsets"
+    return ConcatDataset(datasets)
 
 
 def _cifar(
@@ -328,5 +460,5 @@ def dataset(
         The dataset.
     """
     return DATASET_REGISTRY[name](
-        root, subset=subset, image_transform=image_transform, **kwargs
+        to_absolute_path(root), subset=subset, image_transform=image_transform, **kwargs
     )

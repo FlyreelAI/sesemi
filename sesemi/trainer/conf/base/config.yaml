@@ -3,5 +3,8 @@ defaults:
   - /base/sesemi
   - /learner: classifier
 hydra:
+  sweep:
+    dir: ${run.dir}/${run.id}/${now:%Y%m%d_%H%M%S}
+    subdir: ${hydra.job.num}
   run:
     dir: ${run.dir}/${run.id}/${now:%Y%m%d_%H%M%S}

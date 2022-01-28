@@ -11,7 +11,7 @@ with open(
 
 setup(
     name="sesemi",
-    version="0.2.0",
+    version="0.3.0",
     description="Image Classification with Self-Supervised Regularization",
     author="Flyreel AI",
     author_email="ai@flyreel.co",

@@ -188,7 +188,7 @@ Built-in Configurations
 We have a couple built-in configurations which are packaged with the library. For instance, to use the imagewoof
 configuration with rotation prediction you can run::
 
-    $ open_sesemi -cn imagewoof_rotpred
+    $ open_sesemi -cn imagewoof_rotation
 
 This assumes you have downloaded the imagewoof dataset to the *./data/imagewoof2* directory, but otherwise it should work out of the box.
 
@@ -371,12 +371,13 @@ Next, create a custom config file with the following sample contents and store i
 
   # @package _global_
   defaults:
-  - /base/supervised
-  - /base/model/rotation_prediction
+    - /base/supervised/model/baseline
+    - /base/supervised/data/imagewoof
   run:
     seed: 42
-    gpus: -1
-    num_epochs: 80
+    gpus: 2
+    batch_size_per_gpu: 32
+    num_epochs: 100
     id: imagewoof
     data_root: ./data/imagewoof2
 

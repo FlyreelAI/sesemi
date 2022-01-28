@@ -1,72 +1,32 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Image Classification with Self-Supervised Regularization &mdash; SESEMI  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Quickstart" href="quickstart.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="#" class="icon icon-home"> SESEMI
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -74,97 +34,45 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hydra.html">A Primer on Hydra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sesemi.html">sesemi package</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="#">SESEMI</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-        
       <li>Image Classification with Self-Supervised Regularization</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <p><p align="center"><img height="350px" src="https://github.com/FlyreelAI/sesemi/raw/master/assets/sesemi-banner.png" /></p></p><div class="section" id="image-classification-with-self-supervised-regularization">
-<h1>Image Classification with Self-Supervised Regularization<a class="headerlink" href="#image-classification-with-self-supervised-regularization" title="Permalink to this headline">¶</a></h1>
-<p><span class="raw-html-m2r"><span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.6.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span></span></p>
+<h1>Image Classification with Self-Supervised Regularization<a class="headerlink" href="#image-classification-with-self-supervised-regularization" title="Permalink to this headline"></a></h1>
+<p><span class="raw-html-m2r"><span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.10.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span></span></p>
 <div class="section" id="why-sesemi">
-<h2>Why SESEMI?<a class="headerlink" href="#why-sesemi" title="Permalink to this headline">¶</a></h2>
+<h2>Why SESEMI?<a class="headerlink" href="#why-sesemi" title="Permalink to this headline"></a></h2>
 <p>SESEMI is an open source image classification library built on PyTorch and PyTorch Lightning. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.</p>
 <div class="section" id="highlights-and-features">
-<h3>Highlights and Features<a class="headerlink" href="#highlights-and-features" title="Permalink to this headline">¶</a></h3>
+<h3>Highlights and Features<a class="headerlink" href="#highlights-and-features" title="Permalink to this headline"></a></h3>
 <ul class="simple">
 <li><p>Integration with the popular <a class="reference external" href="https://github.com/rwightman/pytorch-image-models">PyTorch Image Models</a> (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of <a class="reference external" href="https://github.com/FlyreelAI/sesemi/blob/master/sesemi/models/backbones/timm.py">supported backbones</a></p></li>
 <li><p>Demonstrated utility on large realistic image datasets and is currently competitive on the <a class="reference external" href="https://github.com/fastai/imagenette">FastAI Imagenette benchmarks</a></p></li>
@@ -175,10 +83,10 @@
 </div>
 </div>
 <div class="section" id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
 <p>Our preferred installation method is Docker, however, you can use any virtual environment tool to install the necessary Python dependencies. Below are instructions for both these methods.</p>
 <div class="section" id="pip">
-<h3>Pip<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h3>
+<h3>Pip<a class="headerlink" href="#pip" title="Permalink to this headline"></a></h3>
 <p>To use pip, configure a virtual environment of choice with at least Python 3.6 (e.g. <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">miniconda</a>). Then install the requirements as follows:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/FlyreelAI/sesemi.git
 </pre></div>
@@ -189,13 +97,13 @@
 </div>
 </div>
 <div class="section" id="docker">
-<h3>Docker<a class="headerlink" href="#docker" title="Permalink to this headline">¶</a></h3>
+<h3>Docker<a class="headerlink" href="#docker" title="Permalink to this headline"></a></h3>
 <p>If you would like to use docker, then ensure you have it installed by following the instructions <a class="reference external" href="https://docs.docker.com/get-docker/">here</a>. The Dockerfile at the root can be used to build an image with the
 code in this repository. To build the image, run the following <code class="docutils literal notranslate"><span class="pre">bash</span></code> command :</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi:latest
 $ <span class="nv">DOCKER_BUILDKIT</span><span class="o">=</span><span class="m">1</span> docker build <span class="se">\</span>
     --build-arg <span class="nv">USER_ID</span><span class="o">=</span><span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
-    -t <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest https://github.com/FlyreelAI/sesemi.git
+    -t <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span> https://github.com/FlyreelAI/sesemi.git
 </pre></div>
 </div>
 <p>Note that your OS user ID is obtained through the bash command <code class="docutils literal notranslate"><span class="pre">id</span> <span class="pre">-u</span></code>. This command will create an image named
@@ -203,7 +111,7 @@ $ <span class="nv">DOCKER_BUILDKIT</span><span class="o">=</span><span class="m"
 </div>
 </div>
 <div class="section" id="getting-started">
-<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h2>
 <p>You can find more detailed documentation which is hosted <a class="reference external" href="https://flyreelai.github.io/sesemi/">here</a>, however, this section will guide you through the process of using SESEMI to train a model on <a class="reference external" href="https://github.com/fastai/imagenette#imagewoof">FastAI’s imagewoof2 dataset</a>. If you don’t have access to a GPU machine,
 training will work but will take a very long time.</p>
 <ol class="arabic">
@@ -223,20 +131,20 @@ $ mkdir data runs .cache
 <blockquote>
 <div><p>If you’re not using docker this can be done as follows:</p>
 </div></blockquote>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ open_sesemi -cn imagewoof_rotpred
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ open_sesemi -cn imagewoof_rotation
 
 If you use docker and have <span class="sb">`</span>nvidia-docker &lt;https://github.com/NVIDIA/nvidia-docker&gt;<span class="sb">`</span>_ installed you can instead use:
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi <span class="nv">GPUS</span><span class="o">=</span>all
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi:latest <span class="nv">GPUS</span><span class="o">=</span>all
    $ docker run <span class="se">\</span>
        --gpus <span class="si">${</span><span class="nv">GPUS</span><span class="si">}</span> <span class="se">\</span>
        -u <span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
        --rm --ipc<span class="o">=</span>host <span class="se">\</span>
        --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
        -w /home/appuser/sesemi-experiments <span class="se">\</span>
-       <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-       open_sesemi -cn imagewoof_rotpred
+       <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span> <span class="se">\</span>
+       open_sesemi -cn imagewoof_rotation
 
 The training logs with all relevant training statistics <span class="o">(</span>accuracy, losses, learning rate, etc.<span class="o">)</span> are written to the <span class="sb">``</span>./runs<span class="sb">``</span> directory. You can use <span class="sb">`</span>TensorBoard &lt;https://www.tensorflow.org/tensorboard&gt;<span class="sb">`</span>_ to view and monitor them <span class="k">in</span> your browser during training.
 </pre></div>
@@ -249,24 +157,24 @@ The training logs with all relevant training statistics <span class="o">(</span>
 <blockquote>
 <div><p>Without docker:</p>
 </div></blockquote>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
-   $ open_sesemi -cn imagewoof_rotpred <span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>   $ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
+   $ open_sesemi -cn imagewoof_rotation <span class="se">\</span>
        run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
        run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 
 With docker:
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi <span class="nv">GPUS</span><span class="o">=</span>all
-$ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">USER_ID</span><span class="o">=</span><span class="k">$(</span>id -u<span class="k">)</span> <span class="nv">SESEMI_IMAGE</span><span class="o">=</span>sesemi:latest <span class="nv">GPUS</span><span class="o">=</span>all
+$ <span class="nv">CHECKPOINT_PATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt<span class="k">)</span>
 $ docker run <span class="se">\</span>
     --gpus <span class="si">${</span><span class="nv">GPUS</span><span class="si">}</span> <span class="se">\</span>
     -u <span class="si">${</span><span class="nv">USER_ID</span><span class="si">}</span> <span class="se">\</span>
     --rm --ipc<span class="o">=</span>host <span class="se">\</span>
     --mount <span class="nv">type</span><span class="o">=</span>bind,src<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>,dst<span class="o">=</span>/home/appuser/sesemi-experiments/ <span class="se">\</span>
     -w /home/appuser/sesemi-experiments <span class="se">\</span>
-    <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span>:latest <span class="se">\</span>
-    open_sesemi -cn imagewoof_rotpred <span class="se">\</span>
+    <span class="si">${</span><span class="nv">SESEMI_IMAGE</span><span class="si">}</span> <span class="se">\</span>
+    open_sesemi -cn imagewoof_rotation <span class="se">\</span>
         run.mode<span class="o">=</span>VALIDATE <span class="se">\</span>
         run.pretrained_checkpoint_path<span class="o">=</span><span class="nv">$CHECKPOINT_PATH</span>
 </pre></div>
@@ -275,7 +183,7 @@ $ docker run <span class="se">\</span>
 </ol>
 </div>
 <div class="section" id="citation">
-<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline">¶</a></h2>
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline"></a></h2>
 <p>If you find this work useful, consider citing the related paper:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@inproceedings</span><span class="p">{</span><span class="n">TranSESEMI</span><span class="p">,</span>
   <span class="n">title</span><span class="o">=</span><span class="s2">&quot;{Exploring Self-Supervised Regularization for Supervised and Semi-Supervised Learning}&quot;</span><span class="p">,</span>
@@ -287,7 +195,7 @@ $ docker run <span class="se">\</span>
 </div>
 </div>
 <div class="section" id="contents">
-<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
@@ -310,6 +218,7 @@ $ docker run <span class="se">\</span>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.datamodules">sesemi.datamodules module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.datasets">sesemi.datasets module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.learners">sesemi.learners module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.losses">sesemi.losses module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.transforms">sesemi.transforms module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi.utils">sesemi.utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sesemi.html#module-sesemi">Module contents</a></li>
@@ -319,7 +228,7 @@ $ docker run <span class="se">\</span>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
-<h2>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<h2>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -330,49 +239,32 @@ $ docker run <span class="se">\</span>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Flyreel AI.
-
-    </p>
+    <p>&#169; Copyright 2021, Flyreel AI.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

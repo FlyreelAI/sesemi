@@ -1,7 +1,7 @@
 <p><p align="center"><img height="350px" src="https://github.com/FlyreelAI/sesemi/raw/master/assets/sesemi-banner.png" /></p></p>
 
 # Image Classification with Self-Supervised Regularization
-<span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.6.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span>
+<span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.10.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span>
 
 ## Why SESEMI?
 SESEMI is an open source image classification library built on PyTorch and PyTorch Lightning. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.

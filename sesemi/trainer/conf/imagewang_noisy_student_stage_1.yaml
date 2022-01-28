@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - /base/supervised/model/baseline
+  - /base/supervised/data/imagewang
+  - /base/noisy_student/model
+run:
+  seed: 42
+  gpus: 2
+  batch_size_per_gpu: 32
+  num_epochs: 800
+  id: imagewang_noisy_student_stage_1

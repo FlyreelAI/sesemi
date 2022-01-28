@@ -12,6 +12,14 @@ sesemi.models.backbones.base module
    :undoc-members:
    :show-inheritance:
 
+sesemi.models.backbones.resnet module
+-------------------------------------
+
+.. automodule:: sesemi.models.backbones.resnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 sesemi.models.backbones.timm module
 -----------------------------------
 

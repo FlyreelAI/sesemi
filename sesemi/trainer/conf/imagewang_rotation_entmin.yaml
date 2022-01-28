@@ -9,4 +9,4 @@ run:
   gpus: 2
   batch_size_per_gpu: 8
   num_epochs: 80
-  id: imagewang_rotpred_entropy
+  id: imagewang_rotation_entropy

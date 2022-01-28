@@ -9,8 +9,8 @@ Subpackages
 
    sesemi.config
    sesemi.models
+   sesemi.ops
    sesemi.schedulers
-   sesemi.tools
    sesemi.trainer
 
 Submodules
@@ -44,6 +44,14 @@ sesemi.learners module
 ----------------------
 
 .. automodule:: sesemi.learners
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+sesemi.losses module
+--------------------
+
+.. automodule:: sesemi.losses
    :members:
    :undoc-members:
    :show-inheritance:

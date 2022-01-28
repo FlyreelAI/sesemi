@@ -38,10 +38,10 @@ If you would like to use docker, then ensure you have it installed by following 
 code in this repository. To build the image, run the following `bash` command :
 
 ```bash
-$ USER_ID=$(id -u) SESEMI_IMAGE=sesemi
+$ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest
 $ DOCKER_BUILDKIT=1 docker build \
     --build-arg USER_ID=${USER_ID} \
-    -t ${SESEMI_IMAGE}:latest https://github.com/FlyreelAI/sesemi.git
+    -t ${SESEMI_IMAGE} https://github.com/FlyreelAI/sesemi.git
 ```
 
 Note that your OS user ID is obtained through the bash command `id -u`. This command will create an image named
@@ -71,21 +71,21 @@ training will work but will take a very long time.
     If you're not using docker this can be done as follows:
 
     ```bash
-    $ open_sesemi -cn imagewoof_rotpred
+    $ open_sesemi -cn imagewoof_rotation
     ```
 
     If you use docker and have [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) installed you can instead use:
 
     ```bash
-    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi GPUS=all
+    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest GPUS=all
     $ docker run \
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
         --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
         -w /home/appuser/sesemi-experiments \
-        ${SESEMI_IMAGE}:latest \
-        open_sesemi -cn imagewoof_rotpred
+        ${SESEMI_IMAGE} \
+        open_sesemi -cn imagewoof_rotation
     ```
 
     The training logs with all relevant training statistics (accuracy, losses, learning rate, etc.) are written to the `./runs` directory. You can use [TensorBoard](https://www.tensorflow.org/tensorboard) to view and monitor them in your browser during training.
@@ -99,8 +99,8 @@ training will work but will take a very long time.
     Without docker:
 
     ```bash
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt)
-    $ open_sesemi -cn imagewoof_rotpred \
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt)
+    $ open_sesemi -cn imagewoof_rotation \
         run.mode=VALIDATE \
         run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```
@@ -108,16 +108,16 @@ training will work but will take a very long time.
     With docker:
 
     ```bash
-    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi GPUS=all
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotpred/*/lightning_logs/version_0/checkpoints/last.ckpt)
+    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest GPUS=all
+    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt)
     $ docker run \
         --gpus ${GPUS} \
         -u ${USER_ID} \
         --rm --ipc=host \
         --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
         -w /home/appuser/sesemi-experiments \
-        ${SESEMI_IMAGE}:latest \
-        open_sesemi -cn imagewoof_rotpred \
+        ${SESEMI_IMAGE} \
+        open_sesemi -cn imagewoof_rotation \
             run.mode=VALIDATE \
             run.pretrained_checkpoint_path=$CHECKPOINT_PATH
     ```

@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional
 from pytorch_lightning.loggers.base import LightningLoggerBase
 
 from ..backbones.base import Backbone
-from ..heads.base import Head
+from .base import Head
 from ...losses import (
     softmax_mse_loss,
     kl_div_loss,
@@ -78,7 +78,7 @@ class RotationPredictionLossHead(LossHead):
     def __init__(
         self,
         input_data: str,
-        input_backbone: str = "backbone",
+        input_backbone: str = "supervised_backbone",
         num_pretext_classes: int = 4,
         logger: Optional[LightningLoggerBase] = None,
     ):
@@ -124,7 +124,7 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
     def __init__(
         self,
         input_data: str,
-        input_backbone: str = "backbone",
+        input_backbone: str = "supervised_backbone",
         num_pretext_classes: int = 6,
         logger: Optional[LightningLoggerBase] = None,
     ):
@@ -141,8 +141,8 @@ class EntropyMinimizationLossHead(LossHead):
     def __init__(
         self,
         input_data: str,
-        input_backbone: str = "backbone",
-        predict_head: str = "supervised",
+        input_backbone: str = "supervised_backbone",
+        predict_head: str = "supervised_head",
         logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
@@ -182,8 +182,8 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
     def __init__(
         self,
         input_data: str,
-        input_backbone: str = "backbone",
-        predict_head: str = "supervised",
+        input_backbone: str = "supervised_backbone",
+        predict_head: str = "supervised_head",
         loss_fn: str = "mse",
         logger: Optional[LightningLoggerBase] = None,
     ):
@@ -234,10 +234,10 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
     def __init__(
         self,
         input_data: str,
-        student_backbone: str = "backbone",
-        teacher_backbone: str = "backbone_ema",
-        student_head: str = "supervised",
-        teacher_head: str = "supervised_ema",
+        student_backbone: str = "supervised_backbone",
+        teacher_backbone: str = "supervised_backbone_ema",
+        student_head: str = "supervised_head",
+        teacher_head: str = "supervised_head_ema",
         loss_fn: str = "mse",
         logger: Optional[LightningLoggerBase] = None,
     ):
@@ -291,9 +291,9 @@ class FixMatchLossHead(LossHead):
     def __init__(
         self,
         data: str,
-        student_backbone: str = "backbone",
+        student_backbone: str = "supervised_backbone",
         teacher_backbone: Optional[str] = None,
-        student_head: str = "supervised",
+        student_head: str = "supervised_head",
         teacher_head: Optional[str] = None,
         threshold: float = 0.5,
         logger: Optional[LightningLoggerBase] = None,

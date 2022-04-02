@@ -108,7 +108,7 @@ def open_sesemi(config: SESEMIBaseConfig):
     if config.run.mode == RunMode.FIT:
         trainer.fit(learner, datamodule)
     elif config.run.mode == RunMode.VALIDATE:
-        trainer.validate(learner, datamodule.val_dataloader())
+        trainer.validate(learner, datamodule=datamodule)
     else:
         assert config.run.mode == RunMode.TEST
-        trainer.validate(learner, datamodule.test_dataloader())
+        trainer.test(learner, datamodule=datamodule)

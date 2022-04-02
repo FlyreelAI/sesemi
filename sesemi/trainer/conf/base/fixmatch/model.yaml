@@ -9,7 +9,7 @@ learner:
           head:
             _target_: sesemi.models.heads.loss.FixMatchLossHead
             data: fixmatch
-            student_backbone: backbone
-            student_head: supervised
-            teacher_backbone: backbone_ema
-            teacher_head: supervised_ema
+            student_backbone: supervised_backbone
+            student_head: supervised_head
+            teacher_backbone: supervised_backbone_ema
+            teacher_head: supervised_head_ema

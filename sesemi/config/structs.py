@@ -248,13 +248,15 @@ class ClassifierModelConfig:
 
     Attributes:
         backbone: A backbone config that can be instantiated.
-        supervised_loss: A callable loss config.
+        head: A head config that can be instantiated.
+        loss: An optional callable loss config.
         regularization_loss_heads: An optional dictionary of loss head configs.
         ema: An optional config for the ema decay coefficient.
     """
 
     backbone: Any = MISSING
-    supervised_loss: LossCallableConfig = LossCallableConfig()
+    head: Any = MISSING
+    loss: Optional[LossCallableConfig] = LossCallableConfig()
     regularization_loss_heads: Optional[Dict[str, LossHeadConfig]] = None
     ema: Optional[EMAConfig] = None
 

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 
 from .datasets import dataset
 from .models.backbones.timm import PyTorchImageModels
+from .models.backbones.torchvision import TorchVisionBackbone
 from .schedulers.lr import PolynomialLR
 from .learners import Classifier
 

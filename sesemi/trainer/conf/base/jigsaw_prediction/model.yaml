@@ -7,4 +7,4 @@ learner:
           head:
             _target_: sesemi.models.heads.loss.JigsawPredictionLossHead
             input_data: unsupervised
-            input_backbone: backbone
+            input_backbone: supervised_backbone

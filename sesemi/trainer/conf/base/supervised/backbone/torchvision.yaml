@@ -3,8 +3,7 @@ learner:
   hparams:
     model:
       backbone:
-        _target_: sesemi.PyTorchImageModels
+        _target_: sesemi.TorchVisionBackbone
         freeze: False
         pretrained: False
-        global_pool: avg
         drop_rate: 0.5

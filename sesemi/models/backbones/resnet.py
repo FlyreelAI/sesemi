@@ -140,14 +140,14 @@ class CIFARResNet(Backbone):
 
     def __init__(
         self,
-        linear_features: Optional[int] = None,
+        out_features: Optional[int] = None,
         n: int = 18,
         drop_rate: float = 0.0,
     ):
         """Initializes the ResNet.
 
         Args:
-            linear_features: An optional specification for an additional linear layer
+            out_features: An optional specification for an additional linear layer
                 to use at the end of the network. Otherwise the outputs are 64d and no
                 linear layer is applied.
             n: This parameter defines a multiplier for the number of layers in use. The
@@ -159,7 +159,7 @@ class CIFARResNet(Backbone):
         super().__init__()
 
         self.in_features = 3
-        self.out_features = 64 if linear_features is None else linear_features
+        self.out_features = 64 if out_features is None else out_features
 
         self.conv1 = nn.Conv2d(
             in_channels=3,
@@ -182,10 +182,10 @@ class CIFARResNet(Backbone):
 
         self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        if linear_features is not None:
+        if out_features is not None:
             self.linear_block: Optional[nn.Sequential] = nn.Sequential(
-                nn.Linear(64, linear_features, bias=False),
-                nn.BatchNorm1d(linear_features),
+                nn.Linear(64, out_features, bias=False),
+                nn.BatchNorm1d(out_features),
                 nn.ReLU(inplace=True),
             )
         else:

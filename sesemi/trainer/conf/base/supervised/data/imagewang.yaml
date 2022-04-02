@@ -3,6 +3,34 @@ defaults:
 - /base/supervised/data/imagenet
 run:
   data_root: ./data/imagewang
+data:
+  train:
+    supervised:
+      dataset:
+        classes:
+          - n02086240
+          - n02087394
+          - n02088364
+          - n02089973
+          - n02093754
+          - n02096294
+          - n02099601
+          - n02105641
+          - n02111889
+          - n02115641
+  val:
+    dataset:
+      classes:
+        - n02086240
+        - n02087394
+        - n02088364
+        - n02089973
+        - n02093754
+        - n02096294
+        - n02099601
+        - n02105641
+        - n02111889
+        - n02115641
 learner:
   hparams:
     num_classes: 10

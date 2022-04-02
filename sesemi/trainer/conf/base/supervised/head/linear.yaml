@@ -1,0 +1,6 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      head:
+        _target_: sesemi.models.heads.base.LinearHead

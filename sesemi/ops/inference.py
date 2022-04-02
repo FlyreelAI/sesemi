@@ -62,7 +62,7 @@ class Predictor:
             return (labels, scores)
 
 
-@hydra.main(config_path="./conf", config_name=None)
+@hydra.main(config_path="./conf", config_name="/ops/inference")
 def predict(config: SESEMIInferenceConfig):
     # Data loading
     validate_paths([config.data_dir])

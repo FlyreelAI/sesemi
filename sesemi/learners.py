@@ -2,7 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
-from typing import Optional, Tuple
+from typing import NamedTuple, Optional, Tuple
 
 from torch import Tensor
 import torch
@@ -12,6 +12,7 @@ import torch.nn.functional as F
 import copy
 import logging
 import os.path as osp
+import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
@@ -27,6 +28,13 @@ from .utils import reduce_tensor
 from .schedulers.weight import WeightScheduler
 
 logger = logging.getLogger(__name__)
+
+
+class ValidationOutputs(NamedTuple):
+    features: torch.Tensor
+    logits: Optional[torch.Tensor] = None
+    probabilities: Optional[torch.Tensor] = None
+    loss: Optional[torch.Tensor] = None
 
 
 class Classifier(pl.LightningModule):
@@ -45,24 +53,31 @@ class Classifier(pl.LightningModule):
 
         # Instantiate shared nn.Modules
         self.shared_backbones = nn.ModuleDict()
-        self.shared_backbones["backbone"] = instantiate(hparams.model.backbone)
+        self.shared_backbones["supervised_backbone"] = instantiate(
+            hparams.model.backbone
+        )
 
         self.shared_heads = nn.ModuleDict()
-        self.shared_heads["supervised"] = LinearHead(
-            self.backbone.out_features, hparams.num_classes
+        self.shared_heads["supervised_head"] = instantiate(
+            hparams.model.head,
+            in_features=self.backbone.out_features,
+            out_features=hparams.num_classes,
         )
 
         # Instantiate the supervised loss, and its scheduler and reduction options.
-        self.supervised_loss = instantiate(
-            hparams.model.supervised_loss.callable, reduction="none"
-        )
-        if hparams.model.supervised_loss.scheduler is not None:
-            self.supervised_loss_scheduler: Optional[WeightScheduler] = instantiate(
-                hparams.model.supervised_loss.scheduler
-            )
+        if hparams.model.loss is not None:
+            self.loss = instantiate(hparams.model.loss.callable, reduction="none")
+            if hparams.model.loss.scheduler is not None:
+                self.loss_scheduler: Optional[WeightScheduler] = instantiate(
+                    hparams.model.loss.scheduler
+                )
+            else:
+                self.loss_scheduler = None
+            self.loss_reduction_method = hparams.model.loss.reduction
         else:
-            self.supervised_loss_scheduler = None
-        self.supervised_loss_reduction_method = hparams.model.supervised_loss.reduction
+            self.loss = None
+            self.loss_reduction_method = None
+
         self.ema = hparams.model.ema
 
         self.register_buffer(
@@ -100,8 +115,10 @@ class Classifier(pl.LightningModule):
             assert (
                 0.0 <= self.ema.decay <= 1.0
             ), "EMA decay value should be between [0, 1]. Default 0.999."
-            self.shared_backbones["backbone_ema"] = self._copy_and_detach(self.backbone)
-            self.shared_heads["supervised_ema"] = self._copy_and_detach(self.head)
+            self.shared_backbones["supervised_backbone_ema"] = self._copy_and_detach(
+                self.backbone
+            )
+            self.shared_heads["supervised_head_ema"] = self._copy_and_detach(self.head)
 
         # Build the regularization loss heads.
         for head in self.regularization_loss_heads.values():
@@ -116,6 +133,9 @@ class Classifier(pl.LightningModule):
 
     def _copy_and_detach(self, module):
         """Detaches a new module from the computational graph after copying."""
+        if module is None:
+            return None
+
         new_module = copy.deepcopy(module)
         for param in new_module.parameters():
             param.detach_()
@@ -124,22 +144,22 @@ class Classifier(pl.LightningModule):
     @property
     def backbone(self) -> Backbone:
         """The supervised backbone."""
-        return self.shared_backbones["backbone"]
+        return self.shared_backbones["supervised_backbone"]
 
     @property
     def backbone_ema(self) -> Backbone:
         """The supervised backbone with EMA weights."""
-        return self.shared_backbones["backbone_ema"]
+        return self.shared_backbones["supervised_backbone_ema"]
 
     @property
     def head(self) -> LinearHead:
         """The supervised head."""
-        return self.shared_heads["supervised"]
+        return self.shared_heads["supervised_head"]
 
     @property
     def head_ema(self) -> LinearHead:
         """The supervised head with EMA weights."""
-        return self.shared_heads["supervised_ema"]
+        return self.shared_heads["supervised_head_ema"]
 
     def forward(self, x):
         features = self.backbone(x)
@@ -160,15 +180,43 @@ class Classifier(pl.LightningModule):
 
     def training_step(self, batch, batch_index):
         shared_features = {}
+        step_outputs = {}
+        if self.head is not None:
+            if "supervised" in batch:
+                inputs_t, targets_t = batch["supervised"][:2]
 
-        inputs_t, targets_t = batch["supervised"][:2]
-        features_t = self.backbone(inputs_t)
-        outputs_t = self.head(features_t)
+                features_t = self.backbone(inputs_t)
+                shared_features["supervised_backbone"] = features_t
 
-        shared_features["backbone"] = features_t
-        shared_features["supervised"] = outputs_t
+                outputs_t = self.head(features_t)
+                shared_features["supervised_head"] = outputs_t
+                shared_features["supervised_probabilities"] = F.softmax(
+                    outputs_t, dim=-1
+                )
 
-        supervised_loss = self.supervised_loss(outputs_t, targets_t)
+                if self.ema is not None:
+                    features_ema = self.backbone_ema(inputs_t)
+                    shared_features["supervised_backbone_ema"] = features_ema
+
+                    outputs_ema = self.head(features_t)
+                    shared_features["supervised_head_ema"] = outputs_ema
+                    shared_features["supervised_probabilities_ema"] = F.softmax(
+                        outputs_ema, dim=-1
+                    )
+
+                    step_outputs["probabilities_ema"] = shared_features[
+                        "supervised_probabilities_ema"
+                    ]
+
+                step_outputs["probabilities"] = shared_features[
+                    "supervised_probabilities"
+                ]
+
+                step_outputs["targets"] = targets_t
+
+        loss = None
+        if self.head is not None and self.loss is not None and "supervised" in batch:
+            loss = self.loss(shared_features["supervised_head"], targets_t)
 
         regularization_losses = {
             name: head(
@@ -181,12 +229,12 @@ class Classifier(pl.LightningModule):
             for name, head in self.regularization_loss_heads.items()
         }
 
-        return {
-            "supervised_loss": supervised_loss,
-            "regularization_losses": regularization_losses,
-            "probs": F.softmax(outputs_t, dim=-1),
-            "targets": targets_t,
-        }
+        step_outputs["regularization_losses"] = regularization_losses
+
+        if loss is not None:
+            step_outputs["loss"] = loss
+
+        return step_outputs
 
     def _compute_weighted_training_loss(
         self,
@@ -236,13 +284,16 @@ class Classifier(pl.LightningModule):
             ema_param.data.mul_(decay).add_(param.data, alpha=(1.0 - decay))
 
     def training_step_end(self, outputs):
-        _, weighted_supervised_loss, _ = self._compute_weighted_training_loss(
-            loss=outputs["supervised_loss"],
-            reduction=self.supervised_loss_reduction_method,
-            scheduler=self.supervised_loss_scheduler,
-            scale_factor=self.hparams.model.supervised_loss.scale_factor,
-            log_prefix="train/supervised",
-        )
+        losses = []
+        if "loss" in outputs:
+            _, weighted_loss, _ = self._compute_weighted_training_loss(
+                loss=outputs["loss"],
+                reduction=self.loss_reduction_method,
+                scheduler=self.loss_scheduler,
+                scale_factor=self.hparams.model.loss.scale_factor,
+                log_prefix="train/supervised",
+            )
+            losses.append(weighted_loss)
 
         weighted_regularization_losses = []
         for name, regularization_loss in outputs["regularization_losses"].items():
@@ -258,10 +309,11 @@ class Classifier(pl.LightningModule):
 
             weighted_regularization_losses.append(weighted_regularization_loss)
 
-        losses = [weighted_supervised_loss] + weighted_regularization_losses
+        losses.extend(weighted_regularization_losses)
         loss = torch.sum(torch.stack(losses))
 
-        self.training_accuracy.update(outputs["probs"], outputs["targets"])
+        if "probabilities" in outputs and "targets" in outputs:
+            self.training_accuracy.update(outputs["probabilities"], outputs["targets"])
 
         self.log("train/loss", loss)
 
@@ -276,22 +328,36 @@ class Classifier(pl.LightningModule):
         return loss
 
     def training_epoch_end(self, outputs) -> None:
-        self.log(
-            "train/top1",
-            self.training_accuracy.compute(),
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
+        if self.training_accuracy.mode is not None:
+            self.log(
+                "train/top1",
+                self.training_accuracy.compute(),
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
 
-        self.training_accuracy.reset()
+            self.training_accuracy.reset()
 
-    def compute_validation_outputs(self, inputs, targets, backbone, head):
-        outputs_t = head(backbone(inputs))
-        probs_t = torch.softmax(outputs_t, dim=-1)
-        loss_t = F.cross_entropy(outputs_t, targets, reduction="none")
-        return probs_t, loss_t
+    def compute_validation_outputs(
+        self, inputs, targets, backbone, head
+    ) -> Optional[ValidationOutputs]:
+        features = backbone(inputs)
+        if head is not None:
+            logits = head(features)
+            probabilities = torch.softmax(logits, dim=-1)
+            loss = F.cross_entropy(logits, targets, reduction="none")
+            return ValidationOutputs(
+                features=features,
+                logits=logits,
+                probabilities=probabilities,
+                loss=loss,
+            )
+        else:
+            return ValidationOutputs(
+                features=features,
+            )
 
     def validation_step(self, batch, batch_index):
         inputs_t, targets_t = batch
@@ -310,83 +376,113 @@ class Classifier(pl.LightningModule):
 
         return targets_t, regular_outputs, ema_outputs
 
-    def validation_step_end(self, outputs):
-        targets_t, regular_outputs, ema_outputs = outputs
+    def validation_step_end(
+        self,
+        outputs: Tuple[
+            torch.Tensor, Optional[ValidationOutputs], Optional[ValidationOutputs]
+        ],
+    ):
+        targets, regular_outputs, ema_outputs = outputs
 
-        outputs_t, loss_t = regular_outputs
-        self.validation_top1_accuracy.update(outputs_t, targets_t)
-        self.validation_average_loss.update(loss_t)
+        if regular_outputs.probabilities is not None:
+            self.validation_top1_accuracy.update(regular_outputs.probabilities, targets)
+        if regular_outputs.loss is not None:
+            self.validation_average_loss.update(regular_outputs.loss)
 
         if ema_outputs is not None:
-            ema_outputs_t, ema_loss_t = ema_outputs
-            self.ema_validation_top1_accuracy.update(ema_outputs_t, targets_t)
-            self.ema_validation_average_loss.update(ema_loss_t)
+            if ema_outputs.probabilities is not None:
+                self.ema_validation_top1_accuracy.update(
+                    ema_outputs.probabilities, targets
+                )
+            if ema_outputs.loss is not None:
+                self.ema_validation_average_loss.update(ema_outputs.loss)
+
+        return regular_outputs.features.cpu().numpy(), targets.cpu().numpy()
 
     def log_validation_metrics(self, top1, best_top1, loss, prefix: str = "val"):
-        self.log(
-            f"{prefix}/top1",
-            top1,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-
-        self.log(
-            f"{prefix}/top1/best",
-            best_top1,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-
-        self.log(
-            f"{prefix}/loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-
-    def validation_epoch_end(self, outputs):
-        top1 = self.validation_top1_accuracy.compute()
-        loss = self.validation_average_loss.compute()
-        self.validation_top1_accuracy.reset()
-        self.validation_average_loss.reset()
-
-        ema_top1: Optional[float] = None
-        ema_loss: Optional[float] = None
-        if self.ema is not None:
-            ema_top1 = self.ema_validation_top1_accuracy.compute()
-            ema_loss = self.ema_validation_average_loss.compute()
-            self.ema_validation_top1_accuracy.reset()
-            self.ema_validation_average_loss.reset()
-
-        if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
-            if top1 > self.best_validation_top1_accuracy:
-                self.best_validation_top1_accuracy = torch.tensor(
-                    float(top1),
-                    dtype=self.best_validation_top1_accuracy.dtype,
-                    device=self.best_validation_top1_accuracy.device,
-                )
-
-            self.log_validation_metrics(
-                top1, self.best_validation_top1_accuracy, loss, prefix="val"
+        if top1 is not None:
+            self.log(
+                f"{prefix}/top1",
+                top1,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
             )
 
-            if self.ema is not None:
-                if ema_top1 > self.best_ema_validation_top1_accuracy:
-                    self.best_ema_validation_top1_accuracy = torch.tensor(
-                        float(ema_top1),
-                        dtype=self.best_ema_validation_top1_accuracy.dtype,
-                        device=self.best_ema_validation_top1_accuracy.device,
+            self.log(
+                f"{prefix}/top1/best",
+                best_top1,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
+
+        if loss is not None:
+            self.log(
+                f"{prefix}/loss",
+                loss,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
+
+    def validation_epoch_end(self, outputs):
+        if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
+            val_features = np.concatenate([x[0] for x in outputs], axis=0)
+            val_targets = np.concatenate([x[1] for x in outputs], axis=0)
+
+            if self.validation_top1_accuracy.mode is not None:
+                top1 = self.validation_top1_accuracy.compute()
+                self.validation_top1_accuracy.reset()
+
+                if top1 > self.best_validation_top1_accuracy:
+                    self.best_validation_top1_accuracy = torch.tensor(
+                        float(top1),
+                        dtype=self.best_validation_top1_accuracy.dtype,
+                        device=self.best_validation_top1_accuracy.device,
                     )
 
                 self.log_validation_metrics(
-                    ema_top1,
-                    self.best_ema_validation_top1_accuracy,
-                    ema_loss,
-                    prefix="ema/val",
+                    top1, self.best_validation_top1_accuracy, None, prefix="val"
                 )
+
+                ema_top1: Optional[float] = None
+                if self.ema_validation_top1_accuracy.mode is not None:
+                    ema_top1 = self.ema_validation_top1_accuracy.compute()
+                    self.ema_validation_top1_accuracy.reset()
+
+                    if ema_top1 > self.best_ema_validation_top1_accuracy:
+                        self.best_ema_validation_top1_accuracy = torch.tensor(
+                            float(ema_top1),
+                            dtype=self.best_ema_validation_top1_accuracy.dtype,
+                            device=self.best_ema_validation_top1_accuracy.device,
+                        )
+
+                    self.log_validation_metrics(
+                        ema_top1,
+                        self.best_ema_validation_top1_accuracy,
+                        None,
+                        prefix="ema/val",
+                    )
+
+            if self.loss is not None:
+                loss = self.validation_average_loss.compute()
+                self.validation_average_loss.reset()
+
+                ema_loss: Optional[float] = None
+                if self.ema is not None:
+                    ema_loss = self.ema_validation_average_loss.compute()
+                    self.ema_validation_average_loss.reset()
+
+                self.log_validation_metrics(None, None, loss, prefix="val")
+
+                if self.ema is not None:
+                    self.log_validation_metrics(
+                        None,
+                        None,
+                        ema_loss,
+                        prefix="ema/val",
+                    )

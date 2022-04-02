@@ -24,7 +24,7 @@ from torchmetrics import MeanMetric
 from .config.structs import ClassifierHParams
 from .models.backbones.base import Backbone
 from .models.heads.base import LinearHead
-from .utils import reduce_tensor
+from .utils import reduce_tensor, ema_update, copy_and_detach
 from .schedulers.weight import WeightScheduler
 
 logger = logging.getLogger(__name__)
@@ -130,16 +130,6 @@ class Classifier(pl.LightningModule):
         self.validation_average_loss = MeanMetric()
         self.ema_validation_top1_accuracy = Accuracy(top_k=1)
         self.ema_validation_average_loss = MeanMetric()
-
-    def _copy_and_detach(self, module):
-        """Detaches a new module from the computational graph after copying."""
-        if module is None:
-            return None
-
-        new_module = copy.deepcopy(module)
-        for param in new_module.parameters():
-            param.detach_()
-        return new_module
 
     @property
     def backbone(self) -> Backbone:
@@ -276,13 +266,6 @@ class Classifier(pl.LightningModule):
             logger=False,
         )
 
-    def _ema_update(self, ema_module, module, step, decay):
-        """Computes in-place the EMA parameters from the original parameters."""
-        # Use the true average until the exponential average is more correct.
-        decay = min(1.0 - 1.0 / (step + 1.0), decay)
-        for ema_param, param in zip(ema_module.parameters(), module.parameters()):
-            ema_param.data.mul_(decay).add_(param.data, alpha=(1.0 - decay))
-
     def training_step_end(self, outputs):
         losses = []
         if "loss" in outputs:
@@ -320,10 +303,21 @@ class Classifier(pl.LightningModule):
         self._log_learning_rates()
 
         if self.ema is not None:
-            self._ema_update(
-                self.backbone_ema, self.backbone, self.global_step, self.ema.decay
+            ema_update(
+                self.backbone_ema,
+                self.backbone,
+                self.ema.decay,
+                method=self.ema.method,
+                copy_non_floating_point=self.ema.copy_non_floating_point,
             )
-            self._ema_update(self.head_ema, self.head, self.global_step, self.ema.decay)
+            if self.head_ema is not None:
+                ema_update(
+                    self.head_ema,
+                    self.head,
+                    self.ema.decay,
+                    method=self.ema.method,
+                    copy_non_floating_point=self.ema.copy_non_floating_point,
+                )
 
         return loss
 

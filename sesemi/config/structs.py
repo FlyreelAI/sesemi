@@ -3,7 +3,7 @@
 # =============================================#
 """Omegaconf structured configurations."""
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from omegaconf.dictconfig import DictConfig
 from omegaconf.omegaconf import MISSING
 from enum import Enum
@@ -240,6 +240,8 @@ class EMAConfig:
     """
 
     decay: float = 0.999
+    method: str = "states"
+    copy_non_floating_point: bool = True
 
 
 @dataclass

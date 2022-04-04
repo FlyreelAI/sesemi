@@ -115,10 +115,10 @@ class Classifier(pl.LightningModule):
             assert (
                 0.0 <= self.ema.decay <= 1.0
             ), "EMA decay value should be between [0, 1]. Default 0.999."
-            self.shared_backbones["supervised_backbone_ema"] = self._copy_and_detach(
+            self.shared_backbones["supervised_backbone_ema"] = copy_and_detach(
                 self.backbone
             )
-            self.shared_heads["supervised_head_ema"] = self._copy_and_detach(self.head)
+            self.shared_heads["supervised_head_ema"] = copy_and_detach(self.head)
 
         # Build the regularization loss heads.
         for head in self.regularization_loss_heads.values():

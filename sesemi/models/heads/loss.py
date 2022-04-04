@@ -54,6 +54,7 @@ class LossHead(nn.Module):
             backbones: A dictionary of shared backbones. This should not be altered.
             heads: A dictionary of shared heads. This should not be altered.
             features: A dictionary of shared features. Additional tensors can be added to this.
+            logger_wrapper: An optional wrapper around the lightning logger.
             step: The training step number.
             **kwargs: Placeholder for other arguments that may be added.
         """

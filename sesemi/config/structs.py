@@ -167,7 +167,7 @@ class LoggerConfig:
         log_histograms: Whether to log histograms using the logger.
     """
 
-    decimation: int = 100
+    decimation: int = 50
     log_images: bool = True
     log_metrics: bool = True
     log_embeddings: bool = True

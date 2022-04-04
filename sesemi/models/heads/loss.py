@@ -8,7 +8,6 @@ import torch.nn.functional as F
 
 from torch import Tensor
 from typing import Dict, Any, Optional
-from pytorch_lightning.logger.base import LightningLoggerBase
 
 from ..backbones.base import Backbone
 from .base import Head

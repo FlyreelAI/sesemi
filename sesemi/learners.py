@@ -3,7 +3,7 @@
 # =============================================#
 """SESEMI learners."""
 from functools import cached_property
-from typing import NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from torch import Tensor
 import torch
@@ -17,6 +17,7 @@ import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.core.optimizer import LightningOptimizer
 
 from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
@@ -171,14 +172,18 @@ class Classifier(pl.LightningModule):
             return [optimizer], [lr_dict]
 
         return optimizer
-    
-    def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        for name, value in self.named_parameters():
-            self.logger_wrapper.log_histogram(
-                f"optimizer/{name}", value.grad, step=self.trainer.global_step
-            )
 
-    def training_step(self, batch, batch_index):
+    def on_before_optimizer_step(
+        self, optimizer: LightningOptimizer, optimizer_idx: int
+    ):
+        if self.hparams.logger.log_gradients:
+            for name, value in self.named_parameters():
+                if value.grad is not None:
+                    self.logger_wrapper.log_histogram(
+                        f"optimizer/{name}", value.grad, step=self.trainer.global_step
+                    )
+
+    def training_step(self, batch: Dict[str, Any], batch_index: int):
         shared_features = {}
         step_outputs = {}
         if self.head is not None:
@@ -296,7 +301,7 @@ class Classifier(pl.LightningModule):
             logger=False,
         )
 
-    def training_step_end(self, outputs):
+    def training_step_end(self, outputs: Dict[str, Tensor]):
         losses = []
         if "loss" in outputs:
             _, weighted_loss, _ = self._compute_weighted_training_loss(
@@ -351,7 +356,7 @@ class Classifier(pl.LightningModule):
 
         return loss
 
-    def training_epoch_end(self, outputs) -> None:
+    def training_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> None:
         if self.training_accuracy.mode is not None:
             self.log(
                 "train/top1",
@@ -458,6 +463,7 @@ class Classifier(pl.LightningModule):
             val_features = np.concatenate([x[0] for x in outputs], axis=0)
             val_targets = np.concatenate([x[1] for x in outputs], axis=0)
 
+            hp_metric: Optional[Tensor] = None
             if self.validation_top1_accuracy.mode is not None:
                 top1 = self.validation_top1_accuracy.compute()
                 self.validation_top1_accuracy.reset()
@@ -492,6 +498,8 @@ class Classifier(pl.LightningModule):
                         prefix="ema/val",
                     )
 
+                hp_metric = ema_top1 if ema_top1 is not None else top1
+
             if self.loss is not None:
                 loss = self.validation_average_loss.compute()
                 self.validation_average_loss.reset()
@@ -500,6 +508,9 @@ class Classifier(pl.LightningModule):
                 if self.ema is not None:
                     ema_loss = self.ema_validation_average_loss.compute()
                     self.ema_validation_average_loss.reset()
+
+                if hp_metric is None:
+                    hp_metric = ema_loss if ema_loss is not None else loss
 
                 self.log_validation_metrics(None, None, loss, prefix="val")
 
@@ -510,3 +521,13 @@ class Classifier(pl.LightningModule):
                         ema_loss,
                         prefix="ema/val",
                     )
+
+            if hp_metric is not None:
+                self.log(
+                    "hp_metric",
+                    hp_metric,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=False,
+                    logger=True,
+                )

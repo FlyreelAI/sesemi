@@ -1,7 +1,7 @@
 #
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypeVar
 from pytorch_lightning.loggers import LightningLoggerBase
 from sesemi.config.structs import LoggerConfig
 
@@ -10,11 +10,13 @@ from functools import singledispatch
 from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning.utilities import rank_zero_only
 
+LoggerConfigType = TypeVar("LoggerConfigType", bound=LoggerConfig)
+
 
 @singledispatch
 def log_image(experiment, tag: str, image: Tensor, step: Optional[int] = None):
     """Log an image using the given tag.
-    
+
     Args:
         experiment: The experiment logger.
         tag: The tag used for the log.
@@ -32,7 +34,7 @@ def _(experiment: SummaryWriter, tag: str, image: Tensor, step: Optional[int] = 
 @singledispatch
 def log_images(experiment, tag: str, images: Tensor, step: Optional[int] = None):
     """Log images using the given tag.
-    
+
     Args:
         experiment: The experiment logger.
         tag: The tag used for the log.
@@ -54,7 +56,7 @@ def log_metrics(
     """Log a set of numeric metrics using the given tag as a prefix.
 
     Metric tags are formatted as "{tag}/{metric}".
-    
+
     Args:
         experiment: The experiment logger.
         tag: The prefix tag used for the log.
@@ -77,7 +79,7 @@ def _(
 @singledispatch
 def log_metric(experiment, tag: str, metric: float, step: Optional[int] = None):
     """Log a numeric metric using the given tag.
-    
+
     Args:
         experiment: The experiment logger.
         tag: The tag used for the log.
@@ -107,7 +109,7 @@ def log_embeddings(
     step: Optional[int] = None,
 ):
     """Log a set of embeddings using the given tag.
-    
+
     Args:
         experiment: The experiment logger.
         tag: The tag used for the log.
@@ -140,7 +142,7 @@ def log_histogram(
     step: Optional[int] = None,
 ):
     """Log a set of embeddings using the given tag.
-    
+
     Args:
         experiment: The experiment logger.
         tag: The tag used for the log.
@@ -155,25 +157,18 @@ def log_histogram(
 def _(
     experiment: SummaryWriter,
     tag: str,
-    embeddings: Tensor,
-    metadata: Optional[List[str]] = None,
-    images: Optional[Tensor] = None,
+    values: Tensor,
     step: Optional[int] = None,
 ):
-    experiment.add_embedding(
-        embeddings, metadata=metadata, label_img=images, tag=tag, global_step=step
-    )
+    experiment.add_histogram(tag, values, global_step=step)
 
 
 class LoggerWrapper:
     """A wrapper around the lightning logger that can support many different experiment loggers."""
 
-    def __init__(
-            self,
-            logger: LightningLoggerBase,
-            config: LoggerConfig):
+    def __init__(self, logger: LightningLoggerBase, config: LoggerConfigType):
         """Initialize the logger.
-        
+
         Args:
             logger: The lightning logger.
             config: The SESEMI logger config.
@@ -191,9 +186,8 @@ class LoggerWrapper:
     @rank_zero_only
     def log_image(self, tag: str, image: Tensor, step: Optional[int] = None):
         """Log an image using the given tag.
-        
+
         Args:
-            experiment: The experiment logger.
             tag: The tag used for the log.
             image: A rank 3 RGB tensor with shape [H, W, 3].
             step: An optional step used during logging.
@@ -214,19 +208,18 @@ class LoggerWrapper:
     @rank_zero_only
     def log_images(self, tag: str, images: Tensor, step: Optional[int] = None):
         """Log images using the given tag.
-        
+
         Args:
-            experiment: The experiment logger.
             tag: The tag used for the log.
             images: A rank 4 RGB tensor with shape [B, H, W, 3].
             step: An optional step used during logging.
         """
         if not self.config.log_images:
             return
-            
+
         if step is not None and step % self.config.decimation != 0:
             return
-            
+
         min_rgb = images.amin((0, 2, 3), keepdim=True)
         max_rgb = images.amax((0, 2, 3), keepdim=True)
 
@@ -239,38 +232,36 @@ class LoggerWrapper:
         """Log a set of numeric metrics using the given tag as a prefix.
 
         Metric tags are formatted as "{tag}/{metric}".
-        
+
         Args:
-            experiment: The experiment logger.
             tag: The prefix tag used for the log.
             metrics: The dictionary of named numeric metrics.
             step: An optional step used during logging.
         """
         if not self.config.log_metrics:
             return
-            
+
         if step is not None and step % self.config.decimation != 0:
             return
-            
+
         for experiment in self.experiments:
             log_metrics(experiment, metrics, step=step)
 
     @rank_zero_only
     def log_metric(self, tag: str, metric: float, step: Optional[int] = None):
         """Log a numeric metric using the given tag.
-        
+
         Args:
-            experiment: The experiment logger.
             tag: The tag used for the log.
             metric: The numeric metric.
             step: An optional step used during logging.
         """
         if not self.config.log_metrics:
             return
-            
+
         if step is not None and step % self.config.decimation != 0:
             return
-            
+
         for experiment in self.experiments:
             log_metric(experiment, tag, metric, step=step)
 
@@ -284,9 +275,8 @@ class LoggerWrapper:
         step: Optional[int] = None,
     ):
         """Log a set of embeddings using the given tag.
-        
+
         Args:
-            experiment: The experiment logger.
             tag: The tag used for the log.
             metadata: An optional list of strings to display for each embedding.
             images: An optional batch of images for each embedding to display.
@@ -294,11 +284,35 @@ class LoggerWrapper:
         """
         if not self.config.log_embeddings:
             return
-            
+
         if step is not None and step % self.config.decimation != 0:
             return
-            
+
         for experiment in self.experiments:
             log_embeddings(
                 experiment, tag, embeddings, metadata=metadata, images=images, step=step
             )
+
+    @rank_zero_only
+    def log_histogram(
+        self,
+        tag: str,
+        values: Tensor,
+        step: Optional[int] = None,
+    ):
+        """Log a histogram using the given tag.
+
+        Args:
+            tag: The tag used for the log.
+            metadata: An optional list of strings to display for each embedding.
+            images: An optional batch of images for each embedding to display.
+            step: An optional step used during logging.
+        """
+        if not self.config.log_histograms:
+            return
+
+        if step is not None and step % self.config.decimation != 0:
+            return
+
+        for experiment in self.experiments:
+            log_histogram(experiment, tag, values, step=step)

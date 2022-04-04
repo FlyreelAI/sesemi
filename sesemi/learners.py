@@ -2,19 +2,16 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
-from ctypes import Union
 from functools import cached_property
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import copy
 import logging
 import os.path as osp
-import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage

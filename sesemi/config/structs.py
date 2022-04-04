@@ -91,7 +91,8 @@ class DataLoaderConfig:
     drop_last: Optional[bool] = False
     timeout: float = 0
     worker_init_fn: Optional[Any] = None
-    _target_: str = "sesemi.DataLoader"
+    repeat: Optional[int] = None
+    _target_: str = "sesemi.RepeatableDataLoader"
 
 
 @dataclass

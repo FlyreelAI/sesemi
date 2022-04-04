@@ -6,8 +6,7 @@
 # NOTE: Imports PyTorch Lightning first to mitigate an import error.
 import pytorch_lightning as _pl
 
-from torch.utils.data import DataLoader
-
+from .dataloaders import RepeatableDataLoader, _DataLoader as DataLoader
 from .datasets import dataset
 from .models.backbones.timm import PyTorchImageModels
 from .models.backbones.torchvision import TorchVisionBackbone

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from torch import Tensor
 from typing import Dict, Any, Optional
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.logger.base import LightningLoggerBase
 
 from ..backbones.base import Backbone
 from .base import Head
@@ -16,28 +16,18 @@ from ...losses import (
     softmax_mse_loss,
     kl_div_loss,
 )
+from ...logger import LoggerWrapper
 
 
 class LossHead(nn.Module):
-    """The interface for loss heads.
+    """The interface for loss heads."""
 
-    Attributes:
-        logger: An optional PyTorch Lightning logger.
-    """
-
-    def __init__(
+    def build(
         self,
-        logger: Optional[LightningLoggerBase] = None,
+        backbones: Dict[str, Backbone],
+        heads: Dict[str, Head],
+        **kwargs,
     ):
-        """Initializes the loss head.
-
-        Args:
-            logger: An optional PyTorch Lightning logger.
-        """
-        super().__init__()
-        self.logger = logger
-
-    def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         """Builds the loss head.
 
         Args:
@@ -55,6 +45,7 @@ class LossHead(nn.Module):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         """Computes the loss.
@@ -80,7 +71,6 @@ class RotationPredictionLossHead(LossHead):
         input_data: str,
         input_backbone: str = "supervised_backbone",
         num_pretext_classes: int = 4,
-        logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
 
@@ -88,9 +78,8 @@ class RotationPredictionLossHead(LossHead):
             input_data: The key used to get the rotation prediction input data.
             input_backbone: The key used to get the backbone for feature extraction.
             num_pretext_classes: Number of pretext labels.
-            logger: An optional PyTorch Lightning logger.
         """
-        super().__init__(logger)
+        super().__init__()
         self.input_data = input_data
         self.input_backbone = input_backbone
         self.num_pretext_classes = num_pretext_classes
@@ -107,12 +96,17 @@ class RotationPredictionLossHead(LossHead):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         inputs, targets = data[self.input_data]
         feats = backbones[self.input_backbone](inputs)
         logits = self.fc_unsupervised(feats)
         loss_u = F.cross_entropy(logits, targets, reduction="none")
+
+        if logger_wrapper:
+            logger_wrapper.log_images("rotation_prediction/images", inputs, step=step)
+
         return loss_u
 
 
@@ -126,7 +120,6 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
         input_data: str,
         input_backbone: str = "supervised_backbone",
         num_pretext_classes: int = 6,
-        logger: Optional[LightningLoggerBase] = None,
     ):
         super(JigsawPredictionLossHead, self).__init__(
             input_data, num_pretext_classes=num_pretext_classes
@@ -143,7 +136,6 @@ class EntropyMinimizationLossHead(LossHead):
         input_data: str,
         input_backbone: str = "supervised_backbone",
         predict_head: str = "supervised_head",
-        logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
 
@@ -151,9 +143,8 @@ class EntropyMinimizationLossHead(LossHead):
             input_data: The key used to get the unlabeled input data.
             input_backbone: The key used to get the backbone for feature extraction.
             predict_head: The prediction module used to compute output logits.
-            logger: An optional PyTorch Lightning logger.
         """
-        super().__init__(logger)
+        super().__init__()
         self.input_data = input_data
         self.input_backbone = input_backbone
         self.predict_head = predict_head
@@ -165,12 +156,17 @@ class EntropyMinimizationLossHead(LossHead):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         inputs, _ = data[self.input_data]
         feats = backbones[self.input_backbone](inputs)
         logits = heads[self.predict_head](feats)
         loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
+
+        if logger_wrapper:
+            logger_wrapper.log_images("entropy_minimization/images", inputs, step=step)
+
         return loss_u
 
 
@@ -185,7 +181,6 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         input_backbone: str = "supervised_backbone",
         predict_head: str = "supervised_head",
         loss_fn: str = "mse",
-        logger: Optional[LightningLoggerBase] = None,
     ):
         """
         Args:
@@ -194,7 +189,6 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             input_backbone: The key used to get the backbone for feature extraction.
             predict_head: The prediction module used to compute output logits.
             loss_fn: The loss function to compute the consistency between two views.
-            logger: An optional PyTorch Lightning logger.
         """
         super(ConsistencyLossHead, self).__init__(input_data)
         if loss_fn == "mse":
@@ -215,6 +209,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         (view1, view2), _ = data[self.input_data]
@@ -223,6 +218,11 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         logits1 = heads[self.predict_head](feats1)
         logits2 = heads[self.predict_head](feats2)
         loss_u = self.loss_fn(logits1, logits2)
+
+        if logger_wrapper:
+            logger_wrapper.log_images("consistency/images/view1", view1, step=step)
+            logger_wrapper.log_images("consistency/images/view2", view2, step=step)
+
         return loss_u
 
 
@@ -239,7 +239,6 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         student_head: str = "supervised_head",
         teacher_head: str = "supervised_head_ema",
         loss_fn: str = "mse",
-        logger: Optional[LightningLoggerBase] = None,
     ):
         """
         Args:
@@ -250,7 +249,6 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
             student_head: The student module used to compute output logits.
             teacher_head: The teacher module used to compute output logits.
             loss_fn: The loss function to compute the consistency between two views.
-            logger: An optional PyTorch Lightning logger.
         """
         super(EMAConsistencyLossHead, self).__init__(input_data, loss_fn=loss_fn)
         self.student_backbone = student_backbone
@@ -265,6 +263,7 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         (view1, view2), _ = data[self.input_data]
@@ -273,6 +272,11 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         student_logits = heads[self.student_head](student_feats)
         teacher_logits = heads[self.teacher_head](teacher_feats)
         loss_u = self.loss_fn(student_logits, teacher_logits)
+
+        if logger_wrapper:
+            logger_wrapper.log_images("ema_consistency/images/view1", view1, step=step)
+            logger_wrapper.log_images("ema_consistency/images/view2", view2, step=step)
+
         return loss_u
 
 
@@ -296,7 +300,6 @@ class FixMatchLossHead(LossHead):
         student_head: str = "supervised_head",
         teacher_head: Optional[str] = None,
         threshold: float = 0.5,
-        logger: Optional[LightningLoggerBase] = None,
     ):
         """Initializes the loss head.
 
@@ -308,9 +311,8 @@ class FixMatchLossHead(LossHead):
             teacher_head: The teacher's head key. Defaults to the student's.
             threshold: The threshold used to filter low confidence predictions
                 made by the teacher.
-            logger: An optional PyTorch Lightning logger.
         """
-        super().__init__(logger)
+        super().__init__()
         self.data = data
         self.student_backbone = student_backbone
         self.teacher_backbone = teacher_backbone or student_backbone
@@ -325,6 +327,7 @@ class FixMatchLossHead(LossHead):
         heads: Dict[str, Head],
         features: Dict[str, Any],
         step: int,
+        logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
         weakly_augmented, strongly_augmented = data[self.data]
@@ -361,4 +364,13 @@ class FixMatchLossHead(LossHead):
         total_loss = torch.sum(loss)
 
         loss = total_loss / (total_loss_weight + 1e-8)
+
+        if logger_wrapper:
+            logger_wrapper.log_images(
+                "fixmatch/images/weak", weakly_augmented, step=step
+            )
+            logger_wrapper.log_images(
+                "fixmatch/images/strong", strongly_augmented, step=step
+            )
+
         return loss

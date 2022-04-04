@@ -2,6 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
+from functools import cached_property
 from typing import NamedTuple, Optional, Tuple
 
 from torch import Tensor
@@ -26,6 +27,7 @@ from .models.backbones.base import Backbone
 from .models.heads.base import LinearHead
 from .utils import reduce_tensor, ema_update, copy_and_detach
 from .schedulers.weight import WeightScheduler
+from .logger import LoggerWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +99,7 @@ class Classifier(pl.LightningModule):
 
         regularization_loss_head_configs = hparams.model.regularization_loss_heads or {}
         for name, loss_head_config in regularization_loss_head_configs.items():
-            self.regularization_loss_heads[name] = instantiate(
-                loss_head_config.head, logger=self.logger
-            )
+            self.regularization_loss_heads[name] = instantiate(loss_head_config.head)
             if loss_head_config.scheduler is not None:
                 self.regularization_loss_schedulers[name] = instantiate(
                     loss_head_config.scheduler
@@ -130,6 +130,10 @@ class Classifier(pl.LightningModule):
         self.validation_average_loss = MeanMetric()
         self.ema_validation_top1_accuracy = Accuracy(top_k=1)
         self.ema_validation_average_loss = MeanMetric()
+
+    @cached_property
+    def logger_wrapper(self) -> LoggerWrapper:
+        return LoggerWrapper(self.logger, self.hparams.logger)
 
     @property
     def backbone(self) -> Backbone:
@@ -167,6 +171,12 @@ class Classifier(pl.LightningModule):
             return [optimizer], [lr_dict]
 
         return optimizer
+    
+    def on_before_optimizer_step(self, optimizer, optimizer_idx):
+        for name, value in self.named_parameters():
+            self.logger_wrapper.log_histogram(
+                f"optimizer/{name}", value.grad, step=self.trainer.global_step
+            )
 
     def training_step(self, batch, batch_index):
         shared_features = {}
@@ -174,6 +184,10 @@ class Classifier(pl.LightningModule):
         if self.head is not None:
             if "supervised" in batch:
                 inputs_t, targets_t = batch["supervised"][:2]
+
+                self.logger_wrapper.log_images(
+                    "supervised/images", inputs_t, step=self.global_step
+                )
 
                 features_t = self.backbone(inputs_t)
                 shared_features["supervised_backbone"] = features_t
@@ -215,6 +229,7 @@ class Classifier(pl.LightningModule):
                 heads=self.shared_heads,
                 features=shared_features,
                 step=self.global_step,
+                logger_wrapper=self.logger_wrapper,
             )
             for name, head in self.regularization_loss_heads.items()
         }
@@ -252,6 +267,21 @@ class Classifier(pl.LightningModule):
         return reduced_loss, weighted_loss, loss_weight
 
     def _log_learning_rates(self):
+        optim = self.optimizers()
+        param_group0_lr = optim.optimizer.param_groups[0]["lr"]
+        for i, param_group in enumerate(optim.optimizer.param_groups):
+            self.log(f"optim/lr/param_group/{i}", param_group["lr"], on_step=True)
+
+        self.log(
+            "lr",
+            param_group0_lr,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=False,
+        )
+
+    def _log_gradients(self):
         optim = self.optimizers()
         param_group0_lr = optim.optimizer.param_groups[0]["lr"]
         for i, param_group in enumerate(optim.optimizer.param_groups):

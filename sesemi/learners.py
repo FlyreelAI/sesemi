@@ -21,6 +21,8 @@ from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanMetric
 
+from natsort import natsorted
+
 from .config.structs import ClassifierHParams, SESEMIBaseConfig
 from .models.backbones.base import Backbone
 from .models.heads.base import LinearHead
@@ -127,8 +129,12 @@ class Classifier(pl.LightningModule):
             )
             self.shared_heads["supervised_head_ema"] = copy_and_detach(self.head)
 
-        # Build the regularization loss heads.
-        for head in self.regularization_loss_heads.values():
+        # Build the regularization loss heads in natsorted order.
+        natsorted_loss_head_names = natsorted(
+            list(regularization_loss_head_configs.keys())
+        )
+        for name in natsorted_loss_head_names:
+            head = self.regularization_loss_heads[name]
             head.build(self.shared_backbones, self.shared_heads)
 
         # Initialize training and validation metrics.

@@ -316,6 +316,7 @@ class SESEMIPseudoDatasetConfig:
         num_workers: The number of workers to use for data loaders.
         symlink_images: Whether to use symlinks for images in the
             pseudo-labeled dataset rather than copying the image.
+        use_ema: Whether to use the EMA weights if available.
     """
 
     checkpoint_path: str = MISSING
@@ -330,6 +331,7 @@ class SESEMIPseudoDatasetConfig:
     batch_size: int = 16
     num_workers: int = 6
     symlink_images: bool = True
+    use_ema: bool = True
 
 
 @dataclass

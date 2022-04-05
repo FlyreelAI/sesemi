@@ -151,9 +151,19 @@ class Classifier(pl.LightningModule):
         """The supervised head with EMA weights."""
         return self.shared_heads["supervised_head_ema"]
 
+    @property
+    def has_ema(self) -> bool:
+        """Whether the model has  EMA weights."""
+        return self.ema is not None
+
     def forward(self, x):
         features = self.backbone(x)
         logits = self.head(features)
+        return logits
+
+    def forward_ema(self, x):
+        features = self.backbone_ema(x)
+        logits = self.head_ema(features)
         return logits
 
     def configure_optimizers(self):

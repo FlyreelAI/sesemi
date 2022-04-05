@@ -147,12 +147,14 @@ class RepeatableDataLoader(_DataLoader):
         self.worker_init_fn = worker_init_fn
         self.multiprocessing_context = multiprocessing_context
 
+        self.repeat = repeat if repeat is not None else 1
+
         # Arg-check dataset related before checking samplers because we want to
         # tell users that iterable-style datasets are incompatible with custom
         # samplers first, so that they don't learn that this combo doesn't work
         # after spending time fixing the custom sampler errors.
         if isinstance(dataset, IterableDataset):
-            self.dataset = _RepeatedIterable(dataset)
+            self.dataset = _RepeatedIterable(dataset, self.repeat)
 
             self._dataset_kind = _DatasetKind.Iterable
             # NOTE [ Custom Samplers and IterableDataset ]
@@ -228,8 +230,6 @@ class RepeatableDataLoader(_DataLoader):
                     "and is mutually exclusive with drop_last"
                 )
 
-        self._repeat = repeat if repeat is not None else 1
-
         if sampler is None:  # give default samplers
             if self._dataset_kind == _DatasetKind.Iterable:
                 # See NOTE [ Custom Samplers and IterableDataset ]
@@ -240,9 +240,9 @@ class RepeatableDataLoader(_DataLoader):
                 else:
                     sampler = SequentialSampler(dataset)  # type: ignore[arg-type]
 
-        sampler = _RepeatedIterable(sampler, self._repeat)
+        sampler = _RepeatedIterable(sampler, self.repeat)
         if batch_sampler is not None:
-            batch_sampler = _RepeatedIterable(batch_sampler, self._repeat)
+            batch_sampler = _RepeatedIterable(batch_sampler, self.repeat)
 
         if batch_size is not None and batch_sampler is None:
             # auto_collation without custom batch_sampler

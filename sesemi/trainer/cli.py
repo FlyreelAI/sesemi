@@ -15,7 +15,7 @@ from math import ceil
 from ..config.resolvers import SESEMIConfigAttributes
 from ..config.structs import SESEMIBaseConfig, ClassifierConfig, RunMode
 from ..datamodules import SESEMIDataModule
-from ..utils import compute_num_gpus, copy_config, load_checkpoint
+from ..utils import compute_num_gpus, copy_config, load_checkpoint, has_length
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +63,19 @@ def open_sesemi(config: SESEMIBaseConfig):
     sesemi_config_attributes.iterations_per_epoch = None
     sesemi_config_attributes.max_iterations = None
     if config.data.train is not None:
-        sesemi_config_attributes.iterations_per_epoch = max(
-            len(x) // datamodule.train_batch_sizes_per_iteration[k]
-            if config.data.train[k].drop_last
-            else ceil(len(x) / datamodule.train_batch_sizes_per_iteration[k])
-            for k, x in datamodule.train.items()
-        )
+        try:
+            sesemi_config_attributes.iterations_per_epoch = max(
+                len(x) // datamodule.train_batch_sizes_per_iteration[k]
+                if config.data.train[k].drop_last
+                else ceil(len(x) / datamodule.train_batch_sizes_per_iteration[k])
+                for k, x in datamodule.train.items()
+                if has_length(x)
+            )
+        except ValueError:
+            assert (
+                config.run.num_iterations is not None
+            ), "must use num_iterations if all training datasets are iterable"
+            sesemi_config_attributes.iterations_per_epoch = config.run.num_iterations
 
         if config.run.num_iterations is not None:
             assert config.run.num_epochs is None

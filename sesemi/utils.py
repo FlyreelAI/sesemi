@@ -9,7 +9,7 @@ import copy
 import torch
 import logging
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 from torch import Tensor
 from torchvision.datasets import ImageFolder
 
@@ -246,3 +246,11 @@ def freeze_module(module: torch.nn.Module):
         m.eval()
         for param in m.parameters():
             param.requires_grad = False
+
+
+def has_length(x: Iterable) -> bool:
+    """Checks if the iterable has a length."""
+    try:
+        return type(len(x)) is int
+    except Exception:
+        return False

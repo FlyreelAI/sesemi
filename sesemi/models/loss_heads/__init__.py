@@ -1,3 +1,6 @@
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+# =============================================#
 from .base import LossHead
 from .consistency import ConsistencyLossHead, EMAConsistencyLossHead
 from .entropy_minimization import EntropyMinimizationLossHead

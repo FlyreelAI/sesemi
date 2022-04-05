@@ -1,3 +1,6 @@
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+# =============================================#
 """Specialized residual networks."""
 from typing import Optional
 from sesemi.utils import freeze_module

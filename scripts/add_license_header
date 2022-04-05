@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+licenseheaders -t templates/license_header.txt -d sesemi --ext .py

@@ -1,3 +1,6 @@
+#
+# Copyright 2021, Flyreel. All Rights Reserved.
+# =============================================#
 from . import (
     base,
     cifar,

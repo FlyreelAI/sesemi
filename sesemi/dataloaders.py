@@ -81,7 +81,7 @@ class _DataLoader(DataLoader):
 
 
 def _repeat_iterable(iterable: Iterable, n: int) -> Iterable:
-    return chain.from_iterable(repeat(tuple(iterable), n))
+    return chain.from_iterable(repeat(iterable, n))
 
 
 class _RepeatedIterable:
@@ -93,7 +93,8 @@ class _RepeatedIterable:
         return len(self._iterable) * self._n
 
     def __iter__(self) -> Iterator:
-        return iter(_repeat_iterable(self._iterable, self._n))
+        it = iter(_repeat_iterable(self._iterable, self._n))
+        return it
 
 
 class RepeatableDataLoader(_DataLoader):

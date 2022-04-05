@@ -10,7 +10,6 @@ import torch
 import logging
 
 from typing import Any, Dict, Iterable, List, Optional, Union
-from torch import Tensor
 from torchvision.datasets import ImageFolder
 
 from omegaconf.base import SCMode
@@ -20,6 +19,8 @@ from itertools import combinations
 from torch import nn
 
 from omegaconf import DictConfig
+
+from torch import Tensor
 
 logger = logging.getLogger(__name__)
 
@@ -254,3 +255,11 @@ def has_length(x: Iterable) -> bool:
         return type(len(x)) is int
     except Exception:
         return False
+
+
+def get_distributed_rank() -> Optional[int]:
+    """Returns the distributed rank or None if not distributed."""
+    if torch.distributed.is_initialized():
+        return torch.distributed.get_rank()
+    else:
+        return None

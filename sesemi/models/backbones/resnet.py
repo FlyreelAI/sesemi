@@ -1,5 +1,6 @@
 """Specialized residual networks."""
 from typing import Optional
+from sesemi.utils import freeze_module
 from torch import nn
 
 import torch.nn.functional as F
@@ -143,6 +144,7 @@ class CIFARResNet(Backbone):
         out_features: Optional[int] = None,
         n: int = 18,
         drop_rate: float = 0.0,
+        freeze: bool = False,
     ):
         """Initializes the ResNet.
 
@@ -155,6 +157,7 @@ class CIFARResNet(Backbone):
                 default value for n would then result in 109 (6 * 18 + 1) layers. With
                 an added linear layer this is 110.
             drop_rate: The dropout rate to use on the output features.
+            freeze: Whether to freeze the model's parameters.
         """
         super().__init__()
 
@@ -192,6 +195,9 @@ class CIFARResNet(Backbone):
             self.linear_block = None
 
         self.dropout = nn.Dropout(p=drop_rate, inplace=True)
+
+        if freeze:
+            freeze_module(self)
 
     def forward(self, inputs):
         conv1 = self.conv1(inputs)

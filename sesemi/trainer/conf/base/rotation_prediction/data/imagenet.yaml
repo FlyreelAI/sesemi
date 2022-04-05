@@ -11,4 +11,4 @@ data:
       num_workers: 16
       drop_last: True
       collate_fn:
-        _target_: sesemi.collation.RotationTransformer
+        _target_: sesemi.collation.RotationCollator

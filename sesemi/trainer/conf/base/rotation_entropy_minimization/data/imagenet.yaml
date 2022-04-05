@@ -3,7 +3,7 @@ data:
   train:
     supervised:
       collate_fn:
-        _target_: sesemi.collation.RotationTransformer
+        _target_: sesemi.collation.RotationCollator
         return_supervised_labels: True
     unsupervised:
       dataset:
@@ -15,5 +15,5 @@ data:
       num_workers: 4
       drop_last: True
       collate_fn:
-        _target_: sesemi.collation.RotationTransformer
+        _target_: sesemi.collation.RotationCollator
         return_supervised_labels: False

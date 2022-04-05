@@ -10,7 +10,7 @@ from torch import Tensor
 from typing import List, Tuple, Callable
 
 
-class RotationTransformer:
+class RotationCollator:
     """A collation callable to transform a data batch for use with a rotation prediction task.
 
     Input images are rotated 0, 90, 180, and 270 degrees.
@@ -54,7 +54,7 @@ class RotationTransformer:
         return (x, y) if self.return_supervised_labels else (x, p)
 
 
-class JigsawTransformer:
+class JigsawCollator:
     """A collation callable to transform a data batch for use with a jigsaw prediction task.
 
     We select a set of P=5 patch permutations for the jigsaw task by using the maximal Hamming distance.

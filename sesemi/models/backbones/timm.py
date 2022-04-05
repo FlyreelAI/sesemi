@@ -4,6 +4,8 @@
 """Backbones from the rwightman/pytorch-image-models repository."""
 import logging
 
+from sesemi.utils import freeze_module
+
 from .base import Backbone
 from ..utils import load_torch_hub_model
 
@@ -128,7 +130,7 @@ class PyTorchImageModels(Backbone):
             self.out_features *= 2
 
         if freeze:
-            self.freeze()
+            freeze_module(self)
 
     def forward(self, x):
         return self.encoder(x)

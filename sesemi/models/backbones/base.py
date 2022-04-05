@@ -13,10 +13,3 @@ class Backbone(nn.Module):
     """
 
     out_features: int
-
-    def freeze(self):
-        """Freezes the backbone's parameters."""
-        for m in self.modules():
-            m.eval()
-            for param in m.parameters():
-                param.requires_grad = False

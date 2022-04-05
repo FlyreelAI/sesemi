@@ -11,7 +11,7 @@ data:
         name: stl10
         subset: train
         image_transform:
-          _target_: sesemi.transforms.train_transforms
+          _target_: sesemi.transforms.TrainTransform
           random_resized_crop: True
           resize: 100
           crop_dim: 96
@@ -25,7 +25,7 @@ data:
       name: stl10
       subset: test
       image_transform:
-        _target_: sesemi.transforms.center_crop_transforms
+        _target_: sesemi.transforms.CenterCropTransform
         resize: 96
         crop_dim: 96
     shuffle: False

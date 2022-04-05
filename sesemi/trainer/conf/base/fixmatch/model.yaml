@@ -7,7 +7,7 @@ learner:
       regularization_loss_heads:
         fixmatch:
           head:
-            _target_: sesemi.models.heads.loss.FixMatchLossHead
+            _target_: sesemi.models.loss_heads.FixMatchLossHead
             data: fixmatch
             student_backbone: supervised_backbone
             student_head: supervised_head

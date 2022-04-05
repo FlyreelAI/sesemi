@@ -5,7 +5,7 @@ learner:
       regularization_loss_heads:
         jigsaw_prediction:
           head:
-            _target_: sesemi.models.heads.loss.JigsawPredictionLossHead
+            _target_: sesemi.models.loss_heads.JigsawPredictionLossHead
             data: unsupervised
             backbone: supervised_backbone
           scheduler:
@@ -15,7 +15,7 @@ learner:
           scale_factor: 1.0
         entropy_minimization:
           head:
-            _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
+            _target_: sesemi.models.loss_heads.EntropyMinimizationLossHead
             data: unsupervised
             backbone: supervised_backbone
             head: supervised_head

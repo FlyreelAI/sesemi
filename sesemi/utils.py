@@ -7,6 +7,7 @@ import os
 import errno
 import copy
 import torch
+import math
 import logging
 
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -263,3 +264,11 @@ def get_distributed_rank() -> Optional[int]:
         return torch.distributed.get_rank()
     else:
         return None
+
+
+def compute_num_digits(x: int) -> int:
+    """Computes the number of digits in a non-negative number base 10."""
+    assert x >= 0, "input must be non-negative"
+    if x == 0:
+        return 1
+    return int(math.ceil(math.log10(x)))

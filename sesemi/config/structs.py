@@ -368,8 +368,6 @@ class SESEMIPseudoDatasetConfig:
             and returns a list of augmented versions of that image.
         postaugmentation_transform: A transform to apply after test-time
             augmentations and which should return a tensor.
-        image_getter: The function to extract the source image from
-            an example in the dataset.
         gpus: Either an integer specifying the number of GPUs to use, a list of
             GPU integer IDs, a comma-separated list of GPU IDs, or None to
             train on the CPU. Setting this to -1 uses all GPUs and setting it
@@ -388,7 +386,6 @@ class SESEMIPseudoDatasetConfig:
     preprocessing_transform: Any = None
     test_time_augmentation: Any = None
     postaugmentation_transform: Any = None
-    image_getter: Any = None
     gpus: Any = -1
     batch_size: int = 16
     num_workers: int = 6
@@ -398,31 +395,40 @@ class SESEMIPseudoDatasetConfig:
 
 @dataclass
 class SESEMIInferenceConfig:
-    """The inference operation config.
+    """The inference config.
 
     Attributes:
-        checkpoint_path: The path to the saved checkpoint.
-        no_cuda: Whether to disable CUDA.
-        data_dir: Path to test dataset with one or more subdirs containing images.
-        batch_size: Mini-batch size.
-        workers: Number of data loading workers.
-        oversample: Whether to oversample.
-        ncrops: Number of crops to oversample.
-        topk: Return topk predictions.
-        resize: Resize smaller edge to this resolution while maintaining
-            aspect ratio.
-        crop_dim: Dimension for center or multi cropping.
-        outfile: File to write predictions to.
+        checkpoint_path: The path to the checkpoint to load.
+        seed: The random seed used on initialization.
+        output_dir: The directory to save the pseudo-labeled dataset.
+        data_dir: The dataset directory containing image files potentially nested.
+        preprocessing_transform: The preprocessing transform.
+        test_time_augmentation: The test-time augmentation that takes an image
+            and returns a list of augmented versions of that image.
+        postaugmentation_transform: A transform to apply after test-time
+            augmentations and which should return a tensor.
+        gpus: Either an integer specifying the number of GPUs to use, a list of
+            GPU integer IDs, a comma-separated list of GPU IDs, or None to
+            train on the CPU. Setting this to -1 uses all GPUs and setting it
+            to 0 also uses the CPU.
+        batch_size: The data loading and inference batch size.
+        num_workers: The number of workers to use for data loaders.
+        symlink_images: Whether to use symlinks for images in the
+            pseudo-labeled dataset rather than copying the image.
+        use_ema: Whether to use the EMA weights if available.
+        export_predictions: Whether to export the detailed predictions including
+            logits and probabilities.
     """
 
     checkpoint_path: str = MISSING
-    no_cuda: bool = False
+    seed: int = 42
+    output_dir: str = MISSING
     data_dir: str = MISSING
+    preprocessing_transform: Any = None
+    test_time_augmentation: Any = None
+    postaugmentation_transform: Any = None
+    gpus: Any = -1
     batch_size: int = 16
-    workers: int = 6
-    oversample: bool = False
-    ncrops: int = 5
-    topk: int = 1
-    resize: int = 256
-    crop_dim: int = 224
-    outfile: str = MISSING
+    num_workers: int = 6
+    use_ema: bool = True
+    export_predictions: bool = True

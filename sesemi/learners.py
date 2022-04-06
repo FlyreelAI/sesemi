@@ -2,7 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
-from functools import cached_property
+# from functools import cached_property
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from torch import Tensor
@@ -58,11 +58,13 @@ class Classifier(pl.LightningModule):
                 hyperparameters.
         """
         super().__init__()
-        self.save_hyperparameters(sesemi_config)
+        self.save_hyperparameters()
 
         assert (
             hparams == sesemi_config.learner.hparams
         ), "expected matching hyperparameters"
+
+        self.sesemi_config = sesemi_config
 
         # Instantiate shared nn.Modules
         self.shared_backbones = nn.ModuleDict()
@@ -149,9 +151,10 @@ class Classifier(pl.LightningModule):
     @property
     def classifier_hparams(self) -> ClassifierHParams:
         """The classifier's hyperparameters."""
-        return self.hparams.learner.hparams
+        return self.sesemi_config.learner.hparams
 
-    @cached_property
+    # @cached_property
+    @property
     def logger_wrapper(self) -> LoggerWrapper:
         """The logger wrapper."""
         return LoggerWrapper(self.logger, self.classifier_hparams.logger)
@@ -571,7 +574,7 @@ class Classifier(pl.LightningModule):
         # counts for each class
         one_hot_label = torch.zeros(
             val_features_tensor.size(0) * 200,
-            self.hparams.num_classes,
+            self.classifier_hparams.num_classes,
             device=sim_labels.device,
         )
         # [B*K, C]
@@ -581,7 +584,7 @@ class Classifier(pl.LightningModule):
         # weighted score ---> [B, C]
         pred_scores = torch.sum(
             one_hot_label.view(
-                val_features_tensor.size(0), -1, self.hparams.num_classes
+                val_features_tensor.size(0), -1, self.classifier_hparams.num_classes
             )
             * sim_weight.unsqueeze(dim=-1),
             dim=1,

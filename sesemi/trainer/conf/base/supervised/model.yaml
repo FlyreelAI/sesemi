@@ -11,6 +11,7 @@ learner:
         callable:
           _target_: torch.nn.CrossEntropyLoss
 trainer:
+  sync_batchnorm: true
   callbacks:
     - _target_: pytorch_lightning.callbacks.ModelCheckpoint
       monitor: val/top1

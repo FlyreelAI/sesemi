@@ -7,7 +7,10 @@ import torchvision
 import torchvision.transforms.functional as TF
 
 from torch import Tensor
-from typing import List, Tuple, Callable
+from PIL import Image
+from typing import Any, List, Optional, Tuple, Callable, TypeVar
+
+T = TypeVar("T")
 
 
 class RotationCollator:
@@ -149,3 +152,58 @@ class JigsawCollator:
         y = torch.cat(labels, dim=0)
         p = torch.cat(jigsaw_labels, dim=0)
         return (x, y) if self.return_supervised_labels else (x, p)
+
+
+def _identity(x: T) -> T:
+    """The identity function used as a default transform."""
+    return x
+
+
+def default_test_time_augmentation(x: T) -> List[T]:
+    """An identity test-time augmentation."""
+    return [x]
+
+
+class TestTimeAugmentationCollator:
+    def __init__(
+        self,
+        preprocessing_transform: Optional[Callable],
+        test_time_augmentation: Optional[Callable[[Image.Image], List[Image.Image]]],
+        postaugmentation_transform: Optional[Callable],
+    ):
+        """Initializes the collator.
+
+        Args:
+            preprocessing_transform: The preprocessing transform.
+            test_time_augmentation: The test-time augmentation that takes an image
+                and returns a list of augmented versions of that image.
+            postaugmentation_transform: A transform to apply after test-time
+                augmentations and which should return a tensor.
+        """
+        self.preprocessing_transform = (
+            _identity if preprocessing_transform is None else preprocessing_transform
+        )
+        self.test_time_augmentation = (
+            default_test_time_augmentation
+            if test_time_augmentation is None
+            else test_time_augmentation
+        )
+        self.postaugmentation_transform = (
+            _identity
+            if postaugmentation_transform is None
+            else postaugmentation_transform
+        )
+
+    def __call__(self, data_batch: List[Image.Image]) -> List[List[torch.Tensor]]:
+        """Generates test-time augmented versions of the input images."""
+        data_tensors: List[List[torch.Tensor]] = []
+        images: List[Image.Image] = []
+        for data in data_batch:
+            images.append(data)
+
+            augmentations = self.test_time_augmentation(
+                self.preprocessing_transform(data)
+            )
+            tensors = [self.postaugmentation_transform(x) for x in augmentations]
+            data_tensors.append(tensors)
+        return images, data_tensors

@@ -10,6 +10,7 @@ from torchvision.datasets.folder import (
     IMG_EXTENSIONS,
 )
 
+from PIL import Image
 from typing import Any, Callable, List, Optional, Union
 from .base import register_dataset, ImageTransform
 
@@ -70,6 +71,8 @@ class ImageFile(Dataset):
         image = self.loader(self.image_files[index])
         if self.transform is not None:
             image = self.transform(image)
+        if isinstance(image, Image.Image):
+            image.info["filename"] = self.image_files[index]
         return image
 
 

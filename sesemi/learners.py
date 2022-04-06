@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from .config.structs import ClassifierHParams, SESEMIBaseConfig
 from .models.backbones.base import Backbone
-from .models.heads.base import LinearHead
+from .models.heads import LinearHead
 from .utils import reduce_tensor, ema_update, copy_and_detach
 from .schedulers.weight import WeightScheduler
 from .logger import LoggerWrapper

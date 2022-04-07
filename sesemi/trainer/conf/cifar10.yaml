@@ -4,7 +4,7 @@ defaults:
   - /base/supervised/data/cifar10
 run:
   seed: 42
-  gpus: 1
-  batch_size_per_gpu: 512
+  devices: 1
+  batch_size_per_device: 512
   num_epochs: 800
   id: cifar10

@@ -15,7 +15,7 @@ from math import ceil
 from ..config.resolvers import SESEMIConfigAttributes
 from ..config.structs import SESEMIBaseConfig, ClassifierConfig, RunMode
 from ..datamodules import SESEMIDataModule
-from ..utils import compute_num_gpus, copy_config, load_checkpoint, has_length
+from ..utils import compute_num_devices, copy_config, load_checkpoint, has_length
 
 logger = logging.getLogger(__name__)
 
@@ -40,22 +40,22 @@ def open_sesemi(config: SESEMIBaseConfig):
     OmegaConf.register_new_resolver("sesemi", sesemi_config_attributes, replace=True)
 
     # Expose trainer-specific attributes to config
-    num_gpus = compute_num_gpus(config.run.gpus)
-    sesemi_config_attributes.num_gpus = num_gpus
+    num_devices = compute_num_devices(config.run.accelerator, config.run.devices)
+    sesemi_config_attributes.num_devices = num_devices
     sesemi_config_attributes.num_nodes = config.run.num_nodes or 1
 
     # Build data loaders
-    accelerator = None
-    if sesemi_config_attributes.num_gpus > 0:
-        accelerator = config.run.accelerator or "ddp"
-        assert accelerator in {"dp", "ddp"}, f"Unsupport accelerator {accelerator}"
+    strategy = None
+    if sesemi_config_attributes.num_devices > 0:
+        strategy = config.run.strategy or "ddp"
+        assert strategy in {"dp", "ddp"}, f"Unsupport strategy {strategy}"
 
     datamodule = SESEMIDataModule(
         config.data,
-        accelerator,
-        num_gpus,
+        strategy,
+        num_devices,
         config.run.data_root,
-        batch_size_per_gpu=config.run.batch_size_per_gpu,
+        batch_size_per_device=config.run.batch_size_per_device,
         random_seed=random_seed,
     )
 
@@ -97,8 +97,9 @@ def open_sesemi(config: SESEMIBaseConfig):
         **trainer_config,
         max_epochs=config.run.num_epochs,
         max_steps=config.run.num_iterations,
-        accelerator=accelerator,
-        gpus=config.run.gpus,
+        strategy=strategy,
+        accelerator=config.run.accelerator,
+        devices=config.run.devices,
         num_nodes=config.run.num_nodes,
         resume_from_checkpoint=to_absolute_path(config.run.resume_from_checkpoint)
         if config.run.resume_from_checkpoint

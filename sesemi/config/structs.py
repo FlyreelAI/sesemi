@@ -63,8 +63,8 @@ class DataLoaderConfig:
     Attributes:
         dataset: The dataset configuration.
         batch_size: An optional batch size to use for a PyTorch data loader. Cannot be set with
-            `batch_size_per_gpu`.
-        batch_size_per_gpu: An optional batch size per GPU to use. Cannot be set with `batch_size`.
+            `batch_size_per_device`.
+        batch_size_per_device: An optional batch size per device to use. Cannot be set with `batch_size`.
         shuffle: Whether to shuffle the dataset at each epoch.
         sampler: An optional sampler configuration.
         batch_sampler: An optional batch sampler configuration.
@@ -81,7 +81,7 @@ class DataLoaderConfig:
 
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: Optional[int] = None
-    batch_size_per_gpu: Optional[int] = None
+    batch_size_per_device: Optional[int] = None
     shuffle: bool = False
     sampler: Optional[Any] = None
     batch_sampler: Optional[Any] = None
@@ -148,8 +148,10 @@ class RunConfig:
             integer IDs, a comma-separated list of GPU IDs, or None to train on the CPU. Setting
             this to -1 uses all GPUs and setting it to 0 also uses the CPU.
         num_nodes: The number of nodes to use during training (defaults to 1).
-        accelerator: Supports either "dp" or "ddp" (the default).
-        batch_size_per_gpu: An optional default batch size per GPU to use with all data loaders.
+        strategy: Supports either "dp" or "ddp" (the default).
+        accelerator: The hardware accelerator to use.
+        devices: The number of accelerators to use.
+        batch_size_per_device: An optional default batch size per device to use with all data loaders.
         data_root: The directory to use as the parent of relative dataset root directories
             (see `DatasetConfig`).
         id: The identifier to use for the run.
@@ -162,10 +164,11 @@ class RunConfig:
     seed: Optional[int] = None
     num_epochs: Optional[int] = None
     num_iterations: Optional[int] = None
-    gpus: Any = -1
+    strategy: Optional[str] = None
+    accelerator: str = "gpu"
+    devices: Optional[int] = None
     num_nodes: int = 1
-    accelerator: Optional[str] = None
-    batch_size_per_gpu: Optional[int] = None
+    batch_size_per_device: Optional[int] = None
     data_root: str = "./data"
     id: str = "default"
     dir: str = "./runs"

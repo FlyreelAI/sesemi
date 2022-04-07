@@ -24,11 +24,11 @@ class SESEMIConfigAttributes(AttributeResolver):
         iterations_per_epoch: The number of training iterations per epoch if training data is
             available.
         max_iterations: The maximum number of training iterations if training data is available.
-        num_gpus: The number of GPUs that will be used.
+        num_devices: The number of devices that will be used per node.
         num_nodes: The number of compute nodes that will be used.
     """
 
     iterations_per_epoch: Optional[int]
     max_iterations: Optional[int]
-    num_gpus: int
+    num_devices: int
     num_nodes: int

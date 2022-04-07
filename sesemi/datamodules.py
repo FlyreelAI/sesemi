@@ -27,7 +27,7 @@ class SESEMIDataModule(pl.LightningDataModule):
         val (Optional[Dataset]): An optional validation dataset.
         test (Optional[Dataset]): An optional test dataset.
         train_batch_sizes (Dict[str, int]): The batch size used for each training data loader.
-        train_batch_sizes_per_gpu (Dict[str, int]): The batch size used per GPU for each training
+        train_batch_sizes_per_device (Dict[str, int]): The batch size used per GPU for each training
             data loader.
         train_batch_sizes_per_iteration (Dict[str, int]): The batch size per iteration for each
             training data loader.
@@ -36,29 +36,30 @@ class SESEMIDataModule(pl.LightningDataModule):
     def __init__(
         self,
         config: DataConfig,
-        accelerator: Optional[str],
-        num_gpus: int,
+        strategy: Optional[str],
+        num_devices: int,
         data_root: str,
-        batch_size_per_gpu: Optional[int] = None,
+        batch_size_per_device: Optional[int] = None,
         random_seed: int = 0,
     ):
         """Initializes the data module.
 
         Args:
             config: The data config.
-            accelerator: The accelerator being used.
-            num_gpus: The number of GPUs being used.
+            strategy: The strategy being used.
+            num_devices: The number of devices being used per node.
             data_root: The data root to look for datasets with relative paths.
-            batch_size_per_gpu: An optional default batch size per GPU to use with data loaders.
+            batch_size_per_device: An optional default batch size per device to use with
+                data loaders.
             random_seed: The random seed to initialize DDP data loaders.
         """
         super().__init__()
         self.config = config
-        self.accelerator = accelerator
-        self.num_gpus = num_gpus
+        self.strategy = strategy
+        self.num_devices = num_devices
         self.data_root = data_root
         self.random_seed = random_seed
-        self.batch_size_per_gpu = batch_size_per_gpu
+        self.batch_size_per_device = batch_size_per_device
         self._build()
 
     def _build_dataset(self, config: DatasetConfig) -> Dataset:
@@ -78,7 +79,7 @@ class SESEMIDataModule(pl.LightningDataModule):
         ignored_train = self.config.ignored.train or {}
         self.train, self.val, self.test = None, None, None
         self.train_batch_sizes = {}
-        self.train_batch_sizes_per_gpu = {}
+        self.train_batch_sizes_per_device = {}
         self.train_batch_sizes_per_iteration = {}
         if self.config.train is not None:
             self.train = {
@@ -90,28 +91,28 @@ class SESEMIDataModule(pl.LightningDataModule):
             for key in self.train:
                 value = self.config.train[key]
                 if value.batch_size is not None:
-                    assert value.batch_size_per_gpu is None
-                    if self.accelerator == "dp":
-                        batch_size_per_gpu = ceil(value.batch_size / self.num_gpus)
+                    assert value.batch_size_per_device is None
+                    if self.strategy == "dp":
+                        batch_size_per_device = ceil(value.batch_size / self.num_devices)
                     else:
-                        batch_size_per_gpu = value.batch_size
-                elif value.batch_size_per_gpu is not None:
-                    batch_size_per_gpu = value.batch_size_per_gpu
-                elif self.batch_size_per_gpu is not None:
-                    batch_size_per_gpu = self.batch_size_per_gpu
+                        batch_size_per_device = value.batch_size
+                elif value.batch_size_per_device is not None:
+                    batch_size_per_device = value.batch_size_per_device
+                elif self.batch_size_per_device is not None:
+                    batch_size_per_device = self.batch_size_per_device
                 else:
-                    batch_size_per_gpu = 1
+                    batch_size_per_device = 1
 
-                self.train_batch_sizes_per_gpu[key] = batch_size_per_gpu
+                self.train_batch_sizes_per_device[key] = batch_size_per_device
 
             self.train_batch_sizes_per_iteration = {
-                key: self.train_batch_sizes_per_gpu[key] * max(self.num_gpus, 1)
+                key: self.train_batch_sizes_per_device[key] * max(self.num_devices, 1)
                 for key in self.train.keys()
             }
 
             self.train_batch_sizes = {
-                key: self.train_batch_sizes_per_gpu[key]
-                if self.accelerator == "ddp"
+                key: self.train_batch_sizes_per_device[key]
+                if self.strategy == "ddp"
                 else self.train_batch_sizes_per_iteration[key]
                 for key in self.train.keys()
             }
@@ -139,9 +140,9 @@ class SESEMIDataModule(pl.LightningDataModule):
             dataset_config = copy_config(self.config.train[key])
             dataset_config.pop("dataset")
             dataset_config.pop("batch_size")
-            dataset_config.pop("batch_size_per_gpu")
+            dataset_config.pop("batch_size_per_device")
 
-            if self.accelerator == "ddp":
+            if self.strategy == "ddp":
                 dataset_config.pop("shuffle")
                 train_dataloaders[key] = instantiate(
                     dataset_config,
@@ -168,26 +169,26 @@ class SESEMIDataModule(pl.LightningDataModule):
         dataset_config = copy_config(config)
         dataset_config.pop("dataset")
         dataset_config.pop("batch_size")
-        dataset_config.pop("batch_size_per_gpu")
+        dataset_config.pop("batch_size_per_device")
 
         assert (
-            config.batch_size is None or config.batch_size_per_gpu is None
-        ), "cannot set both batch_size and batch_size_per_gpu"
+            config.batch_size is None or config.batch_size_per_device is None
+        ), "cannot set both batch_size and batch_size_per_device"
 
-        if self.accelerator == "dp":
+        if self.strategy == "dp":
             if config.batch_size is not None:
                 batch_size = config.batch_size
-            elif config.batch_size_per_gpu is not None:
-                batch_size = config.batch_size_per_gpu * self.num_gpus
-            elif self.batch_size_per_gpu is not None:
-                batch_size = self.batch_size_per_gpu * self.num_gpus
+            elif config.batch_size_per_device is not None:
+                batch_size = config.batch_size_per_device * self.num_devices
+            elif self.batch_size_per_device is not None:
+                batch_size = self.batch_size_per_device * self.num_devices
             else:
                 batch_size = 1
         else:
             batch_size = (
                 config.batch_size
-                or config.batch_size_per_gpu
-                or self.batch_size_per_gpu
+                or config.batch_size_per_device
+                or self.batch_size_per_device
                 or 1
             )
 

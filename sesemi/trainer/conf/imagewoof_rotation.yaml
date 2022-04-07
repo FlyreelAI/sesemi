@@ -6,7 +6,7 @@ defaults:
   - /base/rotation_prediction/data/imagenet
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 16
+  devices: 2
+  batch_size_per_device: 16
   num_epochs: 80
   id: imagewoof_rotation

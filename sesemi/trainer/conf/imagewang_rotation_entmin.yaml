@@ -6,7 +6,7 @@ defaults:
   - /base/rotation_entropy_minimization/data/imagewang
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 8
+  devices: 2
+  batch_size_per_device: 8
   num_epochs: 80
   id: imagewang_rotation_entropy

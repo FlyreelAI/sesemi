@@ -93,7 +93,9 @@ class SESEMIDataModule(pl.LightningDataModule):
                 if value.batch_size is not None:
                     assert value.batch_size_per_device is None
                     if self.strategy == "dp":
-                        batch_size_per_device = ceil(value.batch_size / self.num_devices)
+                        batch_size_per_device = ceil(
+                            value.batch_size / self.num_devices
+                        )
                     else:
                         batch_size_per_device = value.batch_size
                 elif value.batch_size_per_device is not None:

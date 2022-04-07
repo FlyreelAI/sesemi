@@ -27,18 +27,29 @@ from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 logger = logging.getLogger(__name__)
 
 
-def reduce_tensor(tensor: Tensor, weights: Optional[Tensor] = None, reduction: Optional[str] = None) -> Tensor:
+def reduce_tensor(
+    tensor: Tensor, weights: Optional[Tensor] = None, reduction: Optional[str] = None
+) -> Tensor:
     """Reduces a tensor using the given mode.
 
     Args:
+        tensor: The tensor to reduce.
+        weights: Optional weights that should be the same shape as tensor.
         reduction: An optional method to use when reducing the tensor. Can be one of
             (mean, weighted_mean, sum, none).
+
+    Returns:
+        A scalar tensor.
     """
     tensor = tensor if weights is None else tensor * weights
     if reduction == "mean":
         return torch.mean(tensor)
     elif reduction == "weighted_mean":
-        return torch.mean(tensor) if weights is None else torch.sum(tensor) / (torch.sum(weights) + 1e-8)
+        return (
+            torch.mean(tensor)
+            if weights is None
+            else torch.sum(tensor) / (torch.sum(weights) + 1e-8)
+        )
     elif reduction == "sum":
         return torch.sum(tensor)
     elif reduction is None or reduction == "none":
@@ -90,7 +101,7 @@ def compute_num_devices(accelerator: str, devices: Optional[int]) -> int:
     accelerator_cls = AcceleratorRegistry.get(accelerator)
     if devices is None:
         return accelerator_cls.auto_device_count()
-        
+
     accelerator_devices = accelerator_cls.parse_devices(devices)
     if isinstance(accelerator_devices, (list, tuple)):
         return len(accelerator_devices)

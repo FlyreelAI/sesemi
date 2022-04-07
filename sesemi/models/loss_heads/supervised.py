@@ -54,7 +54,9 @@ class SupervisedLossHead(LossHead):
 
         weights: Optional[Tensor] = None
         if self.class_weights is not None:
-            class_weights = torch.tensor(self.class_weights, dtype=losses.dtype, device=losses.device)
+            class_weights = torch.tensor(
+                self.class_weights, dtype=losses.dtype, device=losses.device
+            )
             weights = torch.gather(class_weights, dim=0, index=targets.to(torch.int64))
 
         assert losses.shape == targets.shape, "loss shape must match targets shape"

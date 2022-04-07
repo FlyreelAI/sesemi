@@ -16,11 +16,12 @@ from ..heads.base import Head
 @dataclass
 class LossOutputs:
     """The outputs of a loss head.
-    
+
     Attributes:
         losses: The per-sample losses.
         weights: Optional per-sample weights.
     """
+
     losses: Tensor
     weights: Optional[Tensor] = None
 

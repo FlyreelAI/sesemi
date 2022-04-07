@@ -101,7 +101,7 @@ def class_weighted(
             distributed setting.
 
     Returns:
-        A class-weighted iterable dataset dataset.
+        A class-weighted iterable dataset.
     """
     assert subset is None, "class-weighted datasets don't support subsets"
     return ClassWeightedDataset(dataset, weights=weights, seed=seed)

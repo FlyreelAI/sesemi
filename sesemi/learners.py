@@ -233,9 +233,7 @@ class Classifier(pl.LightningModule):
 
                 outputs = self.head(features)
                 shared_features["supervised_head"] = outputs
-                shared_features["supervised_probabilities"] = F.softmax(
-                    outputs, dim=-1
-                )
+                shared_features["supervised_probabilities"] = F.softmax(outputs, dim=-1)
 
                 if self.ema is not None:
                     features_ema = self.backbone_ema(images)
@@ -312,7 +310,9 @@ class Classifier(pl.LightningModule):
 
         if log_prefix is not None:
             self.log(osp.join(log_prefix, "reduced_loss"), reduced_loss, on_step=True)
-            self.log(osp.join(log_prefix, "scalar_loss_weight"), loss_weight, on_step=True)
+            self.log(
+                osp.join(log_prefix, "scalar_loss_weight"), loss_weight, on_step=True
+            )
             self.log(osp.join(log_prefix, "weighted_loss"), weighted_loss, on_step=True)
 
         return reduced_loss, weighted_loss, loss_weight
@@ -352,8 +352,8 @@ class Classifier(pl.LightningModule):
         if "loss" in outputs:
             supservised_loss: LossOutputs = outputs["loss"]
             _, weighted_loss, _ = self._compute_weighted_training_loss(
-                losses=supservised_loss['losses'],
-                weights=supservised_loss['weights'],
+                losses=supservised_loss["losses"],
+                weights=supservised_loss["weights"],
                 reduction=self.loss_reduction_method,
                 scheduler=self.loss_scheduler,
                 scale_factor=self.classifier_hparams.model.loss.scale_factor,
@@ -365,8 +365,8 @@ class Classifier(pl.LightningModule):
         regularization_losses: Dict[str, LossOutputs] = outputs["regularization_losses"]
         for name, regularization_loss in regularization_losses.items():
             _, weighted_regularization_loss, _ = self._compute_weighted_training_loss(
-                losses=regularization_loss['losses'],
-                weights=regularization_loss['weights'],
+                losses=regularization_loss["losses"],
+                weights=regularization_loss["weights"],
                 reduction=self.regularization_loss_reduction_methods[name],
                 scheduler=self.regularization_loss_schedulers[name],
                 scale_factor=self.classifier_hparams.model.regularization_loss_heads[
@@ -389,7 +389,9 @@ class Classifier(pl.LightningModule):
 
         return loss
 
-    def on_train_batch_end(self, outputs: Tensor, batch: Dict[str, Any], batch_idx: int, unused: int = 0):
+    def on_train_batch_end(
+        self, outputs: Tensor, batch: Dict[str, Any], batch_idx: int, unused: int = 0
+    ):
         if self.ema is not None:
             ema_update(
                 self.backbone_ema,

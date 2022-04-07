@@ -9,8 +9,11 @@ learner:
   hparams:
     model:
       loss:
-        callable:
-          _target_: torch.nn.CrossEntropyLoss
+        head:
+          _target_: sesemi.models.loss_heads.SupervisedLossHead
+          loss_fn:
+            _target_: torch.nn.CrossEntropyLoss
+            reduction: none
 trainer:
   sync_batchnorm: true
   callbacks:

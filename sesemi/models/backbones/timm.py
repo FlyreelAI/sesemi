@@ -14,7 +14,7 @@ PYTORCH_IMAGE_MODELS_REPO = "rwightman/pytorch-image-models"
 logger = logging.getLogger(__name__)
 
 
-SUPPORTED_BACKBONES = (
+RECOMMENDED_BACKBONES = (
     # The following backbones strike a balance between accuracy and model size, with optional
     # pretrained ImageNet weights. For a summary of their ImageNet performance, see
     # <https://github.com/rwightman/pytorch-image-models/blob/master/results/results-imagenet.csv>.
@@ -90,7 +90,7 @@ SUPPORTED_BACKBONES = (
 )
 
 
-class PyTorchImageModels(Backbone):
+class PyTorchImageModel(Backbone):
     def __init__(
         self,
         name: str = "resnet50d",
@@ -109,9 +109,9 @@ class PyTorchImageModels(Backbone):
             drop_rate: The dropout rate.
             freeze: Whether to freeze the backbone's weights.
         """
-        if name not in SUPPORTED_BACKBONES:
+        if name not in RECOMMENDED_BACKBONES:
             logger.warn(
-                f"backbone {name} is not one of the supported backbones: {SUPPORTED_BACKBONES}"
+                f"backbone {name} is not one of the recommended backbones: {RECOMMENDED_BACKBONES}"
             )
 
         super().__init__()

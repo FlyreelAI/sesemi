@@ -9,7 +9,7 @@ from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
-from .base import LossHead
+from .base import LossHead, LossOutputs
 from .entropy_minimization import EntropyMinimizationLossHead
 
 
@@ -61,7 +61,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             logger_wrapper.log_images("consistency/images/view1", view1, step=step)
             logger_wrapper.log_images("consistency/images/view2", view2, step=step)
 
-        return loss_u
+        return LossOutputs(losses=loss_u)
 
 
 class EMAConsistencyLossHead(LossHead):
@@ -121,4 +121,4 @@ class EMAConsistencyLossHead(LossHead):
             logger_wrapper.log_images("ema_consistency/images/view1", view1, step=step)
             logger_wrapper.log_images("ema_consistency/images/view2", view2, step=step)
 
-        return loss_u
+        return LossOutputs(losses=loss_u)

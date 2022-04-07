@@ -11,7 +11,7 @@ from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
-from .base import LossHead
+from .base import LossHead, LossOutputs
 
 
 class FixMatchLossHead(LossHead):
@@ -81,23 +81,15 @@ class FixMatchLossHead(LossHead):
             torch.long
         )
 
-        loss_weight = (weakly_augmented_probs.max(dim=-1)[0] >= self.threshold).to(
+        loss_weights = (weakly_augmented_probs.max(dim=-1)[0] >= self.threshold).to(
             torch.float32
         )
 
-        loss = (
-            F.cross_entropy(
-                strongly_augmented_logits,
-                weakly_augmented_labels,
-                reduction="none",
-            )
-            * loss_weight
+        losses = F.cross_entropy(
+            strongly_augmented_logits,
+            weakly_augmented_labels,
+            reduction="none",
         )
-
-        total_loss_weight = torch.sum(loss_weight)
-        total_loss = torch.sum(loss)
-
-        loss = total_loss / (total_loss_weight + 1e-8)
 
         if logger_wrapper:
             logger_wrapper.log_images(
@@ -107,4 +99,4 @@ class FixMatchLossHead(LossHead):
                 "fixmatch/images/strong", strongly_augmented, step=step
             )
 
-        return loss
+        return LossOutputs(losses=losses, weights=loss_weights)

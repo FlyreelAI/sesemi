@@ -10,7 +10,7 @@ from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
-from .base import LossHead
+from .base import LossHead, LossOutputs
 
 
 class EntropyMinimizationLossHead(LossHead):
@@ -54,4 +54,4 @@ class EntropyMinimizationLossHead(LossHead):
         if logger_wrapper:
             logger_wrapper.log_images("entropy_minimization/images", inputs, step=step)
 
-        return loss_u
+        return LossOutputs(losses=loss_u)

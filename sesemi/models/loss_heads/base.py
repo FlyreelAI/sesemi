@@ -5,11 +5,31 @@ import torch.nn as nn
 
 from torch import Tensor
 from typing import Dict, Any, Optional
+from dataclasses import dataclass
 
 from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
+
+
+@dataclass
+class LossOutputs:
+    """The outputs of a loss head.
+    
+    Attributes:
+        losses: The per-sample losses.
+        weights: Optional per-sample weights.
+    """
+    losses: Tensor
+    weights: Optional[Tensor] = None
+
+    def asdict(self) -> Dict[str, Any]:
+        """Converts this into a dictionary."""
+        return dict(
+            losses=self.losses,
+            weights=self.weights,
+        )
 
 
 class LossHead(nn.Module):
@@ -40,7 +60,7 @@ class LossHead(nn.Module):
         step: int,
         logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
-    ) -> Tensor:
+    ) -> LossOutputs:
         """Computes the loss.
 
         Args:
@@ -51,5 +71,8 @@ class LossHead(nn.Module):
             logger_wrapper: An optional wrapper around the lightning logger.
             step: The training step number.
             **kwargs: Placeholder for other arguments that may be added.
+
+        Returns:
+            The losses and optional per-sample weights.
         """
         raise NotImplementedError()

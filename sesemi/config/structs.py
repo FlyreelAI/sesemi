@@ -235,26 +235,9 @@ class LossHeadConfig:
         scale_factor: The loss scale factor.
     """
 
-    head: Any
+    head: Any = MISSING
     scheduler: Any = None
-    reduction: str = "mean"
-    scale_factor: float = 1.0
-
-
-@dataclass
-class LossCallableConfig:
-    """A callable loss configuration.
-
-    Attributes:
-        callable: An callable configuration that can be instantiated.
-        scheduler: An optional learning rate scheduler that can be instantiated.
-        reduction: The loss reduction method to use (e.g. "mean" or "sum").
-        scale_factor: The loss scale factor.
-    """
-
-    callable: Any = MISSING
-    scheduler: Any = None
-    reduction: str = "mean"
+    reduction: str = "weighted_mean"
     scale_factor: float = 1.0
 
 
@@ -299,14 +282,14 @@ class ClassifierModelConfig:
     Attributes:
         backbone: A backbone config that can be instantiated.
         head: A head config that can be instantiated.
-        loss: An optional callable loss config.
+        loss: An optional supervised loss head config.
         regularization_loss_heads: An optional dictionary of loss head configs.
         ema: An optional config for the ema decay coefficient.
     """
 
     backbone: Any = MISSING
     head: Any = MISSING
-    loss: Optional[LossCallableConfig] = LossCallableConfig()
+    loss: Optional[LossHeadConfig] = LossHeadConfig()
     regularization_loss_heads: Optional[Dict[str, LossHeadConfig]] = None
     ema: Optional[EMAConfig] = None
 

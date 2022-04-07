@@ -2,7 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
-# from functools import cached_property
+from functools import cached_property
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from torch import Tensor
@@ -24,6 +24,8 @@ from torchmetrics import MeanMetric
 
 from natsort import natsorted
 from tqdm import tqdm
+
+from sesemi.models.loss_heads.base import LossOutputs
 
 from .config.structs import ClassifierHParams, SESEMIBaseConfig
 from .models.backbones.base import Backbone
@@ -49,13 +51,13 @@ class Classifier(pl.LightningModule):
 
     hparams: SESEMIBaseConfig  # type: ignore
 
-    def __init__(self, hparams: ClassifierHParams, sesemi_config: SESEMIBaseConfig):
+    def __init__(self, sesemi_config: SESEMIBaseConfig, hparams: ClassifierHParams):
         """Initializes the module.
 
         Args:
-            hparams: The classifier's hyperparameters.
             sesemi_config: The full training configuration including the classifier's
                 hyperparameters.
+            hparams: The classifier's hyperparameters.
         """
         super().__init__()
         self.save_hyperparameters()
@@ -81,7 +83,7 @@ class Classifier(pl.LightningModule):
 
         # Instantiate the supervised loss, and its scheduler and reduction options.
         if hparams.model.loss is not None:
-            self.loss = instantiate(hparams.model.loss.callable, reduction="none")
+            self.loss = instantiate(hparams.model.loss.head)
             if hparams.model.loss.scheduler is not None:
                 self.loss_scheduler: Optional[WeightScheduler] = instantiate(
                     hparams.model.loss.scheduler
@@ -153,8 +155,7 @@ class Classifier(pl.LightningModule):
         """The classifier's hyperparameters."""
         return self.sesemi_config.learner.hparams
 
-    # @cached_property
-    @property
+    @cached_property
     def logger_wrapper(self) -> LoggerWrapper:
         """The logger wrapper."""
         return LoggerWrapper(self.logger, self.classifier_hparams.logger)
@@ -225,26 +226,22 @@ class Classifier(pl.LightningModule):
         step_outputs = {}
         if self.head is not None:
             if "supervised" in batch:
-                inputs_t, targets_t = batch["supervised"][:2]
+                images, targets = batch["supervised"][:2]
 
-                self.logger_wrapper.log_images(
-                    "supervised/images", inputs_t, step=self.global_step
-                )
+                features = self.backbone(images)
+                shared_features["supervised_backbone"] = features
 
-                features_t = self.backbone(inputs_t)
-                shared_features["supervised_backbone"] = features_t
-
-                outputs_t = self.head(features_t)
-                shared_features["supervised_head"] = outputs_t
+                outputs = self.head(features)
+                shared_features["supervised_head"] = outputs
                 shared_features["supervised_probabilities"] = F.softmax(
-                    outputs_t, dim=-1
+                    outputs, dim=-1
                 )
 
                 if self.ema is not None:
-                    features_ema = self.backbone_ema(inputs_t)
+                    features_ema = self.backbone_ema(images)
                     shared_features["supervised_backbone_ema"] = features_ema
 
-                    outputs_ema = self.head(features_t)
+                    outputs_ema = self.head_ema(features)
                     shared_features["supervised_head_ema"] = outputs_ema
                     shared_features["supervised_probabilities_ema"] = F.softmax(
                         outputs_ema, dim=-1
@@ -258,11 +255,22 @@ class Classifier(pl.LightningModule):
                     "supervised_probabilities"
                 ]
 
-                step_outputs["targets"] = targets_t
+                step_outputs["targets"] = targets
+
+                self.logger_wrapper.log_images(
+                    "supervised/images", images, step=self.global_step
+                )
 
         loss = None
         if self.head is not None and self.loss is not None and "supervised" in batch:
-            loss = self.loss(shared_features["supervised_head"], targets_t)
+            loss = self.loss(
+                data=batch,
+                backbones=self.shared_backbones,
+                heads=self.shared_heads,
+                features=shared_features,
+                step=self.global_step,
+                logger_wrapper=self.logger_wrapper,
+            ).asdict()
 
         regularization_losses = {
             name: head(
@@ -272,7 +280,7 @@ class Classifier(pl.LightningModule):
                 features=shared_features,
                 step=self.global_step,
                 logger_wrapper=self.logger_wrapper,
-            )
+            ).asdict()
             for name, head in self.regularization_loss_heads.items()
         }
 
@@ -285,13 +293,14 @@ class Classifier(pl.LightningModule):
 
     def _compute_weighted_training_loss(
         self,
-        loss: Tensor,
+        losses: Tensor,
+        weights: Optional[Tensor],
         reduction: Optional[str],
         scheduler: Optional[WeightScheduler],
         scale_factor: float,
         log_prefix: Optional[str] = None,
     ) -> Tuple[Tensor, Tensor, float]:
-        reduced_loss = reduce_tensor(loss, reduction)
+        reduced_loss = reduce_tensor(losses, weights=weights, reduction=reduction)
 
         if scheduler is not None:
             scheduler_weight = scheduler(self.global_step)
@@ -302,8 +311,8 @@ class Classifier(pl.LightningModule):
         weighted_loss = loss_weight * reduced_loss
 
         if log_prefix is not None:
-            self.log(osp.join(log_prefix, "loss"), reduced_loss, on_step=True)
-            self.log(osp.join(log_prefix, "loss_weight"), loss_weight, on_step=True)
+            self.log(osp.join(log_prefix, "reduced_loss"), reduced_loss, on_step=True)
+            self.log(osp.join(log_prefix, "scalar_loss_weight"), loss_weight, on_step=True)
             self.log(osp.join(log_prefix, "weighted_loss"), weighted_loss, on_step=True)
 
         return reduced_loss, weighted_loss, loss_weight
@@ -341,8 +350,10 @@ class Classifier(pl.LightningModule):
     def training_step_end(self, outputs: Dict[str, Tensor]) -> Tensor:
         losses = []
         if "loss" in outputs:
+            supservised_loss: LossOutputs = outputs["loss"]
             _, weighted_loss, _ = self._compute_weighted_training_loss(
-                loss=outputs["loss"],
+                losses=supservised_loss['losses'],
+                weights=supservised_loss['weights'],
                 reduction=self.loss_reduction_method,
                 scheduler=self.loss_scheduler,
                 scale_factor=self.classifier_hparams.model.loss.scale_factor,
@@ -351,9 +362,11 @@ class Classifier(pl.LightningModule):
             losses.append(weighted_loss)
 
         weighted_regularization_losses = []
-        for name, regularization_loss in outputs["regularization_losses"].items():
+        regularization_losses: Dict[str, LossOutputs] = outputs["regularization_losses"]
+        for name, regularization_loss in regularization_losses.items():
             _, weighted_regularization_loss, _ = self._compute_weighted_training_loss(
-                loss=regularization_loss,
+                losses=regularization_loss['losses'],
+                weights=regularization_loss['weights'],
                 reduction=self.regularization_loss_reduction_methods[name],
                 scheduler=self.regularization_loss_schedulers[name],
                 scale_factor=self.classifier_hparams.model.regularization_loss_heads[
@@ -374,6 +387,9 @@ class Classifier(pl.LightningModule):
 
         self._log_learning_rates()
 
+        return loss
+
+    def on_train_batch_end(self, outputs: Tensor, batch: Dict[str, Any], batch_idx: int, unused: int = 0):
         if self.ema is not None:
             ema_update(
                 self.backbone_ema,
@@ -390,8 +406,6 @@ class Classifier(pl.LightningModule):
                     method=self.ema.method,
                     copy_non_floating_point=self.ema.copy_non_floating_point,
                 )
-
-        return loss
 
     def training_epoch_end(self, outputs: List[Tensor]) -> None:
         if self.training_accuracy.mode is not None:

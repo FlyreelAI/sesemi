@@ -3,7 +3,7 @@ learner:
   hparams:
     model:
       backbone:
-        _target_: sesemi.PyTorchImageModels
+        _target_: sesemi.PyTorchImageModel
         freeze: False
         pretrained: False
         global_pool: avg

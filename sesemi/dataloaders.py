@@ -3,6 +3,7 @@
 # =============================================#
 """SESEMI data loaders."""
 import torch
+import torch.utils.data.graph_settings
 
 from typing import (
     Any,

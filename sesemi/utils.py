@@ -58,36 +58,6 @@ def reduce_tensor(
         raise ValueError(f"unsupported reduction method {reduction}")
 
 
-def compute_num_gpus(gpus: Union[int, str, List[int]]) -> int:
-    """Computes the number of GPUs being used.
-
-    Args:
-        gpus: Either an integer specifying the number of GPUs to use, a list of GPU
-            integer IDs, a comma-separated list of GPU IDs, or None to train on the CPU. Setting
-            this to -1 uses all GPUs and setting it to 0 also uses the CPU.
-
-    Returns:
-        The number of GPUs that will be used.
-    """
-    num_gpus = 0
-    if gpus is not None:
-        num_available_gpus = torch.cuda.device_count()
-        if isinstance(gpus, int):
-            num_gpus = gpus if gpus >= 0 else num_available_gpus
-        elif isinstance(gpus, str):
-            gpu_ids = [x.strip() for x in gpus.split(",")]
-            if len(gpu_ids) > 1:
-                num_gpus = len(gpu_ids)
-            elif len(gpu_ids) == 1:
-                if int(gpu_ids[0]) < 0:
-                    num_gpus = num_available_gpus
-                else:
-                    num_gpus = 1
-        else:
-            num_gpus = len(gpus)
-    return num_gpus
-
-
 def compute_num_devices(accelerator: str, devices: Optional[int]) -> int:
     """Computes the number of devices to use for an accelerator.
 

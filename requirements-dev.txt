@@ -1,5 +1,6 @@
 Sphinx
 mypy
+black
 pytest
 pytest-cov
-black
+pytest-mock

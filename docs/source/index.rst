@@ -15,8 +15,6 @@ Contents
    :caption: Blogs
 
    A Gentle Introduction to SESEMI <https://sesemi.readthedocs.io/en/latest/>
-   Semi-Supervised Vision Transformers <https://sesemi.readthedocs.io/en/latest/>
-   Fine-grained Image Classification <https://sesemi.readthedocs.io/en/latest/>
 
 .. toctree::
    :maxdepth: 2

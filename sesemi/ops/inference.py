@@ -32,7 +32,7 @@ from sesemi.learners import Classifier
 from sesemi.collation import TestTimeAugmentationCollator
 from sesemi.datasets.image_file import ImageFile
 from sesemi.tta import apply_model_to_test_time_augmentations
-from sesemi.utils import compute_device_names, compute_num_digits
+from sesemi.utils import compute_gpu_device_names, compute_num_digits
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ def inference(config: SESEMIInferenceConfig):
     if config.export_predictions:
         os.makedirs(predictions_dir, exist_ok=False)
 
-    devices = compute_device_names(config.gpus)
+    devices = compute_gpu_device_names(config.gpus)
 
     process_pool = ProcessPoolExecutor(max_workers=len(devices))
 

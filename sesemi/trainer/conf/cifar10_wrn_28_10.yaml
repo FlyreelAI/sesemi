@@ -1,0 +1,50 @@
+# @package _global_
+defaults:
+  - /base/supervised/baseline/wrn_28_10
+run:
+  seed: 42
+  devices: 1
+  batch_size_per_device: 128
+  num_epochs: 200
+  id: cifar10_wrn_28_10
+  data_root: ./data/cifar10
+learner:
+  hparams:
+    num_classes: 10
+data:
+  train:
+    supervised:
+      dataset:
+        name: cifar10
+        subset: train
+        image_transform:
+          _target_: sesemi.T.Compose
+          transforms:
+          - _target_: sesemi.T.TrivialAugmentWide
+          - _target_: sesemi.T.RandomHorizontalFlip
+          - _target_: sesemi.T.RandomCrop
+            size: 32
+            padding: 4
+          - _target_: sesemi.transforms.AlbumentationTransform
+            transform:
+              _target_: sesemi.A.Cutout
+              num_holes: 1
+              max_h_size: 16
+              max_w_size: 16
+              fill_value: 0
+              p: 0.5
+          - _target_: sesemi.transforms.CIFARTestTransform
+      shuffle: True
+      pin_memory: True
+      num_workers: 4
+      drop_last: True
+  val:
+    dataset:
+      name: cifar10
+      subset: test
+      image_transform:
+        _target_: sesemi.transforms.CIFARTestTransform
+    shuffle: False
+    pin_memory: True
+    num_workers: 4
+    drop_last: False

@@ -14,3 +14,4 @@ from .schedulers.lr import PolynomialLR
 from .learners import Classifier
 
 import torchvision.transforms as T
+import albumentations.augmentations as A

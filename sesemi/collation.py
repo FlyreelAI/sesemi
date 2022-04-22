@@ -66,19 +66,17 @@ class JigsawCollator:
 
     def __init__(
         self,
-        grid_size: int = 3,
         p_grayscale: float = 0.1,
         return_supervised_labels: bool = False,
     ):
         """Initializes the jigsaw collation callable.
 
         Args:
-            grid_size: grid of n x n patches.
             p_grayscale: probability of converting to grayscale.
             return_supervised_labels: Whether to return supervised class labels or pretext labels.
         """
-        self.grid_size = grid_size
-        self.num_grids = grid_size ** 2
+        self.grid_size = 3
+        self.num_grids = 3**2
         self.p_grayscale = p_grayscale
         self.return_supervised_labels = return_supervised_labels
         self.patch_permutations = torch.tensor(

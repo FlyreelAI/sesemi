@@ -4,7 +4,6 @@
 """PyTorch Lightning data modules."""
 import pytorch_lightning as pl
 import os.path as osp
-import logging
 
 from math import ceil
 from torch.utils.data.dataset import Dataset
@@ -15,8 +14,6 @@ from hydra.utils import instantiate, to_absolute_path
 from sesemi.utils import copy_config
 
 from .config.structs import DataConfig, DataLoaderConfig, DatasetConfig
-
-logger = logging.getLogger(__name__)
 
 
 class SESEMIDataModule(pl.LightningDataModule):
@@ -139,15 +136,15 @@ class SESEMIDataModule(pl.LightningDataModule):
 
         train_dataloaders = {}
         for key, dataset in self.train.items():
-            dataset_config = copy_config(self.config.train[key])
-            dataset_config.pop("dataset")
-            dataset_config.pop("batch_size")
-            dataset_config.pop("batch_size_per_device")
+            dataloader_config = copy_config(self.config.train[key])
+            dataloader_config.pop("dataset")
+            dataloader_config.pop("batch_size")
+            dataloader_config.pop("batch_size_per_device")
 
             if self.strategy == "ddp":
-                dataset_config.pop("shuffle")
+                dataloader_config.pop("shuffle")
                 train_dataloaders[key] = instantiate(
-                    dataset_config,
+                    dataloader_config,
                     dataset=dataset,
                     batch_size=self.train_batch_sizes[key],
                     sampler=DistributedSampler(
@@ -158,7 +155,7 @@ class SESEMIDataModule(pl.LightningDataModule):
                 )
             else:
                 train_dataloaders[key] = instantiate(
-                    dataset_config,
+                    dataloader_config,
                     dataset=dataset,
                     batch_size=self.train_batch_sizes[key],
                 )
@@ -168,10 +165,10 @@ class SESEMIDataModule(pl.LightningDataModule):
     def _build_evaluation_data_loader(
         self, config: DataLoaderConfig, dataset: Dataset
     ) -> DataLoader:
-        dataset_config = copy_config(config)
-        dataset_config.pop("dataset")
-        dataset_config.pop("batch_size")
-        dataset_config.pop("batch_size_per_device")
+        dataloader_config = copy_config(config)
+        dataloader_config.pop("dataset")
+        dataloader_config.pop("batch_size")
+        dataloader_config.pop("batch_size_per_device")
 
         assert (
             config.batch_size is None or config.batch_size_per_device is None
@@ -194,7 +191,7 @@ class SESEMIDataModule(pl.LightningDataModule):
                 or 1
             )
 
-        return instantiate(dataset_config, dataset=dataset, batch_size=batch_size)
+        return instantiate(dataloader_config, dataset=dataset, batch_size=batch_size)
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         assert self.val is not None
@@ -214,6 +211,9 @@ class SESEMIDataModule(pl.LightningDataModule):
 
         ignored_extra = self.config.ignored.extra or {}
         if ignored_extra.get(name, False):
+            return None
+
+        if name not in self.config.extra or name not in self.extra:
             return None
 
         return self._build_evaluation_data_loader(

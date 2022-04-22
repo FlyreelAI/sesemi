@@ -4,7 +4,7 @@
 from torch import Tensor
 from typing import Dict, Any, Optional
 
-from sesemi.losses import get_loss_fn
+from sesemi.losses import LossRegistry
 from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
@@ -23,7 +23,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         data: str,
         backbone: str = "supervised_backbone",
         head: str = "supervised_head",
-        loss_fn: str = "mse",
+        loss_fn: str = "softmax_mse_loss",
     ):
         """
         Args:
@@ -34,11 +34,7 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             loss_fn: The loss function to compute the consistency between two views.
         """
         super().__init__(data=data, backbone=backbone, head=head)
-        assert loss_fn in (
-            "mse",
-            "kl_div",
-        ), f"invalid consistency loss function {loss_fn}"
-        self.loss_fn = get_loss_fn(loss_fn)
+        self.loss_fn = LossRegistry[loss_fn]
 
     def forward(
         self,
@@ -76,7 +72,7 @@ class EMAConsistencyLossHead(LossHead):
         teacher_backbone: str = "supervised_backbone_ema",
         student_head: str = "supervised_head",
         teacher_head: str = "supervised_head_ema",
-        loss_fn: str = "mse",
+        loss_fn: str = "softmax_mse_loss",
     ):
         """
         Args:
@@ -89,16 +85,12 @@ class EMAConsistencyLossHead(LossHead):
             loss_fn: The loss function to compute the consistency between two views.
         """
         super().__init__()
-        assert loss_fn in (
-            "mse",
-            "kl_div",
-        ), f"invalid consistency loss function {loss_fn}"
         self.data = data
         self.student_backbone = student_backbone
         self.teacher_backbone = teacher_backbone
         self.student_head = student_head
         self.teacher_head = teacher_head
-        self.loss_fn = get_loss_fn(loss_fn)
+        self.loss_fn = LossRegistry[loss_fn]
 
     def forward(
         self,

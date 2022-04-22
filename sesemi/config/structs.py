@@ -74,6 +74,9 @@ class DataLoaderConfig:
         drop_last: Whether to drop the last unevenly sized batch.
         timeout: The timeout to use get data batches from workers.
         worker_init_fn: An optional callable that is invoked for each worker on initialization.
+        repeat: The number of times to repeat the dataset on iteration.
+        prefetch_factor: The number of samples to prefetch per worker.
+        persistent_workers: Whether or not to persist workers after iterating through a dataset.
 
     References:
         * https://pytorch.org/docs/1.6.0/data.html?highlight=dataloader#torch.utils.data.DataLoader
@@ -92,6 +95,8 @@ class DataLoaderConfig:
     timeout: float = 0
     worker_init_fn: Optional[Any] = None
     repeat: Optional[int] = None
+    prefetch_factor: Optional[int] = 2
+    persistent_workers: Optional[bool] = False
     _target_: str = "sesemi.RepeatableDataLoader"
 
 
@@ -237,7 +242,7 @@ class LossHeadConfig:
 
     head: Any = MISSING
     scheduler: Any = None
-    reduction: str = "weighted_mean"
+    reduction: str = "mean"
     scale_factor: float = 1.0
 
 
@@ -307,7 +312,7 @@ class ClassifierLoggerConfig(LoggerConfig):
         log_gradients: Whether to log gradients.
     """
 
-    log_gradients: bool = True
+    log_gradients: bool = False
 
 
 @dataclass

@@ -53,7 +53,7 @@ def apply_model_to_test_time_augmentations(
             assert len(outputs[i]) == j
             outputs[i].append(result)
 
-        return [torch.cat(x, dim=0) for x in outputs]
+        return [torch.stack(x, dim=0) for x in outputs]
     else:
         return [
             torch.cat([model(tensor[None].to(device)) for tensor in tensors], dim=0)

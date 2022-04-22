@@ -49,7 +49,9 @@ class EntropyMinimizationLossHead(LossHead):
         inputs, _ = data[self.data]
         feats = backbones[self.backbone](inputs)
         logits = heads[self.head](feats)
-        loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
+        loss_u = (-F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)).sum(
+            dim=-1
+        )
 
         if logger_wrapper:
             logger_wrapper.log_images("entropy_minimization/images", inputs, step=step)

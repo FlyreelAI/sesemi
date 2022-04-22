@@ -5,11 +5,10 @@
 import os
 import numpy as np
 
-from PIL import ImageFilter
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 from torch import Tensor
-from PIL import ImageFilter
+from PIL import ImageFilter, Image, ImageDraw
 from typing import Callable, Tuple
 
 import torch
@@ -48,7 +47,7 @@ class GammaCorrection:
         """
         self.gamma_range = gamma_range
 
-    def __call__(self, x: Tensor) -> Tensor:
+    def __call__(self, x: Union[Tensor, Image.Image]) -> Union[Tensor, Image.Image]:
         """Applies random gamma correction to the input image.
 
         Args:
@@ -269,6 +268,25 @@ def CIFARTestTransform() -> Callable:
             T.Normalize(CIFAR_CHANNEL_MEAN, CIFAR_CHANNEL_STD),
         ]
     )
+
+
+class AlbumentationTransform:
+    def __init__(self, transform: Callable):
+        self.transform = transform
+
+    def __call__(self, image: Callable) -> Union[Image.Image, torch.Tensor, np.ndarray]:
+        if isinstance(image, Image.Image):
+            return Image.fromarray(self.transform(image=np.array(image))["image"])
+        elif isinstance(image, torch.Tensor):
+            return torch.tensor(
+                self.transform(image=image.detach().cpu().numpy())["image"],
+                dtype=image.dtype,
+                device=image.device,
+            )
+        elif isinstance(image, np.ndarray):
+            return self.transform(image=image)["image"]
+        else:
+            raise ValueError(f"unsupported data type {type(image)}")
 
 
 if __name__ == "__main__":

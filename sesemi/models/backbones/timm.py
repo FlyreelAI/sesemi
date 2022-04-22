@@ -2,7 +2,7 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """Backbones from the rwightman/pytorch-image-models repository."""
-import logging
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 from sesemi.utils import freeze_module
 
@@ -10,8 +10,6 @@ from .base import Backbone
 from ..utils import load_torch_hub_model
 
 PYTORCH_IMAGE_MODELS_REPO = "rwightman/pytorch-image-models"
-
-logger = logging.getLogger(__name__)
 
 
 RECOMMENDED_BACKBONES = (
@@ -110,7 +108,7 @@ class PyTorchImageModel(Backbone):
             freeze: Whether to freeze the backbone's weights.
         """
         if name not in RECOMMENDED_BACKBONES:
-            logger.warn(
+            rank_zero_warn(
                 f"backbone {name} is not one of the recommended backbones: {RECOMMENDED_BACKBONES}"
             )
 

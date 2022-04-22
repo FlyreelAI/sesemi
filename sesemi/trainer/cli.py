@@ -3,7 +3,6 @@
 # =============================================#
 """The trainer CLI's main function and configuration."""
 import hydra
-import logging
 import pytorch_lightning as pl
 
 from omegaconf import OmegaConf
@@ -16,8 +15,6 @@ from ..config.resolvers import SESEMIConfigAttributes
 from ..config.structs import SESEMIBaseConfig, ClassifierConfig, RunMode
 from ..datamodules import SESEMIDataModule
 from ..utils import compute_num_devices, copy_config, load_checkpoint, has_length
-
-logger = logging.getLogger(__name__)
 
 
 config_store = ConfigStore.instance()
@@ -34,7 +31,7 @@ def open_sesemi(config: SESEMIBaseConfig):
     Args:
         config: The trainer config.
     """
-    random_seed = pl.seed_everything(config.run.seed)
+    random_seed = pl.seed_everything(config.run.seed, workers=True)
 
     sesemi_config_attributes = SESEMIConfigAttributes()
     OmegaConf.register_new_resolver("sesemi", sesemi_config_attributes, replace=True)
@@ -65,9 +62,13 @@ def open_sesemi(config: SESEMIBaseConfig):
     if config.data.train is not None:
         try:
             sesemi_config_attributes.iterations_per_epoch = max(
-                len(x) // datamodule.train_batch_sizes_per_iteration[k]
+                (len(x) * (config.data.train[k].get("repeat") or 1))
+                // datamodule.train_batch_sizes_per_iteration[k]
                 if config.data.train[k].drop_last
-                else ceil(len(x) / datamodule.train_batch_sizes_per_iteration[k])
+                else ceil(
+                    (len(x) * (config.data.train[k].get("repeat") or 1))
+                    / datamodule.train_batch_sizes_per_iteration[k]
+                )
                 for k, x in datamodule.train.items()
                 if has_length(x)
             )

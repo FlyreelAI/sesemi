@@ -2,7 +2,6 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 import torch
-import torch.nn.functional as F
 
 from torch import Tensor
 from typing import Callable, Dict, Any, List, Optional

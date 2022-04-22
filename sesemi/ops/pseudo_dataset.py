@@ -29,7 +29,7 @@ from sesemi.config.structs import SESEMIPseudoDatasetConfig
 from sesemi.learners import Classifier
 from sesemi.collation import TestTimeAugmentationCollator
 from sesemi.tta import apply_model_to_test_time_augmentations
-from sesemi.utils import compute_device_names, compute_num_digits
+from sesemi.utils import compute_gpu_device_names, compute_num_digits
 
 logger = logging.getLogger(__name__)
 
@@ -138,10 +138,6 @@ def task(
                 if config.symlink_images and src_image_filename is not None:
                     os.symlink(src_image_filename, dst_image_filename)
                 else:
-                    if config.symlink_images:
-                        logger.warning(
-                            f"filename metadata for image {data_id} does not exist"
-                        )
                     image.save(dst_image_filename)
 
                 with h5py.File(
@@ -177,7 +173,7 @@ def pseudo_dataset(config: SESEMIPseudoDatasetConfig):
     os.makedirs(images_dir, exist_ok=False)
     os.makedirs(predictions_dir, exist_ok=False)
 
-    devices = compute_device_names(config.gpus)
+    devices = compute_gpu_device_names(config.gpus)
 
     process_pool = ProcessPoolExecutor(max_workers=len(devices))
 

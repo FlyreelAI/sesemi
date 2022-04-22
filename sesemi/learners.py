@@ -195,6 +195,20 @@ class Classifier(pl.LightningModule):
         logits = self.head_ema(features)
         return logits
 
+    def on_train_start(self):
+        self.logger.log_hyperparams(self.sesemi_config, {"hp_metric": 0})
+
+        # Reset all metrics after sanity checking to avoid double counting them.
+        if self.validation_top1_accuracy.mode is not None:
+            self.validation_top1_accuracy.reset()
+            if self.ema is not None:
+                self.ema_validation_top1_accuracy.reset()
+
+        if self.loss is not None:
+            self.validation_average_loss.reset()
+            if self.ema is not None:
+                self.ema_validation_average_loss.reset()
+
     def configure_optimizers(
         self,
     ) -> Union[Tuple[torch.optim.Optimizer, Dict[str, Any]], torch.optim.Optimizer]:

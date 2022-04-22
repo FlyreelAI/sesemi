@@ -3,16 +3,16 @@
 # =============================================#
 from torch.utils.data import ConcatDataset, Dataset
 
-from typing import List, Optional, Union
-from .base import register_dataset, ImageTransform
+from typing import Callable, List, Optional, Union
+from .base import DatasetRegistry
 
 
-@register_dataset
+@DatasetRegistry
 def concat(
     root: str,
     *,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     datasets: List[Dataset],
     **kwargs,
 ) -> Dataset:

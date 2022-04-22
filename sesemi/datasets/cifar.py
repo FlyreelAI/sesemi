@@ -9,74 +9,11 @@ from torch.utils.data import ConcatDataset, Dataset
 from torchvision.datasets import CIFAR10, CIFAR100
 
 from PIL import Image
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
-from .base import register_dataset, ImageTransform
+from .base import DatasetRegistry
 
-
-def _random_indices(
-    n: int, length: int, seed: Any = None, labels: Optional[List[int]] = None
-) -> List[int]:
-    """Samples `n` random indices for a dataset of length `length.
-
-    Args:
-        n: The number of random indices to sample.
-        length: The length of the original dataset.
-        seed: An optional random seed to use.
-        labels: An optional list of labels for each item in the dataset
-            to use for stratification during sampling.
-
-    Returns:
-        A list of sampled random indices.
-    """
-    assert n <= length, (
-        f"number of random indices ({n}) must be less than or "
-        f"equal to the size of the total length ({length})"
-    )
-
-    rs = np.random.RandomState(seed)
-    if labels is not None:
-        assert (
-            len(labels) == length
-        ), "number of labels must match the provided dataset length"
-
-        indices_by_labels = defaultdict(list)
-        for i, l in enumerate(labels):
-            indices_by_labels[l].append(i)
-
-        counts_by_label = {l: len(v) for l, v in indices_by_labels.items()}
-
-        num_samples_per_label = {
-            l: (c * n) // length for l, c in counts_by_label.items()
-        }
-        remainders_per_label = {l: (c * n) % length for l, c in counts_by_label.items()}
-        num_remaining_samples = sum(remainders_per_label.values())
-
-        possible_label_classes = list(remainders_per_label.keys())
-        if num_remaining_samples > 0:
-            for i in range(num_remaining_samples):
-                label_weights = [
-                    remainders_per_label[l] / num_remaining_samples
-                    for l in remainders_per_label
-                ]
-                s = rs.choice(possible_label_classes, p=label_weights)
-                remainders_per_label[s] -= 1
-                num_samples_per_label[s] += 1
-                num_remaining_samples -= 1
-
-        sample_indices_by_label = {
-            l: rs.choice(
-                indices_by_labels[l], num_samples_per_label[l], replace=False
-            ).tolist()
-            for l in indices_by_labels
-        }
-
-        print(sample_indices_by_label)
-
-        return sum(sample_indices_by_label.values(), [])
-    else:
-        indices = rs.choice(length, size=n, replace=False)
-        return indices.tolist()
+from sesemi.utils import random_indices
 
 
 class _CIFAR10(CIFAR10):
@@ -106,7 +43,7 @@ class _CIFAR10(CIFAR10):
         self.length = len(self.data)
         if self.random_subset_size is not None:
             self.length = self.random_subset_size
-            self.random_subset_indices = _random_indices(
+            self.random_subset_indices = random_indices(
                 self.random_subset_size,
                 len(self.data),
                 self.random_subset_seed,
@@ -157,7 +94,7 @@ class _CIFAR100(CIFAR100):
         self.length = len(self.data)
         if self.random_subset_size is not None:
             self.length = self.random_subset_size
-            self.random_subset_indices = _random_indices(
+            self.random_subset_indices = random_indices(
                 self.random_subset_size,
                 len(self.data),
                 self.random_subset_seed,
@@ -185,7 +122,7 @@ def _cifar(
     dataset_cls: Union[Type[_CIFAR10], Type[_CIFAR100]],
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """A CIFAR dataset builder.
@@ -238,11 +175,11 @@ def _cifar(
         return ConcatDataset(dsts)
 
 
-@register_dataset
+@DatasetRegistry
 def cifar10(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """A CIFAR-10 dataset builder.
@@ -260,11 +197,11 @@ def cifar10(
     )
 
 
-@register_dataset
+@DatasetRegistry
 def cifar100(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """A CIFAR-100 dataset builder.

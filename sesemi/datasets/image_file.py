@@ -12,7 +12,7 @@ from torchvision.datasets.folder import (
 
 from PIL import Image
 from typing import Any, Callable, List, Optional, Union
-from .base import register_dataset, ImageTransform
+from .base import DatasetRegistry
 
 
 def default_is_vaild_file(path: str) -> bool:
@@ -76,11 +76,11 @@ class ImageFile(Dataset):
         return image
 
 
-@register_dataset
+@DatasetRegistry
 def image_file(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """An image folder dataset builder.

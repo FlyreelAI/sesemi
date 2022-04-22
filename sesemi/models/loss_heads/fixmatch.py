@@ -82,7 +82,7 @@ class FixMatchLossHead(LossHead):
         )
 
         loss_weights = (weakly_augmented_probs.max(dim=-1)[0] >= self.threshold).to(
-            torch.float32
+            weakly_augmented.dtype
         )
 
         losses = F.cross_entropy(

@@ -33,7 +33,7 @@ def test_stl10(
     elif subset == "test":
         assert len(dst) == 8000
     elif subset == "unlabeled":
-        assert len(dst) == 97000
+        assert len(dst) == 100000
     elif subset is None:
         assert len(dst) == 100000
 

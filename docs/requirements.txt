@@ -1,0 +1,5 @@
+Sphinx==4.2.0
+m2r2==0.3.1
+mistune==0.8.4
+-r ../requirements.txt
+-e git+https://github.com/open-mmlab/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme

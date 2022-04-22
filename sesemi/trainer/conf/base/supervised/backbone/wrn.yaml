@@ -1,0 +1,9 @@
+# @package _global_
+learner:
+  hparams:
+    model:
+      backbone:
+        _target_: sesemi.models.backbones.resnet.WRN
+        depth: 28
+        k: 10
+        drop_rate: 0.5

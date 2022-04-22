@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /base/supervised/model
+  - /base/supervised/backbone/timm
+  - /base/supervised/head/linear
+  - /base/supervised/optimizer/sgd
+  - /base/supervised/lr_scheduler/polynomial
+learner:
+  hparams:
+    model:
+      backbone:
+        name: resnet18d

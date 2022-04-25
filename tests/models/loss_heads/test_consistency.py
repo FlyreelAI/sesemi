@@ -18,7 +18,7 @@ from .utils import initialize_loss_head_mock_inputs
 @pytest.mark.parametrize("backbone", ["supervised_backbone", "consistency_backbone"])
 @pytest.mark.parametrize("head", ["supervised_head", "consistency_head"])
 @pytest.mark.parametrize("loss_fn", ["softmax_mse_loss", "kl_div_loss"])
-def test_consistency_head(
+def test_consistency_loss_head(
     tensorboard_logger, batch_size, step, data, backbone, head, loss_fn
 ):
     mock_inputs = initialize_loss_head_mock_inputs(backbones=[backbone], heads=[head])
@@ -51,7 +51,7 @@ def test_consistency_head(
 @pytest.mark.parametrize("student_head", ["supervised_head", "consistency_head"])
 @pytest.mark.parametrize("teacher_head", ["supervised_head_ema", "consistency_head"])
 @pytest.mark.parametrize("loss_fn", ["softmax_mse_loss", "kl_div_loss"])
-def test_consistency_head(
+def test_ema_consistency_loss_head(
     tensorboard_logger,
     batch_size,
     step,

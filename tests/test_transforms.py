@@ -1,12 +1,7 @@
 import torch
-import torch.nn as nn
 
 import pytest
-import numpy as np
 import albumentations.augmentations as A
-
-from collections import OrderedDict
-from PIL import Image
 
 from sesemi.transforms import (
     AlbumentationTransform,

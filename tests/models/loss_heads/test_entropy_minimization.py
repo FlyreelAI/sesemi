@@ -13,7 +13,9 @@ from .utils import initialize_loss_head_mock_inputs
 @pytest.mark.parametrize("data", ["test", "entropy_minimization"])
 @pytest.mark.parametrize("backbone", ["supervised_backbone", "test_backbone"])
 @pytest.mark.parametrize("head", ["supervised_head", "test_head"])
-def test_consistency_head(tensorboard_logger, batch_size, step, data, backbone, head):
+def test_entropy_minimization_loss_head(
+    tensorboard_logger, batch_size, step, data, backbone, head
+):
     mock_inputs = initialize_loss_head_mock_inputs(backbones=[backbone], heads=[head])
     mock_inputs["data"][data] = (
         torch.ones((batch_size, 3, 32, 32)),

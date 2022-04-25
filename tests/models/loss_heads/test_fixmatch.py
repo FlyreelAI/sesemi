@@ -18,7 +18,7 @@ from .utils import initialize_loss_head_mock_inputs
 @pytest.mark.parametrize("student_head", ["supervised_head", "test_head"])
 @pytest.mark.parametrize("teacher_head", ["supervised_head_ema", "test_head"])
 @pytest.mark.parametrize("threshold", [0.0, 0.5, 1.0])
-def test_consistency_head(
+def test_fixmatch_loss_head(
     tensorboard_logger,
     batch_size,
     step,

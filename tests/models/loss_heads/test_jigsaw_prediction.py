@@ -12,7 +12,9 @@ from .utils import initialize_loss_head_mock_inputs
 @pytest.mark.parametrize("step", [0, 1])
 @pytest.mark.parametrize("data", ["test", "entropy_minimization"])
 @pytest.mark.parametrize("backbone", ["supervised_backbone", "test_backbone"])
-def test_consistency_head(tensorboard_logger, batch_size, step, data, backbone):
+def test_jigsaw_prediction_loss_head(
+    tensorboard_logger, batch_size, step, data, backbone
+):
     mock_inputs = initialize_loss_head_mock_inputs(backbones=[backbone])
     mock_inputs["data"][data] = (
         torch.ones((batch_size, 3, 32, 32)),

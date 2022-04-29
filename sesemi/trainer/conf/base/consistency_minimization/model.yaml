@@ -7,7 +7,7 @@ learner:
       regularization_loss_heads:
         consistency_minimization:
           head:
-            _target_: sesemi.models.heads.loss.EMAConsistencyLossHead
+            _target_: sesemi.models.loss_heads.EMAConsistencyLossHead
             data: unsupervised
             student_backbone: supervised_backbone
             teacher_backbone: supervised_backbone_ema

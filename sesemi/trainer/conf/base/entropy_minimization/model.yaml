@@ -5,6 +5,6 @@ learner:
       regularization_loss_heads:
         entropy_minimization:
           head:
-            _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
+            _target_: sesemi.models.loss_heads.EntropyMinimizationLossHead
             data: unsupervised
             backbone: supervised_backbone

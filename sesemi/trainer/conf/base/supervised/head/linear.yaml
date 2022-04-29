@@ -3,4 +3,4 @@ learner:
   hparams:
     model:
       head:
-        _target_: sesemi.models.heads.base.LinearHead
+        _target_: sesemi.models.heads.LinearHead

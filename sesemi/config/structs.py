@@ -156,6 +156,25 @@ class LearnerConfig:
 
 
 @dataclass
+class LoggerConfig:
+    """The logger's configuration.
+
+    Attributes:
+        decimation: The logging frequency.
+        log_images: Whether to log images using the logger.
+        log_metrics: Whether to log metrics using the logger.
+        log_embeddings: Whether to log embeddings using the logger.
+        log_histograms: Whether to log histograms using the logger.
+    """
+
+    decimation: int = 50
+    log_images: bool = True
+    log_metrics: bool = True
+    log_embeddings: bool = True
+    log_histograms: bool = True
+
+
+@dataclass
 class SESEMIBaseConfig:
     """The base SESEMI configuration.
 
@@ -264,6 +283,22 @@ class ClassifierModelConfig:
 
 
 @dataclass
+class ClassifierLoggerConfig(LoggerConfig):
+    """The classifier logger's configuration.
+
+    Attributes:
+        decimation: The logging frequency.
+        log_images: Whether to log images using the logger.
+        log_metrics: Whether to log metrics using the logger.
+        log_embeddings: Whether to log embeddings using the logger.
+        log_histograms: Whether to log histograms using the logger.
+        log_gradients: Whether to log gradients.
+    """
+
+    log_gradients: bool = True
+
+
+@dataclass
 class ClassifierHParams:
     """The classifier hyperparameters.
 
@@ -278,6 +313,7 @@ class ClassifierHParams:
     model: ClassifierModelConfig = ClassifierModelConfig()
     optimizer: Any = MISSING
     lr_scheduler: Optional[LRSchedulerConfig] = None
+    logger: ClassifierLoggerConfig = ClassifierLoggerConfig()
 
 
 @dataclass

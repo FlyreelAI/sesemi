@@ -2,35 +2,39 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """SESEMI learners."""
-from typing import NamedTuple, Optional, Tuple
+from functools import cached_property
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import copy
 import logging
 import os.path as osp
 import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.core.optimizer import LightningOptimizer
 
 from hydra.utils import instantiate
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanMetric
 
-from .config.structs import ClassifierHParams
+from .config.structs import ClassifierHParams, SESEMIBaseConfig
 from .models.backbones.base import Backbone
 from .models.heads.base import LinearHead
 from .utils import reduce_tensor, ema_update, copy_and_detach
 from .schedulers.weight import WeightScheduler
+from .logger import LoggerWrapper
 
 logger = logging.getLogger(__name__)
 
 
-class ValidationOutputs(NamedTuple):
+class ClassifierValidationOutputs(NamedTuple):
+    """The classifier's validation outputs."""
+
     features: torch.Tensor
     logits: Optional[torch.Tensor] = None
     probabilities: Optional[torch.Tensor] = None
@@ -40,16 +44,22 @@ class ValidationOutputs(NamedTuple):
 class Classifier(pl.LightningModule):
     """The SESEMI classifier."""
 
-    hparams: ClassifierHParams  # type: ignore
+    hparams: SESEMIBaseConfig  # type: ignore
 
-    def __init__(self, hparams: ClassifierHParams):
+    def __init__(self, hparams: ClassifierHParams, sesemi_config: SESEMIBaseConfig):
         """Initializes the module.
 
         Args:
             hparams: The classifier's hyperparameters.
+            sesemi_config: The full training configuration including the classifier's
+                hyperparameters.
         """
         super().__init__()
-        self.save_hyperparameters(hparams)
+        self.save_hyperparameters(sesemi_config)
+
+        assert (
+            hparams == sesemi_config.learner.hparams
+        ), "expected matching hyperparameters"
 
         # Instantiate shared nn.Modules
         self.shared_backbones = nn.ModuleDict()
@@ -97,9 +107,7 @@ class Classifier(pl.LightningModule):
 
         regularization_loss_head_configs = hparams.model.regularization_loss_heads or {}
         for name, loss_head_config in regularization_loss_head_configs.items():
-            self.regularization_loss_heads[name] = instantiate(
-                loss_head_config.head, logger=self.logger
-            )
+            self.regularization_loss_heads[name] = instantiate(loss_head_config.head)
             if loss_head_config.scheduler is not None:
                 self.regularization_loss_schedulers[name] = instantiate(
                     loss_head_config.scheduler
@@ -132,6 +140,16 @@ class Classifier(pl.LightningModule):
         self.ema_validation_average_loss = MeanMetric()
 
     @property
+    def classifier_hparams(self) -> ClassifierHParams:
+        """The classifier's hyperparameters."""
+        return self.hparams.learner.hparams
+
+    @cached_property
+    def logger_wrapper(self) -> LoggerWrapper:
+        """The logger wrapper."""
+        return LoggerWrapper(self.logger, self.classifier_hparams.logger)
+
+    @property
     def backbone(self) -> Backbone:
         """The supervised backbone."""
         return self.shared_backbones["supervised_backbone"]
@@ -156,21 +174,25 @@ class Classifier(pl.LightningModule):
         """Whether the model has  EMA weights."""
         return self.ema is not None
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         features = self.backbone(x)
         logits = self.head(features)
         return logits
 
-    def forward_ema(self, x):
+    def forward_ema(self, x: Tensor) -> Tensor:
         features = self.backbone_ema(x)
         logits = self.head_ema(features)
         return logits
 
-    def configure_optimizers(self):
-        optimizer = instantiate(self.hparams.optimizer, params=self.parameters())
+    def configure_optimizers(
+        self,
+    ) -> Union[Tuple[torch.optim.Optimizer, Dict[str, Any]], torch.optim.Optimizer]:
+        optimizer = instantiate(
+            self.classifier_hparams.optimizer, params=self.parameters()
+        )
 
-        if self.hparams.lr_scheduler is not None:
-            lr_dict = dict(self.hparams.lr_scheduler)
+        if self.classifier_hparams.lr_scheduler is not None:
+            lr_dict = dict(self.classifier_hparams.lr_scheduler)
             lr_dict["scheduler"] = instantiate(
                 lr_dict["scheduler"], optimizer=optimizer
             )
@@ -178,12 +200,26 @@ class Classifier(pl.LightningModule):
 
         return optimizer
 
-    def training_step(self, batch, batch_index):
+    def on_before_optimizer_step(
+        self, optimizer: LightningOptimizer, optimizer_idx: int
+    ):
+        if self.classifier_hparams.logger.log_gradients:
+            for name, value in self.named_parameters():
+                if value.grad is not None:
+                    self.logger_wrapper.log_histogram(
+                        f"optim/{name}", value.grad, step=self.global_step
+                    )
+
+    def training_step(self, batch: Dict[str, Any], batch_index: int):
         shared_features = {}
         step_outputs = {}
         if self.head is not None:
             if "supervised" in batch:
                 inputs_t, targets_t = batch["supervised"][:2]
+
+                self.logger_wrapper.log_images(
+                    "supervised/images", inputs_t, step=self.global_step
+                )
 
                 features_t = self.backbone(inputs_t)
                 shared_features["supervised_backbone"] = features_t
@@ -225,6 +261,7 @@ class Classifier(pl.LightningModule):
                 heads=self.shared_heads,
                 features=shared_features,
                 step=self.global_step,
+                logger_wrapper=self.logger_wrapper,
             )
             for name, head in self.regularization_loss_heads.items()
         }
@@ -276,14 +313,29 @@ class Classifier(pl.LightningModule):
             logger=False,
         )
 
-    def training_step_end(self, outputs):
+    def _log_gradients(self):
+        optim = self.optimizers()
+        param_group0_lr = optim.optimizer.param_groups[0]["lr"]
+        for i, param_group in enumerate(optim.optimizer.param_groups):
+            self.log(f"optim/lr/param_group/{i}", param_group["lr"], on_step=True)
+
+        self.log(
+            "lr",
+            param_group0_lr,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=False,
+        )
+
+    def training_step_end(self, outputs: Dict[str, Tensor]) -> Tensor:
         losses = []
         if "loss" in outputs:
             _, weighted_loss, _ = self._compute_weighted_training_loss(
                 loss=outputs["loss"],
                 reduction=self.loss_reduction_method,
                 scheduler=self.loss_scheduler,
-                scale_factor=self.hparams.model.loss.scale_factor,
+                scale_factor=self.classifier_hparams.model.loss.scale_factor,
                 log_prefix="train/supervised",
             )
             losses.append(weighted_loss)
@@ -294,7 +346,7 @@ class Classifier(pl.LightningModule):
                 loss=regularization_loss,
                 reduction=self.regularization_loss_reduction_methods[name],
                 scheduler=self.regularization_loss_schedulers[name],
-                scale_factor=self.hparams.model.regularization_loss_heads[
+                scale_factor=self.classifier_hparams.model.regularization_loss_heads[
                     name
                 ].scale_factor,
                 log_prefix=f"train/regularization/{name}",
@@ -331,7 +383,7 @@ class Classifier(pl.LightningModule):
 
         return loss
 
-    def training_epoch_end(self, outputs) -> None:
+    def training_epoch_end(self, outputs: List[Tensor]) -> None:
         if self.training_accuracy.mode is not None:
             self.log(
                 "train/top1",
@@ -346,20 +398,20 @@ class Classifier(pl.LightningModule):
 
     def compute_validation_outputs(
         self, inputs, targets, backbone, head
-    ) -> Optional[ValidationOutputs]:
+    ) -> Optional[ClassifierValidationOutputs]:
         features = backbone(inputs)
         if head is not None:
             logits = head(features)
             probabilities = torch.softmax(logits, dim=-1)
             loss = F.cross_entropy(logits, targets, reduction="none")
-            return ValidationOutputs(
+            return ClassifierValidationOutputs(
                 features=features,
                 logits=logits,
                 probabilities=probabilities,
                 loss=loss,
             )
         else:
-            return ValidationOutputs(
+            return ClassifierValidationOutputs(
                 features=features,
             )
 
@@ -383,7 +435,9 @@ class Classifier(pl.LightningModule):
     def validation_step_end(
         self,
         outputs: Tuple[
-            torch.Tensor, Optional[ValidationOutputs], Optional[ValidationOutputs]
+            torch.Tensor,
+            ClassifierValidationOutputs,
+            Optional[ClassifierValidationOutputs],
         ],
     ):
         targets, regular_outputs, ema_outputs = outputs
@@ -403,8 +457,16 @@ class Classifier(pl.LightningModule):
 
         return regular_outputs.features.cpu().numpy(), targets.cpu().numpy()
 
-    def log_validation_metrics(self, top1, best_top1, loss, prefix: str = "val"):
+    def log_validation_metrics(
+        self,
+        top1: Optional[float],
+        best_top1: Optional[float],
+        loss: Optional[float],
+        prefix: str = "val",
+    ):
         if top1 is not None:
+            assert best_top1 is not None
+
             self.log(
                 f"{prefix}/top1",
                 top1,
@@ -433,11 +495,18 @@ class Classifier(pl.LightningModule):
                 logger=True,
             )
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(
+        self,
+        outputs: List[
+            Tuple[
+                torch.Tensor,
+                ClassifierValidationOutputs,
+                Optional[ClassifierValidationOutputs],
+            ]
+        ],
+    ):
         if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
-            val_features = np.concatenate([x[0] for x in outputs], axis=0)
-            val_targets = np.concatenate([x[1] for x in outputs], axis=0)
-
+            hp_metric: Optional[Tensor] = None
             if self.validation_top1_accuracy.mode is not None:
                 top1 = self.validation_top1_accuracy.compute()
                 self.validation_top1_accuracy.reset()
@@ -472,6 +541,8 @@ class Classifier(pl.LightningModule):
                         prefix="ema/val",
                     )
 
+                hp_metric = ema_top1 if ema_top1 is not None else top1
+
             if self.loss is not None:
                 loss = self.validation_average_loss.compute()
                 self.validation_average_loss.reset()
@@ -480,6 +551,9 @@ class Classifier(pl.LightningModule):
                 if self.ema is not None:
                     ema_loss = self.ema_validation_average_loss.compute()
                     self.ema_validation_average_loss.reset()
+
+                if hp_metric is None:
+                    hp_metric = ema_loss if ema_loss is not None else loss
 
                 self.log_validation_metrics(None, None, loss, prefix="val")
 
@@ -490,3 +564,13 @@ class Classifier(pl.LightningModule):
                         ema_loss,
                         prefix="ema/val",
                     )
+
+            if hp_metric is not None:
+                self.log(
+                    "hp_metric",
+                    hp_metric,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=False,
+                    logger=True,
+                )

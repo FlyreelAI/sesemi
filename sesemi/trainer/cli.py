@@ -6,7 +6,6 @@ import hydra
 import logging
 import pytorch_lightning as pl
 
-from typing import Any, Dict
 from omegaconf import OmegaConf
 from hydra.utils import instantiate
 from hydra.core.config_store import ConfigStore
@@ -80,7 +79,7 @@ def open_sesemi(config: SESEMIBaseConfig):
                 config.run.num_epochs * sesemi_config_attributes.iterations_per_epoch
             )
 
-    learner = instantiate(config.learner, _recursive_=False)
+    learner = instantiate(config.learner, sesemi_config=config, _recursive_=False)
 
     trainer_config = copy_config(config.trainer) if config.trainer is not None else {}
     trainer_config["callbacks"] = [

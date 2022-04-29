@@ -113,11 +113,6 @@ def task(
     else:
         model_forward = learner.forward
 
-    if learner.has_ema and config.use_ema:
-        model_forward = learner.forward_ema
-    else:
-        model_forward = learner.forward
-
     details: Dict[str, Dict[str, Any]] = {}
     relative_index = 0
     with torch.no_grad():

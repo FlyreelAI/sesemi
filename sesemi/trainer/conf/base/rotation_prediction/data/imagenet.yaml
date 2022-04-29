@@ -8,7 +8,7 @@ data:
         image_transform: ${...supervised.dataset.image_transform}
       shuffle: True
       pin_memory: True
-      num_workers: 16
+      num_workers: 4
       drop_last: True
       collate_fn:
         _target_: sesemi.collation.RotationCollator

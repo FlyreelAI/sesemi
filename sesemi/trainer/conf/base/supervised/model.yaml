@@ -7,7 +7,7 @@ run:
 learner:
   hparams:
     model:
-      supervised_loss:
+      loss:
         callable:
           _target_: torch.nn.CrossEntropyLoss
 trainer:

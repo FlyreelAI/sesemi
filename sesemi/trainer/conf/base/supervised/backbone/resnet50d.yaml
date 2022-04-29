@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - /base/supervised/backbone/timm
+learner:
+  hparams:
+    model:
+      backbone:
+        name: resnet50d

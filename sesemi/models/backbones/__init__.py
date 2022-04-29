@@ -2,4 +2,4 @@
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
 """Backbone models."""
-from . import base, resnet, timm
+from . import base, resnet, timm, torchvision

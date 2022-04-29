@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - /base/supervised/model
-  - /base/supervised/backbone/timm
+  - /base/supervised/backbone/resnet50d
   - /base/supervised/optimizer/sgd
   - /base/supervised/lr_scheduler/polynomial
   - /base/noisy_student/model

@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /base/supervised/model/baseline
+  - /base/supervised/baseline/resnet50d
   - /base/supervised/data/imagewang
 run:
   seed: 42

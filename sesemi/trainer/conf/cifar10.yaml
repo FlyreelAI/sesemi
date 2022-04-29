@@ -1,9 +1,6 @@
 # @package _global_
 defaults:
-  - /base/supervised/model
-  - /base/supervised/backbone/cifar_resnet
-  - /base/supervised/optimizer/sgd
-  - /base/supervised/lr_scheduler/polynomial
+  - /base/supervised/baseline/cifar_resnet
   - /base/supervised/data/cifar10
 run:
   seed: 42

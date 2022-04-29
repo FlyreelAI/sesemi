@@ -7,7 +7,7 @@ learner:
           head:
             _target_: sesemi.models.heads.loss.RotationPredictionLossHead
             input_data: unsupervised
-            input_backbone: backbone
+            input_backbone: supervised_backbone
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 1.0
@@ -17,8 +17,8 @@ learner:
           head:
             _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
             input_data: unsupervised
-            input_backbone: backbone
-            predict_head: supervised
+            input_backbone: supervised_backbone
+            predict_head: supervised_head
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 1.0

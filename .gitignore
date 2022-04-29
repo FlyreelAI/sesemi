@@ -1,4 +1,5 @@
 _build
+/src
 /logs
 /data
 /runs

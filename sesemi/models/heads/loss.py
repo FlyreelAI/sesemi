@@ -136,10 +136,6 @@ class EntropyMinimizationLossHead(LossHead):
         input_data: str,
         input_backbone: str = "supervised_backbone",
         predict_head: str = "supervised_head",
-<<<<<<< HEAD
-=======
-        logger: Optional[LightningLoggerBase] = None,
->>>>>>> 4a14ce980a2b2690d32f52f030edb6a4b702974f
     ):
         """Initializes the loss head.
 

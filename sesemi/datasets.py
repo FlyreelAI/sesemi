@@ -9,16 +9,18 @@ import torch
 import numpy as np
 
 from hydra.utils import to_absolute_path
+from collections import defaultdict
 from torch.utils.data import ConcatDataset, Dataset, IterableDataset
-from torchvision.datasets import ImageFolder, CIFAR10, CIFAR100, STL10
+from torchvision.datasets import ImageFolder, CIFAR10, CIFAR100, STL10, MNIST
 from torchvision.datasets.folder import (
+    VisionDataset,
     default_loader,
     has_file_allowed_extension,
     IMG_EXTENSIONS,
 )
 
 from PIL import Image
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 DatasetBuilder = Callable[..., Union[Dataset, IterableDataset]]
 ImageTransform = Callable
@@ -26,14 +28,215 @@ ImageTransform = Callable
 DATASET_REGISTRY: Dict[str, DatasetBuilder] = {}
 
 
+def _random_indices(
+    n: int, length: int, seed: Any = None, labels: Optional[List[int]] = None
+) -> List[int]:
+    """Samples `n` random indices for a dataset of length `length.
+
+    Args:
+        n: The number of random indices to sample.
+        length: The length of the original dataset.
+        seed: An optional random seed to use.
+        labels: An optional list of labels for each item in the dataset
+            to use for stratification during sampling.
+
+    Returns:
+        A list of sampled random indices.
+    """
+    assert n <= length, (
+        f"number of random indices ({n}) must be less than or "
+        f"equal to the size of the total length ({length})"
+    )
+
+    rs = np.random.RandomState(seed)
+    if labels is not None:
+        assert (
+            len(labels) == length
+        ), "number of labels must match the provided dataset length"
+
+        indices_by_labels = defaultdict(list)
+        for i, l in enumerate(labels):
+            indices_by_labels[l].append(i)
+
+        counts_by_label = {l: len(v) for l, v in indices_by_labels.items()}
+
+        num_samples_per_label = {
+            l: (c * n) // length for l, c in counts_by_label.items()
+        }
+        remainders_per_label = {l: (c * n) % length for l, c in counts_by_label.items()}
+        num_remaining_samples = sum(remainders_per_label.values())
+
+        possible_label_classes = list(remainders_per_label.keys())
+        if num_remaining_samples > 0:
+            for i in range(num_remaining_samples):
+                label_weights = [
+                    remainders_per_label[l] / num_remaining_samples
+                    for l in remainders_per_label
+                ]
+                s = rs.choice(possible_label_classes, p=label_weights)
+                remainders_per_label[s] -= 1
+                num_samples_per_label[s] += 1
+                num_remaining_samples -= 1
+
+        sample_indices_by_label = {
+            l: rs.choice(
+                indices_by_labels[l], num_samples_per_label[l], replace=False
+            ).tolist()
+            for l in indices_by_labels
+        }
+
+        print(sample_indices_by_label)
+
+        return sum(sample_indices_by_label.values(), [])
+    else:
+        indices = rs.choice(length, size=n, replace=False)
+        return indices.tolist()
+
+
 class _ImageFolder(ImageFolder):
     """An ImageFolder dataset that adds metadata to loaded PIL images."""
+
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        loader: Callable[[str], Any] = default_loader,
+        is_valid_file: Optional[Callable[[str], bool]] = None,
+        classes: Optional[List[str]] = None,
+    ):
+        VisionDataset.__init__(
+            self, root, transform=transform, target_transform=target_transform
+        )
+
+        if classes is None:
+            classes, class_to_idx = self.find_classes(self.root)
+        else:
+            class_to_idx = {c: i for i, c in enumerate(classes)}
+
+        assert classes is not None
+
+        self.extensions = IMG_EXTENSIONS if is_valid_file is None else None
+        samples = self.make_dataset(
+            self.root, class_to_idx, self.extensions, is_valid_file
+        )
+
+        self.loader = loader
+
+        self.classes = classes
+        self.class_to_idx = class_to_idx
+        self.samples = samples
+        self.targets = [s[1] for s in samples]
+
+        self.imgs = self.samples
 
     def __getitem__(self, index: int):
         sample, target = super().__getitem__(index)
         if isinstance(sample, Image.Image):
             sample.info["filename"] = self.samples[index][0]
         return sample, target
+
+
+class _CIFAR10(CIFAR10):
+    """An CIFAR10 dataset that supports random subset sampling."""
+
+    def __init__(
+        self,
+        *args,
+        unlabeled: bool = False,
+        random_subset_size: Optional[int] = None,
+        random_subset_seed: Any = None,
+        **kwargs,
+    ):
+        """
+        Initializes the dataset.
+
+        Args:
+            unlabeled: Whether to drop the supervised targets when yielding examples.
+            random_subset_size: The size of the random subset.
+            random_subset_seed: The seed to use to generate the random subset.
+        """
+        super().__init__(*args, **kwargs)
+        self.unlabeled = unlabeled
+        self.random_subset_size = random_subset_size
+        self.random_subset_seed = random_subset_seed
+        self.random_subset_indices = None
+        self.length = len(self.data)
+        if self.random_subset_size is not None:
+            self.length = self.random_subset_size
+            self.random_subset_indices = _random_indices(
+                self.random_subset_size,
+                len(self.data),
+                self.random_subset_seed,
+                labels=self.targets,
+            )
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(
+        self, index: int
+    ) -> Union[Image.Image, Tuple[Image.Image, torch.Tensor]]:
+        if self.random_subset_indices is None:
+            item = super().__getitem__(index)
+        else:
+            item = super().__getitem__(self.random_subset_indices[index])
+
+        if self.unlabeled:
+            return item[0]
+        else:
+            return item
+
+
+class _CIFAR100(CIFAR100):
+    """An CIFAR100 dataset that supports random subset sampling."""
+
+    def __init__(
+        self,
+        *args,
+        unlabeled: bool = False,
+        random_subset_size: Optional[int] = None,
+        random_subset_seed: Any = None,
+        **kwargs,
+    ):
+        """
+        Initializes the dataset.
+
+        Args:
+            unlabeled: Whether to drop the supervised targets when yielding examples.
+            random_subset_size: The size of the random subset.
+            random_subset_seed: The seed to use to generate the random subset.
+        """
+        super().__init__(*args, **kwargs)
+        self.unlabeled = unlabeled
+        self.random_subset_size = random_subset_size
+        self.random_subset_seed = random_subset_seed
+        self.random_subset_indices = None
+        self.length = len(self.data)
+        if self.random_subset_size is not None:
+            self.length = self.random_subset_size
+            self.random_subset_indices = _random_indices(
+                self.random_subset_size,
+                len(self.data),
+                self.random_subset_seed,
+                labels=self.targets,
+            )
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(
+        self, index: int
+    ) -> Union[Image.Image, Tuple[Image.Image, torch.Tensor]]:
+        if self.random_subset_indices is None:
+            item = super().__getitem__(index)
+        else:
+            item = super().__getitem__(self.random_subset_indices[index])
+
+        if self.unlabeled:
+            return item[0]
+        else:
+            return item
 
 
 class PseudoDataset(Dataset):
@@ -178,7 +381,9 @@ def image_folder(
         An `ImageFolder` dataset.
     """
     if isinstance(subset, str):
-        return _ImageFolder(os.path.join(root, subset), transform=image_transform)
+        return _ImageFolder(
+            os.path.join(root, subset), transform=image_transform, **kwargs
+        )
     else:
         if subset is None:
             subsets = [
@@ -190,7 +395,7 @@ def image_folder(
             subsets = subset
 
         dsts = [
-            _ImageFolder(os.path.join(root, s), transform=image_transform)
+            _ImageFolder(os.path.join(root, s), transform=image_transform, **kwargs)
             for s in subsets
         ]
 
@@ -246,7 +451,7 @@ def concat(
 
 
 def _cifar(
-    dataset_cls: Union[Type[CIFAR10], Type[CIFAR100]],
+    dataset_cls: Union[Type[_CIFAR10], Type[_CIFAR100]],
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
     image_transform: Optional[ImageTransform] = None,
@@ -274,6 +479,7 @@ def _cifar(
             train=train,
             download=True,
             transform=image_transform,
+            **kwargs,
         )
     else:
         if subset is None:
@@ -293,6 +499,7 @@ def _cifar(
                 train=(s == "train"),
                 download=True,
                 transform=image_transform,
+                **kwargs,
             )
             for s in subsets
         ]
@@ -318,7 +525,7 @@ def cifar10(
         An `ImageFolder` dataset.
     """
     return _cifar(
-        CIFAR10, root, subset=subset, image_transform=image_transform, **kwargs
+        _CIFAR10, root, subset=subset, image_transform=image_transform, **kwargs
     )
 
 
@@ -340,7 +547,7 @@ def cifar100(
         An `ImageFolder` dataset.
     """
     return _cifar(
-        CIFAR100, root, subset=subset, image_transform=image_transform, **kwargs
+        _CIFAR100, root, subset=subset, image_transform=image_transform, **kwargs
     )
 
 
@@ -435,6 +642,60 @@ def image_file(
 
         dsts = [
             ImageFile(os.path.join(root, s), transform=image_transform) for s in subsets
+        ]
+
+        return ConcatDataset(dsts)
+
+
+@register_dataset
+def mnist(
+    root: str,
+    subset: Optional[Union[str, List[str]]] = None,
+    image_transform: Optional[ImageTransform] = None,
+    **kwargs,
+) -> Dataset:
+    """An MNIST dataset builder.
+
+    Args:
+        root: The path to the image folder dataset.
+        subset: The subset(s) to use. Subets include (train, test).
+        image_transform: The image transformations to apply.
+
+    Returns:
+        An `ImageFolder` dataset.
+    """
+    if isinstance(subset, str):
+        assert subset in {
+            "train",
+            "test",
+        }, f"invalid subset {subset}, only support {{train, test}}"
+        train = subset == "train"
+        return MNIST(
+            root,
+            train=train,
+            download=True,
+            transform=image_transform,
+        )
+    else:
+        if subset is None:
+            subsets = ["train", "test"]
+        else:
+            subsets = subset
+
+        for s in subsets:
+            assert s in {
+                "train",
+                "test",
+            }, f"invalid subset {subset}, only support {{train, test}}"
+
+        dsts = [
+            MNIST(
+                root,
+                train=(s == "train"),
+                download=True,
+                transform=image_transform,
+            )
+            for s in subsets
         ]
 
         return ConcatDataset(dsts)

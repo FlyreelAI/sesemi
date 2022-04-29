@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 import logging
 import os.path as osp
+import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
@@ -435,7 +436,7 @@ class Classifier(pl.LightningModule):
         self,
         outputs: Tuple[
             torch.Tensor,
-            Optional[ClassifierValidationOutputs],
+            ClassifierValidationOutputs,
             Optional[ClassifierValidationOutputs],
         ],
     ):
@@ -464,6 +465,8 @@ class Classifier(pl.LightningModule):
         prefix: str = "val",
     ):
         if top1 is not None:
+            assert best_top1 is not None
+
             self.log(
                 f"{prefix}/top1",
                 top1,
@@ -497,7 +500,7 @@ class Classifier(pl.LightningModule):
         outputs: List[
             Tuple[
                 torch.Tensor,
-                Optional[ClassifierValidationOutputs],
+                ClassifierValidationOutputs,
                 Optional[ClassifierValidationOutputs],
             ]
         ],

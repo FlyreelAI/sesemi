@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import logging
 import numpy as np
 import os.path as osp
+import numpy as np
 import pytorch_lightning as pl
 
 from pytorch_lightning.trainer.states import RunningStage
@@ -58,6 +59,8 @@ class Classifier(pl.LightningModule):
             sesemi_config: The full training configuration including the classifier's
                 hyperparameters.
             hparams: The classifier's hyperparameters.
+            sesemi_config: The full training configuration including the classifier's
+                hyperparameters.
         """
         super().__init__()
         self.save_hyperparameters()
@@ -475,7 +478,7 @@ class Classifier(pl.LightningModule):
         self,
         outputs: Tuple[
             torch.Tensor,
-            Optional[ClassifierValidationOutputs],
+            ClassifierValidationOutputs,
             Optional[ClassifierValidationOutputs],
         ],
     ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:

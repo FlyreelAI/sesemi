@@ -38,6 +38,7 @@ using a semi-supervised method.
     - /base/supervised/optimizer/sgd                        # SGD optimizer defaults.
     - /base/supervised/lr_scheduler/cosine                  # Cosine lr scheduling defaults.
     - /base/consistency_minimization/model                  # Consistency minimization with EMA.
+    - _self_
     run:
         seed: 42
         devices: 1                                          # Update as necessary.

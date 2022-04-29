@@ -43,8 +43,8 @@ We currently support variants of the following methods:
 
 ### Built-in Configurations
 
-| Config Name                      | Dataset    | Methods    | Training Logs   |
-|----------------------------------|------------|-----------------|
+| Config Name                      | Dataset    | Methods         | Training Logs   |
+|----------------------------------|------------|-----------------|-----------------|
 | [cifar10_wrn_28_10](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar10_wrn_28_10.yaml)                | CIFAR-10   | Supervised | N/A             |
 | [cifar10](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar10.yaml)                          | CIFAR-10   | Supervised | N/A             |
 | [cifar100](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar100.yaml)                         | CIFAR-100   | Supervised | N/A             |

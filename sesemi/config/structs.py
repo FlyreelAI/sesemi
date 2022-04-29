@@ -91,7 +91,28 @@ class DataLoaderConfig:
     drop_last: Optional[bool] = False
     timeout: float = 0
     worker_init_fn: Optional[Any] = None
-    _target_: str = "sesemi.DataLoader"
+    repeat: Optional[int] = None
+    _target_: str = "sesemi.RepeatableDataLoader"
+
+
+@dataclass
+class IgnoredDataConfig:
+    """A configuration to specify data loaders that should be ignored.
+
+    Hydra currently has the limitation that `Dict[str, Optional[DataLoaderConfig]]`
+    is not considered a valid type to use with a structured config due to the optional value.
+    This makes it impossible to override a configuration and set one of the data loaders
+    as null. To enable ignoring data loaders in these kind of dictionaries, this supplemental
+    configuration supports marking which data loader not to build. A benefit of this approach
+    is that the configuration will still be accessible elsewhere.
+
+    Attributes:
+        train: An optional dictionary marking which data loaders to ignore.
+        extra: An optional dictionary marking which data loaders to ignore.
+    """
+
+    train: Optional[Dict[str, bool]] = None
+    extra: Optional[Dict[str, bool]] = None
 
 
 @dataclass

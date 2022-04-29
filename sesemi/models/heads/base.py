@@ -20,6 +20,13 @@ class Head(nn.Module):
     in_features: int
     out_features: int
 
+    def freeze(self):
+        """Freezes the head's parameters."""
+        for m in self.modules():
+            m.eval()
+            for param in m.parameters():
+                param.requires_grad = False
+
 
 class LinearHead(Head):
     def __init__(self, in_features: int, out_features: int, freeze: bool = False):

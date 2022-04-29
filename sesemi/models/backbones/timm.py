@@ -6,6 +6,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 from sesemi.utils import freeze_module
 
+from sesemi.utils import freeze_module
+
 from .base import Backbone
 from ..utils import load_torch_hub_model
 

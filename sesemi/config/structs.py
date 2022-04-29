@@ -95,6 +95,26 @@ class DataLoaderConfig:
 
 
 @dataclass
+class IgnoredDataConfig:
+    """A configuration to specify data loaders that should be ignored.
+
+    Hydra currently has the limitation that `Dict[str, Optional[DataLoaderConfig]]`
+    is not considered a valid type to use with a structured config due to the optional value.
+    This makes it impossible to override a configuration and set one of the data loaders
+    as null. To enable ignoring data loaders in these kind of dictionaries, this supplemental
+    configuration supports marking which data loader not to build. A benefit of this approach
+    is that the configuration will still be accessible elsewhere.
+
+    Attributes:
+        train: An optional dictionary marking which data loaders to ignore.
+        extra: An optional dictionary marking which data loaders to ignore.
+    """
+
+    train: Optional[Dict[str, bool]] = None
+    extra: Optional[Dict[str, bool]] = None
+
+
+@dataclass
 class DataConfig:
     """The data group configuration.
 
@@ -103,11 +123,16 @@ class DataConfig:
             mapped into dictionaries of data batches.
         val: An optional data loader configuration to use during validation.
         test: An optional data loader configuration to use for testing.
+        extra: An optional dictionary of data loader configurations. This configuration is directly
+            mapped into dictionaries of data batches.
     """
 
     train: Optional[Dict[str, DataLoaderConfig]] = None
     val: Optional[DataLoaderConfig] = None
     test: Optional[DataLoaderConfig] = None
+    extra: Optional[Dict[str, DataLoaderConfig]] = None
+
+    ignored: IgnoredDataConfig = IgnoredDataConfig()
 
 
 @dataclass

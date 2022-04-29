@@ -75,6 +75,7 @@ class SESEMIDataModule(pl.LightningDataModule):
         return instantiate(dataset_config, root=dataset_root)
 
     def _build(self):
+        ignored_train = self.config.ignored.train or {}
         self.train, self.val, self.test = None, None, None
         self.train_batch_sizes = {}
         self.train_batch_sizes_per_gpu = {}
@@ -83,9 +84,11 @@ class SESEMIDataModule(pl.LightningDataModule):
             self.train = {
                 key: self._build_dataset(value.dataset)
                 for key, value in self.config.train.items()
+                if not ignored_train.get(key, False)
             }
 
-            for key, value in self.config.train.items():
+            for key in self.train:
+                value = self.config.train[key]
                 if value.batch_size is not None:
                     assert value.batch_size_per_gpu is None
                     if self.accelerator == "dp":
@@ -103,14 +106,14 @@ class SESEMIDataModule(pl.LightningDataModule):
 
             self.train_batch_sizes_per_iteration = {
                 key: self.train_batch_sizes_per_gpu[key] * max(self.num_gpus, 1)
-                for key in self.config.train.keys()
+                for key in self.train.keys()
             }
 
             self.train_batch_sizes = {
                 key: self.train_batch_sizes_per_gpu[key]
                 if self.accelerator == "ddp"
                 else self.train_batch_sizes_per_iteration[key]
-                for key in self.config.train.keys()
+                for key in self.train.keys()
             }
 
         if self.config.val is not None:
@@ -118,6 +121,11 @@ class SESEMIDataModule(pl.LightningDataModule):
 
         if self.config.test is not None:
             self.test = self._build_dataset(self.config.test.dataset)
+
+        if self.config.extra is not None:
+            self.extra = {
+                k: self._build_dataset(v.dataset) for k, v in self.config.extra.items()
+            }
 
     def train_dataloader(
         self,
@@ -194,3 +202,17 @@ class SESEMIDataModule(pl.LightningDataModule):
         assert self.test is not None
         assert self.config.test is not None
         return self._build_evaluation_data_loader(self.config.test, self.test)
+
+    def extra_dataloader(
+        self, name: str
+    ) -> Optional[Union[DataLoader, List[DataLoader]]]:
+        if self.config.extra is None or self.extra is None:
+            return None
+
+        ignored_extra = self.config.ignored.extra or {}
+        if ignored_extra.get(name, False):
+            return None
+
+        return self._build_evaluation_data_loader(
+            self.config.extra[name], self.extra[name]
+        )

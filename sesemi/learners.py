@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import logging
+import numpy as np
 import os.path as osp
 import numpy as np
 import pytorch_lightning as pl
@@ -23,6 +24,7 @@ from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import MeanMetric
 
 from natsort import natsorted
+from tqdm import tqdm
 
 from .config.structs import ClassifierHParams, SESEMIBaseConfig
 from .models.backbones.base import Backbone
@@ -445,7 +447,7 @@ class Classifier(pl.LightningModule):
             ClassifierValidationOutputs,
             Optional[ClassifierValidationOutputs],
         ],
-    ):
+    ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
         targets, regular_outputs, ema_outputs = outputs
 
         if regular_outputs.probabilities is not None:
@@ -453,6 +455,7 @@ class Classifier(pl.LightningModule):
         if regular_outputs.loss is not None:
             self.validation_average_loss.update(regular_outputs.loss)
 
+        ema_features_np: Optional[np.ndarray] = None
         if ema_outputs is not None:
             if ema_outputs.probabilities is not None:
                 self.ema_validation_top1_accuracy.update(
@@ -460,8 +463,13 @@ class Classifier(pl.LightningModule):
                 )
             if ema_outputs.loss is not None:
                 self.ema_validation_average_loss.update(ema_outputs.loss)
+            ema_features_np = ema_outputs.features.cpu().numpy()
 
-        return regular_outputs.features.cpu().numpy(), targets.cpu().numpy()
+        return (
+            regular_outputs.features.cpu().numpy(),
+            ema_features_np,
+            targets.cpu().numpy(),
+        )
 
     def log_validation_metrics(
         self,
@@ -471,8 +479,6 @@ class Classifier(pl.LightningModule):
         prefix: str = "val",
     ):
         if top1 is not None:
-            assert best_top1 is not None
-
             self.log(
                 f"{prefix}/top1",
                 top1,
@@ -501,18 +507,108 @@ class Classifier(pl.LightningModule):
                 logger=True,
             )
 
+    def _compute_knn_evaluation_features(
+        self,
+    ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+        knn_evaluation_dataloader = self.trainer.datamodule.extra_dataloader(
+            "knn_evaluation"
+        )
+        if knn_evaluation_dataloader is None:
+            return None
+
+        train_features_l = []
+        train_targets_l = []
+
+        for image, targets in tqdm(
+            knn_evaluation_dataloader, desc="kNN Evaluation", leave=False
+        ):
+            feats = self.backbone(image.to(self.device))
+            train_features_l.append(feats.cpu().numpy())
+            train_targets_l.append(targets.cpu().numpy())
+
+        train_features = np.concatenate(train_features_l, axis=0)
+        train_targets = np.concatenate(train_targets_l, axis=0)
+
+        return train_features, train_targets
+
+    def _compute_knn_evaluation_score(
+        self,
+        train_features: np.ndarray,
+        train_targets: np.ndarray,
+        val_features: np.ndarray,
+        val_targets: np.ndarray,
+    ) -> float:
+        """
+        Adapted from `knn_predict` in the following notebook:
+        https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
+        """
+        val_features_tensor = torch.from_numpy(val_features).to(torch.float32)
+        train_features_tensor = torch.from_numpy(train_features).to(torch.float32)
+
+        train_targets_tensor = torch.from_numpy(train_targets).to(torch.float32)
+
+        # compute cos similarity between each feature vector and feature bank ---> [B, N]
+        normalized_val_features = F.normalize(val_features_tensor, dim=-1)
+        normalized_train_features_transpose = F.normalize(
+            train_features_tensor, dim=-1
+        ).T
+
+        sim_matrix = torch.mm(
+            normalized_val_features,
+            normalized_train_features_transpose,
+        )
+
+        # [B, K]
+        sim_weight, sim_indices = sim_matrix.topk(k=200, dim=-1)
+
+        # [B, K]
+        sim_labels = torch.gather(
+            train_targets_tensor.expand(val_features_tensor.size(0), -1),
+            dim=-1,
+            index=sim_indices,
+        )
+        sim_weight = (sim_weight / 0.07).exp()
+
+        # counts for each class
+        one_hot_label = torch.zeros(
+            val_features_tensor.size(0) * 200,
+            self.hparams.num_classes,
+            device=sim_labels.device,
+        )
+        # [B*K, C]
+        one_hot_label = one_hot_label.scatter(
+            dim=-1, index=sim_labels.view(-1, 1), value=1.0
+        )
+        # weighted score ---> [B, C]
+        pred_scores = torch.sum(
+            one_hot_label.view(
+                val_features_tensor.size(0), -1, self.hparams.num_classes
+            )
+            * sim_weight.unsqueeze(dim=-1),
+            dim=1,
+        )
+
+        pred_labels = pred_scores.argmax(dim=-1)
+        pred_labels_np = pred_labels.cpu().numpy()
+        knn_evaluation_score = (pred_labels_np == val_targets).sum() / max(
+            pred_labels_np.shape[0], 1
+        )
+
+        return knn_evaluation_score
+
     def validation_epoch_end(
         self,
-        outputs: List[
-            Tuple[
-                torch.Tensor,
-                ClassifierValidationOutputs,
-                Optional[ClassifierValidationOutputs],
-            ]
-        ],
+        outputs: List[Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]],
     ):
         if self.trainer.state.stage != RunningStage.SANITY_CHECKING:
-            hp_metric: Optional[Tensor] = None
+            val_features = np.concatenate([x[0] for x in outputs], axis=0)
+            val_targets = np.concatenate([x[2] for x in outputs], axis=0)
+
+            ema_val_features: Optional[np.ndarray] = None
+            if outputs[0][1] is not None:
+                ema_val_features = np.concatenate([x[1] for x in outputs], axis=0)
+
+            hp_metric: Optional[float] = None
             if self.validation_top1_accuracy.mode is not None:
                 top1 = self.validation_top1_accuracy.compute()
                 self.validation_top1_accuracy.reset()
@@ -548,6 +644,47 @@ class Classifier(pl.LightningModule):
                     )
 
                 hp_metric = ema_top1 if ema_top1 is not None else top1
+
+            knn_evaluation_features = self._compute_knn_evaluation_features()
+            if knn_evaluation_features is not None:
+                train_features, train_targets = knn_evaluation_features
+                knn_evaluation_score = self._compute_knn_evaluation_score(
+                    train_features, train_targets, val_features, val_targets
+                )
+
+                ema_knn_evaluation_score: Optional[float] = None
+                if ema_val_features is not None:
+                    ema_knn_evaluation_score = self._compute_knn_evaluation_score(
+                        train_features, train_targets, ema_val_features, val_targets
+                    )
+
+                self.log(
+                    "val/knn_evaluation/top1",
+                    knn_evaluation_score,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=True,
+                    logger=True,
+                )
+                if ema_knn_evaluation_score is not None:
+                    if hp_metric is None:
+                        hp_metric = ema_loss if ema_loss is not None else loss
+
+                    self.log(
+                        "val/knn_evaluation/top1",
+                        knn_evaluation_score,
+                        on_step=False,
+                        on_epoch=True,
+                        prog_bar=True,
+                        logger=True,
+                    )
+
+                if hp_metric is None:
+                    hp_metric = (
+                        ema_knn_evaluation_score
+                        if ema_knn_evaluation_score is not None
+                        else knn_evaluation_score
+                    )
 
             if self.loss is not None:
                 loss = self.validation_average_loss.compute()

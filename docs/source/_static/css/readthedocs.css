@@ -1,0 +1,18 @@
+.header-logo {
+    background-image: url("../images/logo.png");
+    background-size: 122px 60px;
+    height: 60px;
+    width: 122px;
+    top: -30px;
+}
+
+@media screen and (min-width: 1100px) {
+    .header-logo {
+        background-size: 163px 80px;
+        height: 80px;
+        width: 163px;
+        top: -25px;
+        left: 60px;
+    }
+  }
+  

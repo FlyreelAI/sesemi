@@ -4,6 +4,7 @@ defaults:
   - /base/supervised/data/imagewang
   - /base/fixmatch/model
   - /base/fixmatch/data/imagewang
+  - _self_
 run:
   seed: 42
   devices: 2

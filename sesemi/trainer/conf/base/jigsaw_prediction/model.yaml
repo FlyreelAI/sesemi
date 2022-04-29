@@ -5,6 +5,6 @@ learner:
       regularization_loss_heads:
         jigsaw_prediction:
           head:
-            _target_: sesemi.loss_heads.loss.JigsawPredictionLossHead
+            _target_: sesemi.models.loss_heads.JigsawPredictionLossHead
             data: unsupervised
             backbone: supervised_backbone

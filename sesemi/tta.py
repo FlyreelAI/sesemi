@@ -32,7 +32,7 @@ def apply_model_to_test_time_augmentations(
             tensors.
 
     Returns:
-        A list of batches of logits corresponding to the input images.
+        A list of batches of outputs corresponding to the inputs.
     """
     if batch_compatible_tensors:
         data_index_by_shape = defaultdict(list)

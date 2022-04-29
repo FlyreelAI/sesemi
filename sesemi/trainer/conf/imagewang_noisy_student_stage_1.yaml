@@ -3,6 +3,7 @@ defaults:
   - /base/supervised/baseline/resnet50d
   - /base/supervised/data/imagewang
   - /base/noisy_student/model
+  - _self_
 run:
   seed: 42
   devices: 2

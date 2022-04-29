@@ -5,6 +5,7 @@ defaults:
   - /base/jigsaw_prediction/model
   - /base/jigsaw_prediction/data/imagewang
   - /base/entropy_minimization/model
+  - _self_
 run:
   seed: 42
   devices: 2

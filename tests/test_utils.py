@@ -219,7 +219,7 @@ def test_ema_update_parameters(decay, copy_non_floating_point):
     )
 
     # Not expecting the batch norm statistics to be modified as they are not registered as parameters.
-    assert check_state_dicts_equal(
+    check_state_dicts_equal(
         ema_module.bn.state_dict(), original_ema_module.bn.state_dict()
     )
 
@@ -361,9 +361,7 @@ def test_freeze_module():
     assert module.linear.weight.grad is None
     assert module.linear.bias.grad is None
 
-    assert check_state_dicts_equal(
-        module.bn.state_dict(), original_module.bn.state_dict()
-    )
+    check_state_dicts_equal(module.bn.state_dict(), original_module.bn.state_dict())
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,8 @@
 # @package _global_
 defaults:
-  - /base/supervised/model/baseline
+  - /base/supervised/baseline/resnet50d
   - /base/supervised/data/stl10
+  - _self_
 run:
   seed: 42
   devices: 2

@@ -4,6 +4,7 @@ defaults:
   - /base/supervised/data/imagewoof
   - /base/entropy_minimization/model
   - /base/entropy_minimization/data/imagenet
+  - _self_
 run:
   seed: 42
   devices: 2

@@ -367,7 +367,7 @@ class Classifier(pl.LightningModule):
     def training_step_end(self, outputs: Dict[str, Tensor]) -> Tensor:
         losses = []
         if "loss" in outputs:
-            supservised_loss: LossOutputs = outputs["loss"]
+            supservised_loss = outputs["loss"]
             _, weighted_loss, _ = self._compute_weighted_training_loss(
                 losses=supservised_loss["losses"],
                 weights=supservised_loss["weights"],
@@ -379,7 +379,7 @@ class Classifier(pl.LightningModule):
             losses.append(weighted_loss)
 
         weighted_regularization_losses = []
-        regularization_losses: Dict[str, LossOutputs] = outputs["regularization_losses"]
+        regularization_losses: Dict[str, Any] = outputs["regularization_losses"]
         for name, regularization_loss in regularization_losses.items():
             _, weighted_regularization_loss, _ = self._compute_weighted_training_loss(
                 losses=regularization_loss["losses"],
@@ -403,7 +403,6 @@ class Classifier(pl.LightningModule):
         self.log("train/loss", loss)
 
         self._log_learning_rates()
-
         return loss
 
     def on_train_batch_end(

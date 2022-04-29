@@ -4,6 +4,7 @@ defaults:
   - /base/supervised/data/imagewang
   - /base/rotation_prediction/model
   - /base/rotation_prediction/data/imagewang
+  - _self_
 run:
   seed: 42
   devices: 2

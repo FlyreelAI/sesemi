@@ -13,7 +13,7 @@ learner:
             teacher_backbone: supervised_backbone_ema
             student_head: supervised_head
             teacher_head: supervised_head_ema
-            loss_fn: mse
+            loss_fn: softmax_mse_loss
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 10.0

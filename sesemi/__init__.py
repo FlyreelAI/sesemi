@@ -3,6 +3,8 @@
 # =============================================#
 """Top-level module imports."""
 
+__version__ = "1.0.0b"
+
 # NOTE: Imports PyTorch Lightning first to mitigate an import error.
 import pytorch_lightning as _pl
 

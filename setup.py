@@ -4,6 +4,9 @@ from setuptools import find_packages, setup
 with open("requirements.txt", "r") as f:
     requirements = f.read().strip().splitlines()
 
+with open("requirements-dev.txt", "r") as f:
+    requirements_dev = f.read().strip().splitlines()
+
 with open(
     path.join(path.abspath(path.dirname(__file__)), "README.md"), encoding="utf-8"
 ) as f:
@@ -11,7 +14,7 @@ with open(
 
 setup(
     name="sesemi",
-    version="0.3.0",
+    version="1.0.0b1",
     description="Image Classification with Self-Supervised Regularization",
     author="Flyreel AI",
     author_email="ai@flyreel.co",
@@ -20,6 +23,7 @@ setup(
     url="https://github.com/FlyreelAI/sesemi/",
     include_package_data=True,
     install_requires=requirements,
+    extras_require={"dev": requirements_dev},
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[

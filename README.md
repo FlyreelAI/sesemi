@@ -1,128 +1,75 @@
 <p><p align="center"><img height="350px" src="https://github.com/FlyreelAI/sesemi/raw/master/assets/sesemi-banner.png" /></p></p>
 
 # Image Classification with Self-Supervised Regularization
-<span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.6-green" /> <img src="https://img.shields.io/badge/pytorch->=1.10.0-light" /> <img src="https://img.shields.io/badge/%20-contributions--welcome-5429E6" /></span>
+<span><img src="https://img.shields.io/badge/license-Apache-blue" /> <img src="https://img.shields.io/badge/python->=3.7-green" /> <img src="https://img.shields.io/badge/pytorch->=1.11.0-light" /> <img src="https://img.shields.io/badge/coverage-91%25-green" /> <img src="https://img.shields.io/badge/%20-contributions%20welcome-5429E6" /></span>
 
 ## Why SESEMI?
-SESEMI is an open source image classification library built on PyTorch and PyTorch Lightning. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.
+
+SESEMI is an open source image classification library built on PyTorch Lightning. SESEMI enables various modern supervised classifiers to be robust semi-supervised learners based on the principles of self-supervised regularization.
 
 ### Highlights and Features
 
-* Integration with the popular [PyTorch Image Models](https://github.com/rwightman/pytorch-image-models) (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of [supported backbones](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/models/backbones/timm.py)
+* Integration with the popular [PyTorch Image Models](https://github.com/rwightman/pytorch-image-models) (timm) library for access to contemporary, high-performance supervised architectures with optional pretrained ImageNet weights. See the list of [recommended backbones](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/models/backbones/timm.py)
 * Demonstrated utility on large realistic image datasets and is currently competitive on the [FastAI Imagenette benchmarks](https://github.com/fastai/imagenette)
 * Easy to use out-of-the-box requiring little hyper-parameter tuning across many tasks related to supervised learning, semi-supervised learning, and learning with noisy labels. In most use cases, one only needs to tune the learning rate, batch size, and backbone architecture
 * Simply add unlabeled data for improved image classification without any tricks
 
 Our goal is to expand the utility of SESEMI for the ML/CV practitioner by incorporating the latest advances in self-supervised, semi-supervised, and few-shot learning to boost the accuracy performance of conventional supervised classifiers in the limited labeled data setting. If you find this work useful please star this repo to let us know. Contributions are also welcome!
 
-## Installation
-Our preferred installation method is Docker, however, you can use any virtual environment tool to install the necessary Python dependencies. Below are instructions for both these methods.
+### Documentation
 
-### Pip
+Click [here](https://sesemi.readthedocs.io/) to view the full documentation hosted on readthedocs. 
+For convenience, we have provided links to some of the content below:
 
-To use pip, configure a virtual environment of choice with at least Python 3.6 (e.g. [miniconda](https://docs.conda.io/en/latest/miniconda.html)). Then install the requirements as follows:
+* [Overview](https://sesemi.readthedocs.io/en/latest/overview.html)
+* [Installation](https://sesemi.readthedocs.io/en/latest/installation.html)
+* [Quickstart](https://sesemi.readthedocs.io/en/latest/quickstart.html)
+* [Tutorials](https://sesemi.readthedocs.io/en/latest/tutorials/project_setup.html)
+* [Methods](https://sesemi.readthedocs.io/en/latest/methods/rotation_prediction.html)
+* [Ops](https://sesemi.readthedocs.io/en/latest/ops/inference.html)
+* [API Reference](https://sesemi.readthedocs.io/en/latest/api/sesemi.html)
 
-```bash
-$ pip install git+https://github.com/FlyreelAI/sesemi.git
-```
+### Supported Methods
 
-While the above installs the latest version from the main branch, a version from PyPI can be installed instead as follows:
+We currently support variants of the following methods:
 
-```bash
-$ pip install sesemi
-```
+* [Rotation Prediction](https://sesemi.readthedocs.io/en/latest/methods/rotation_prediction.html)
+* [Entropy Minimization](https://sesemi.readthedocs.io/en/latest/methods/entropy_minimization.html)
+* [Jigsaw Prediction](https://sesemi.readthedocs.io/en/latest/methods/jigsaw_prediction.html)
+* [Pi Model](https://sesemi.readthedocs.io/en/latest/methods/pi_model.html)
+* [Mean Teacher](https://sesemi.readthedocs.io/en/latest/methods/mean_teacher.html)
+* [FixMatch](https://sesemi.readthedocs.io/en/latest/methods/fixmatch.html)
+* [Noisy Student](https://sesemi.readthedocs.io/en/latest/methods/noisy_student.html)
 
-### Docker
+### Built-in Configurations
 
-If you would like to use docker, then ensure you have it installed by following the instructions [here](https://docs.docker.com/get-docker/). The Dockerfile at the root can be used to build an image with the 
-code in this repository. To build the image, run the following `bash` command :
+| Config Name                      | Dataset    | Methods    | Training Logs   |
+|----------------------------------|------------|-----------------|
+| [cifar10_wrn_28_10](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar10_wrn_28_10.yaml)                | CIFAR-10   | Supervised | N/A             |
+| [cifar10](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar10.yaml)                          | CIFAR-10   | Supervised | N/A             |
+| [cifar100](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/cifar100.yaml)                         | CIFAR-100   | Supervised | N/A             |
+| [imagewang_consistency](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_consistency.yaml)            | Imagewang   | Mean Teacher | N/A             |
+| [imagewang_entmin](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_entmin.yaml)                 | Imagewang   | Entropy Minimization | N/A     |
+| [imagewang_fixmatch_randaugment](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_fixmatch_randaugment.yaml)   | Imagewang   | FixMatch | N/A     |
+| [imagewang_fixmatch](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_fixmatch.yaml)   | Imagewang   | FixMatch | N/A     |
+| [imagewang_jigsaw_entmin](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_jigsaw_entmin.yaml)   | Imagewang   | Jigsaw Prediction + Entropy Minimization | N/A     |
+| [imagewang_noisy_student_stage_1](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_noisy_student_stage_1.yaml)   | Imagewang   | Noisy Student | N/A     |
+| [imagewang_noisy_student_stage_n](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_noisy_student_stage_n.yaml)   | Imagewang   | Noisy Student | N/A     |
+| [imagewang_rotation_entmin](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_rotation_entmin.yaml)   | Imagewang   | Rotation Prediction + Entropy Minimization | N/A     |
+| [imagewang_rotation](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang_rotation.yaml)   | Imagewang   | Rotation Prediction | N/A     |
+| [imagewang](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewang.yaml)   | Imagewang   | Supervised | N/A     |
+| [imagewoof_entmin](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewoof_entmin.yaml)   | Imagewoof   | Entropy Minimization | N/A     |
+| [imagewoof_rotation](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewoof_rotation.yaml)   | Imagewoof   | Rotation Prediction | N/A     |
+| [imagewoof](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/imagewoof.yaml)   | Imagewoof   | Supervised | N/A     |
+| [stl10](https://github.com/FlyreelAI/sesemi/blob/master/sesemi/trainer/conf/stl10.yaml)   | STL-10   | Supervised | N/A     |
 
-```bash
-$ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest
-$ DOCKER_BUILDKIT=1 docker build \
-    --build-arg USER_ID=${USER_ID} \
-    -t ${SESEMI_IMAGE} https://github.com/FlyreelAI/sesemi.git
-```
+## Copyright
 
-Note that your OS user ID is obtained through the bash command `id -u`. This command will create an image named
-`sesemi:latest`.
-
-## Getting Started
-
-You can find more detailed documentation which is hosted [here](https://flyreelai.github.io/sesemi/), however, this section will guide you through the process of using SESEMI to train a model on [FastAI's imagewoof2 dataset](https://github.com/fastai/imagenette#imagewoof). If you don't have access to a GPU machine, 
-training will work but will take a very long time.
-
-1. Create a directory for the experiment and enter it.
-
-    ```bash
-    $ mkdir sesemi-experiments
-    $ cd sesemi-experiments
-    $ mkdir data runs .cache
-    ```
-
-2. Download and extract the imagewoof2 dataset to the data directory.
-
-    ```bash
-    $ curl https://s3.amazonaws.com/fast-ai-imageclas/imagewoof2.tgz | tar -xzv -C ./data
-    ```
-
-3. Run training using SESEMI for 80 epochs. You should get 90-91% accuracy on the imagewoof2 dataset, which is competitive on the [FastAI leaderboard](https://github.com/fastai/imagenette#imagewoof-leaderboard), using a standard training protocol + unlabeled data, without fancy tricks.
-
-    If you're not using docker this can be done as follows:
-
-    ```bash
-    $ open_sesemi -cn imagewoof_rotation
-    ```
-
-    If you use docker and have [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) installed you can instead use:
-
-    ```bash
-    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest GPUS=all
-    $ docker run \
-        --gpus ${GPUS} \
-        -u ${USER_ID} \
-        --rm --ipc=host \
-        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
-        -w /home/appuser/sesemi-experiments \
-        ${SESEMI_IMAGE} \
-        open_sesemi -cn imagewoof_rotation
-    ```
-
-    The training logs with all relevant training statistics (accuracy, losses, learning rate, etc.) are written to the `./runs` directory. You can use [TensorBoard](https://www.tensorflow.org/tensorboard) to view and monitor them in your browser during training.
-    
-    ```bash
-    $ tensorboard --logdir ./runs
-    ```
-    
-3. Run evaluation on the trained checkpoint.
-
-    Without docker:
-
-    ```bash
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt)
-    $ open_sesemi -cn imagewoof_rotation \
-        run.mode=VALIDATE \
-        run.pretrained_checkpoint_path=$CHECKPOINT_PATH
-    ```
-
-    With docker:
-
-    ```bash
-    $ USER_ID=$(id -u) SESEMI_IMAGE=sesemi:latest GPUS=all
-    $ CHECKPOINT_PATH=$(echo ./runs/imagewoof_rotation/*/lightning_logs/version_0/checkpoints/last.ckpt)
-    $ docker run \
-        --gpus ${GPUS} \
-        -u ${USER_ID} \
-        --rm --ipc=host \
-        --mount type=bind,src=$(pwd),dst=/home/appuser/sesemi-experiments/ \
-        -w /home/appuser/sesemi-experiments \
-        ${SESEMI_IMAGE} \
-        open_sesemi -cn imagewoof_rotation \
-            run.mode=VALIDATE \
-            run.pretrained_checkpoint_path=$CHECKPOINT_PATH
-    ```
+We have released SESEMI under the permissive Apache 2.0 license.
+Any contributions made will also be subject to the same licensing.
 
 ## Citation
+
 If you find this work useful, consider citing the related paper:
 
 ```

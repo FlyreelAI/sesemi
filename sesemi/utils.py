@@ -164,16 +164,36 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str, strict: bool = False
 
     pretrained_state_dict = checkpoint["state_dict"]
     pretrained_state_dict.pop("best_validation_top1_accuracy", None)
+    pretrained_state_dict.pop("best_ema_validation_top1_accuracy", None)
 
     if not strict:
         current_state_dict = model.state_dict()
-        if "fc.weight" in pretrained_state_dict:
-            if "fc.weight" not in current_state_dict or (
-                pretrained_state_dict["fc.weight"].shape
-                != current_state_dict["fc.weight"].shape
-            ):
-                pretrained_state_dict.pop("fc.weight")
-                pretrained_state_dict.pop("fc.bias")
+        pretrained_head_keys = [
+            x
+            for x in pretrained_state_dict
+            if x.startswith("shared_heads.supervised_head.")
+        ]
+        current_head_keys = [
+            x
+            for x in current_state_dict
+            if x.startswith("shared_heads.supervised_head.")
+        ]
+
+        remove_head = False
+        if set(pretrained_head_keys) == set(current_head_keys):
+            for k in pretrained_head_keys:
+                if pretrained_state_dict[k].shape != current_state_dict[k].shape:
+                    remove_head = True
+                    break
+
+        if remove_head:
+            pretrained_ema_head_keys = [
+                x
+                for x in pretrained_state_dict
+                if x.startswith("shared_heads.supervised_head_ema.")
+            ]
+            for k in pretrained_head_keys + pretrained_ema_head_keys:
+                pretrained_state_dict.pop(k)
 
         incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
         if incompatible_keys.missing_keys:

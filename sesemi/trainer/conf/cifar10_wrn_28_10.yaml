@@ -1,6 +1,7 @@
 # @package _global_
 defaults:
   - /base/supervised/baseline/wrn_28_10
+  - _self_
 run:
   seed: 42
   devices: 1

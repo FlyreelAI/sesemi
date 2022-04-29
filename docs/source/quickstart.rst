@@ -73,61 +73,7 @@ Hydra
 
 To get details on how you can use Hydra CLIs differently, you can also run:
 
-.. code-block:: bash
-
-  $ open_sesemi --hydra-help
-
-  Hydra (1.1.1)
-  See https://hydra.cc for more info.
-
-  == Flags ==
-  --help,-h : Application's help
-  --hydra-help : Hydra's help
-  --version : Show Hydra's version and exit
-  --cfg,-c : Show config instead of running [job|hydra|all]
-  --resolve : Used in conjunction with --cfg, resolve config interpolations before printing.
-  --package,-p : Config package to show
-  --run,-r : Run a job
-  --multirun,-m : Run multiple jobs with the configured launcher and sweeper
-  --shell-completion,-sc : Install or Uninstall shell completion:
-      Bash - Install:
-      eval "$(open_sesemi -sc install=bash)"
-      Bash - Uninstall:
-      eval "$(open_sesemi -sc uninstall=bash)"
-
-      Fish - Install:
-      open_sesemi -sc install=fish | source
-      Fish - Uninstall:
-      open_sesemi -sc uninstall=fish | source
-
-      Zsh - Install:
-      Zsh is compatible with the Bash shell completion, see the [documentation](https://hydra.cc/docs/next/tutorials/basic/running_your_app/tab_completion#zsh-instructions) for details.
-      eval "$(open_sesemi -sc install=bash)"
-      Zsh - Uninstall:
-      eval "$(open_sesemi -sc uninstall=bash)"
-
-  --config-path,-cp : Overrides the config_path specified in hydra.main().
-                      The config_path is relative to the Python file declaring @hydra.main()
-  --config-name,-cn : Overrides the config_name specified in hydra.main()
-  --config-dir,-cd : Adds an additional config dir to the config search path
-  --info,-i : Print Hydra information [all|config|defaults|defaults-tree|plugins|searchpath]
-  Overrides : Any key=value arguments to override config values (use dots for.nested=overrides)
-
-  == Configuration groups ==
-  Compose your configuration from those groups (For example, append hydra/job_logging=disabled to command line)
-
-  hydra: config
-  hydra/env: default
-  hydra/help: default
-  hydra/hydra_help: default
-  hydra/hydra_logging: default, disabled, hydra_debug, none
-  hydra/job_logging: default, disabled, none, stdout
-  hydra/launcher: basic
-  hydra/output: default
-  hydra/sweeper: basic
-
-
-  Use '--cfg hydra' to Show the Hydra config.
+.. command-output:: open_sesemi --hydra-help
 
 One thing to note is that you can install tab completion capabilities for various shells by invoking one
 of the enumerated installation commands. For example to configure shell completion with bash:

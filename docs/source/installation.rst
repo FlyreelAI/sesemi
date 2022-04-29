@@ -20,6 +20,12 @@ To use pip follow these instructions:
      .. code-block:: bash
           
         $ pip install git+https://github.com/FlyreelAI/sesemi.git
+   
+   * If instead there is a specific branch you wish to install:
+   
+     .. code-block:: bash
+          
+        $ pip install git+https://github.com/FlyreelAI/sesemi/archive/branch.zip
       
    * You can also install an officially released version from PyPI, though it may be slightly behind the master branch:
       

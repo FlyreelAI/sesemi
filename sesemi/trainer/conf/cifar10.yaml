@@ -2,6 +2,7 @@
 defaults:
   - /base/supervised/baseline/cifar_resnet
   - /base/supervised/data/cifar10
+  - _self_
 run:
   seed: 42
   devices: 1

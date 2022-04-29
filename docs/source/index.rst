@@ -10,11 +10,11 @@ Contents
    installation
    quickstart
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Blogs
+.. .. toctree::
+..    :maxdepth: 2
+..    :caption: Blogs
 
-   A Gentle Introduction to SESEMI <https://sesemi.readthedocs.io/en/latest/>
+..    A Gentle Introduction to SESEMI <https://sesemi.readthedocs.io/en/latest/>
 
 .. toctree::
    :maxdepth: 2
@@ -22,12 +22,12 @@ Contents
 
    tutorials/project_setup
    tutorials/hydra
-   tutorials/supervised_training
-   tutorials/semi_supervised_training
-   tutorials/evaluating_model
+   tutorials/training
+   tutorials/evaluation
    tutorials/adding_new_method
    tutorials/adding_new_dataset
    tutorials/adding_new_backbone
+   tutorials/contributions
 
 .. toctree::
    :maxdepth: 2
@@ -54,15 +54,11 @@ Contents
 
    api/sesemi
    api/sesemi.config
+   api/sesemi.datasets
    api/sesemi.models
    api/sesemi.ops
    api/sesemi.schedulers
    api/sesemi.trainer
-   
-.. automodule:: sesemi.collation
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Indices and Tables
 ------------------

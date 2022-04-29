@@ -57,10 +57,10 @@ def run_trainer(
     return std, err, p.returncode
 
 
-def check_state_dicts_equal(
+def state_dicts_equal(
     x: Dict[str, torch.Tensor], y: Dict[str, torch.Tensor], **kwargs
 ) -> bool:
-    """Checks if both state dicts are the equivalent."""
+    """Return if both state dicts are the equivalent."""
     equal = list(x.keys()) == list(y.keys())
     if not equal:
         return False
@@ -73,6 +73,18 @@ def check_state_dicts_equal(
         equal = torch.allclose(v, y[k].to(v.device), **kwargs)
 
     return equal
+
+
+def check_state_dicts_equal(
+    x: Dict[str, torch.Tensor], y: Dict[str, torch.Tensor], **kwargs
+):
+    assert state_dicts_equal(x, y, **kwargs)
+
+
+def check_state_dicts_not_equal(
+    x: Dict[str, torch.Tensor], y: Dict[str, torch.Tensor], **kwargs
+):
+    assert not state_dicts_equal(x, y, **kwargs)
 
 
 def check_image_transform(

@@ -138,8 +138,8 @@ define a configuration, 'mnist_lenet5_cosine.yaml`, that uses them:
     - /base/supervised/lr_scheduler/polynomial
   run:
     seed: 42
-    gpus: 1
-    batch_size_per_gpu: 128
+    devices: 1
+    batch_size_per_device: 128
     num_epochs: 100
     id: mnist_lenet5_cosine
   learner:

@@ -102,7 +102,6 @@ to define a desired batch sizes per GPU independent of the acceleration method u
 .. figure:: _static/images/pytorch-lightning-logo.png
     :align: center
 
-
 ^^^^^^^^^^^^^^
 Configurations
 ^^^^^^^^^^^^^^
@@ -130,39 +129,6 @@ We support command-line interfaces (CLIs) for training and evaluating models as 
 different operations (ops). A benefit of using Hydra for configuration is that our CLIs are fully defined
 by underlying structured configuration objects (i.e. schemas). For training and evaluation we expose
 the `open_sesemi` command which will be elaborated on in subsequent tutorials. As a preview, the default
-CLI configuration is shown below::
+CLI configuration is shown below:
 
-    run:
-        seed: null
-        num_epochs: null
-        num_iterations: null
-        gpus: -1
-        num_nodes: 1
-        accelerator: null
-        batch_size_per_gpu: null
-        data_root: ./data
-        id: default
-        dir: ./runs
-        mode: FIT
-        resume_from_checkpoint: null
-        pretrained_checkpoint_path: null
-    data:
-        train: null
-        val: null
-        test: null
-    learner:
-        _target_: sesemi.Classifier
-        hparams:
-            num_classes: ???
-            model:
-                backbone: ???
-                supervised_loss:
-                    callable: ???
-                    scheduler: null
-                    reduction: mean
-                    scale_factor: 1.0
-                regularization_loss_heads: null
-                ema: null
-            optimizer: ???
-            lr_scheduler: null
-    trainer: null
+.. program-output:: open_sesemi --cfg job

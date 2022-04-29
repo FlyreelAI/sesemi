@@ -4,6 +4,7 @@ defaults:
   - /base/supervised/data/imagewoof
   - /base/rotation_prediction/model
   - /base/rotation_prediction/data/imagenet
+  - _self_
 run:
   seed: 42
   devices: 2

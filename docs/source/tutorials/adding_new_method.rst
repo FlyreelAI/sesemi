@@ -305,121 +305,6 @@ after importing the defaults by running the following command:
 
   $ open_sesemi -cd configs -cn custom_imagewang_fixmatch --cfg job
 
-  run:
-    seed: null
-    num_epochs: 80
-    num_iterations: null
-    gpus: -1
-    num_nodes: 1
-    accelerator: dp
-    batch_size_per_gpu: null
-    data_root: ./data/imagewang
-    id: default
-    dir: ./runs
-    mode: FIT
-    resume_from_checkpoint: null
-    pretrained_checkpoint_path: null
-  data:
-    train:
-      supervised:
-        dataset:
-          root: null
-          subset: train
-          image_transform:
-            _target_: sesemi.transforms.train_transforms
-            random_resized_crop: true
-            resize: 256
-            crop_dim: 224
-            scale:
-            - 0.3
-            - 1.0
-          _target_: sesemi.dataset
-          name: image_folder
-        batch_size: null
-        batch_size_per_gpu: null
-        shuffle: true
-        sampler: null
-        batch_sampler: null
-        num_workers: 4
-        collate_fn: null
-        pin_memory: true
-        drop_last: true
-        timeout: 0.0
-        worker_init_fn: null
-        _target_: sesemi.DataLoader
-    val:
-      dataset:
-        root: null
-        subset: val
-        image_transform:
-          _target_: sesemi.transforms.center_crop_transforms
-          resize: 256
-          crop_dim: 224
-        _target_: sesemi.dataset
-        name: image_folder
-      batch_size: null
-      batch_size_per_gpu: null
-      shuffle: false
-      sampler: null
-      batch_sampler: null
-      num_workers: 4
-      collate_fn: null
-      pin_memory: true
-      drop_last: false
-      timeout: 0.0
-      worker_init_fn: null
-      _target_: sesemi.DataLoader
-    test: null
-  learner:
-    _target_: sesemi.Classifier
-    hparams:
-      num_classes: 10
-      model:
-        backbone:
-          _target_: sesemi.PyTorchImageModels
-          name: resnet50d
-          freeze: false
-          pretrained: false
-          global_pool: avg
-          drop_rate: 0.5
-        loss:
-          head:
-            _target_: sesemi.models.loss_heads.SupervisedLossHead
-            loss_fn:
-              _target_: torch.nn.CrossEntropyLoss
-              reduction: none
-          scheduler: null
-          reduction: mean
-          scale_factor: 1.0
-        regularization_loss_heads: null
-        ema: null
-      optimizer:
-        _target_: torch.optim.SGD
-        lr: 0.1
-        momentum: 0.9
-        nesterov: true
-        weight_decay: 0.0005
-      lr_scheduler:
-        scheduler:
-          _target_: sesemi.PolynomialLR
-          warmup_epochs: 10
-          iters_per_epoch: ${sesemi:iterations_per_epoch}
-          warmup_lr: 0.001
-          lr_pow: 0.5
-          max_iters: ${sesemi:max_iterations}
-        frequency: 1
-        interval: step
-        monitor: null
-        strict: true
-        name: null
-  trainer:
-    callbacks:
-    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
-      monitor: val/top1
-      mode: max
-      save_top_k: 1
-      save_last: true
-
 Using the defaults instead of manually specifying everything can make it easier to
 focus on the components that you want to override while keeping everything else fixed.
 
@@ -439,6 +324,26 @@ For reference, here are the relevant config data structures:
 .. code-block:: python
 
   @dataclass
+  class IgnoredDataConfig:
+      """A configuration to specify data loaders that should be ignored.
+
+      Hydra currently has the limitation that `Dict[str, Optional[DataLoaderConfig]]`
+      is not considered a valid type to use with a structured config due to the optional value.
+      This makes it impossible to override a configuration and set one of the data loaders
+      as null. To enable ignoring data loaders in these kind of dictionaries, this supplemental
+      configuration supports marking which data loader not to build. A benefit of this approach
+      is that the configuration will still be accessible elsewhere.
+
+      Attributes:
+          train: An optional dictionary marking which data loaders to ignore.
+          extra: An optional dictionary marking which data loaders to ignore.
+      """
+
+      train: Optional[Dict[str, bool]] = None
+      extra: Optional[Dict[str, bool]] = None
+
+
+  @dataclass
   class DataConfig:
       """The data group configuration.
 
@@ -447,11 +352,16 @@ For reference, here are the relevant config data structures:
               mapped into dictionaries of data batches.
           val: An optional data loader configuration to use during validation.
           test: An optional data loader configuration to use for testing.
+          extra: An optional dictionary of data loader configurations. This configuration is directly
+              mapped into dictionaries of data batches.
       """
 
       train: Optional[Dict[str, DataLoaderConfig]] = None
       val: Optional[DataLoaderConfig] = None
       test: Optional[DataLoaderConfig] = None
+      extra: Optional[Dict[str, DataLoaderConfig]] = None
+
+      ignored: IgnoredDataConfig = IgnoredDataConfig()
   
   
   @dataclass
@@ -463,8 +373,8 @@ For reference, here are the relevant config data structures:
       Attributes:
           dataset: The dataset configuration.
           batch_size: An optional batch size to use for a PyTorch data loader. Cannot be set with
-              `batch_size_per_gpu`.
-          batch_size_per_gpu: An optional batch size per GPU to use. Cannot be set with `batch_size`.
+              `batch_size_per_device`.
+          batch_size_per_device: An optional batch size per device to use. Cannot be set with `batch_size`.
           shuffle: Whether to shuffle the dataset at each epoch.
           sampler: An optional sampler configuration.
           batch_sampler: An optional batch sampler configuration.
@@ -474,6 +384,9 @@ For reference, here are the relevant config data structures:
           drop_last: Whether to drop the last unevenly sized batch.
           timeout: The timeout to use get data batches from workers.
           worker_init_fn: An optional callable that is invoked for each worker on initialization.
+          repeat: The number of times to repeat the dataset on iteration.
+          prefetch_factor: The number of samples to prefetch per worker.
+          persistent_workers: Whether or not to persist workers after iterating through a dataset.
 
       References:
           * https://pytorch.org/docs/1.6.0/data.html?highlight=dataloader#torch.utils.data.DataLoader
@@ -481,7 +394,7 @@ For reference, here are the relevant config data structures:
 
       dataset: DatasetConfig = field(default_factory=DatasetConfig)
       batch_size: Optional[int] = None
-      batch_size_per_gpu: Optional[int] = None
+      batch_size_per_device: Optional[int] = None
       shuffle: bool = False
       sampler: Optional[Any] = None
       batch_sampler: Optional[Any] = None
@@ -491,7 +404,10 @@ For reference, here are the relevant config data structures:
       drop_last: Optional[bool] = False
       timeout: float = 0
       worker_init_fn: Optional[Any] = None
-      _target_: str = "sesemi.DataLoader"
+      repeat: Optional[int] = None
+      prefetch_factor: Optional[int] = 2
+      persistent_workers: Optional[bool] = False
+      _target_: str = "sesemi.RepeatableDataLoader"
 
 Note that the named training data loaders map directly to the named
 data batches in the training lookup table. We will just need to add
@@ -648,8 +564,8 @@ if you strapped for GPUs you can approximate the global batch size by utilizing 
     - /base/supervised/data/imagewang
   run:
     seed: 42
-    gpus: 2
-    batch_size_per_gpu: 16
+    devices: 2
+    batch_size_per_device: 16
     num_epochs: 100
     id: custom_imagewang_fixmatch
   learner:

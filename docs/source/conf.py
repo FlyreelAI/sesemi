@@ -36,6 +36,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinxcontrib.programoutput",
     "m2r2",
 ]
 
@@ -58,13 +59,31 @@ html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 html_theme_options = {
     "logo_url": "https://sesemi.readthedocs.io/en/latest/",
     "menu": [
-        {"name": "Installation"},
-        {"name": "Quickstart"},
-        {"name": "Blogs"},
-        {"name": "Tutorials"},
-        {"name": "Methods"},
-        {"name": "Ops"},
-        {"name": "API Reference"},
+        {
+            "name": "Installation",
+            "url": "https://sesemi.readthedocs.io/en/latest/installation.html",
+        },
+        {
+            "name": "Quickstart",
+            "url": "https://sesemi.readthedocs.io/en/latest/quickstart.html",
+        },
+        # {"name": "Blogs", "url": "https://github.com/open-mmlab/"},
+        {
+            "name": "Tutorials",
+            "url": "https://sesemi.readthedocs.io/en/latest/tutorials/project_setup.html",
+        },
+        {
+            "name": "Methods",
+            "url": "https://sesemi.readthedocs.io/en/latest/methods/rotation_prediction.html",
+        },
+        {
+            "name": "Ops",
+            "url": "https://sesemi.readthedocs.io/en/latest/ops/inference.html",
+        },
+        {
+            "name": "API Reference",
+            "url": "https://sesemi.readthedocs.io/en/latest/api/sesemi.html",
+        },
     ],
 }
 

@@ -26,10 +26,17 @@ from tqdm import tqdm
 
 from sesemi.utils import copy_config
 
-from .utils import run_trainer, check_state_dicts_equal, load_tensorboard_scalar_events
+from .utils import (
+    run_trainer,
+    check_state_dicts_equal,
+    check_state_dicts_not_equal,
+    load_tensorboard_scalar_events,
+)
 
 
-def compute_metrics(backbone, head, dataset, device: str = "cuda") -> Dict[str, float]:
+def compute_metrics(
+    backbone, head, dataset, device: str = "cuda", batch_size: int = 128
+) -> Dict[str, float]:
     features_arr: List[np.ndarray] = []
     logits_arr: List[np.ndarray] = []
 
@@ -43,7 +50,7 @@ def compute_metrics(backbone, head, dataset, device: str = "cuda") -> Dict[str, 
         backbone = backbone.to(device).eval()
         head = head.to(device).eval()
 
-        dataloader = DataLoader(dataset, batch_size=128)
+        dataloader = DataLoader(dataset, batch_size=batch_size)
         for image, target in tqdm(dataloader):
             image = image.to(device)
             target = target.to(device)
@@ -104,12 +111,11 @@ def get_experiment_filenames(run_dir: str, run_id: str) -> Dict[str, str]:
 @pytest.mark.parametrize(
     "num_iterations,warmup_iters,val_check_interval,check_val_every_n_epoch,checkpoint_on_train_step,min_top_1",
     [
-        (10, 5, 1, None, True, None),
-        (1000, 100, 100, None, False, None),
-        (20000, 2000, None, 20, False, 0.94),
+        (10, 5, 1, 1, True, None),
+        (1000, 100, 100, 1, False, None),
     ],
 )
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="insufficient GPUs")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="insufficient GPUs")
 def test_learner_strategy(
     tmp_path,
     strategy,
@@ -121,6 +127,7 @@ def test_learner_strategy(
     min_top_1,
 ):
     seed = 42
+    batch_size = 32
 
     pl.seed_everything(seed)
 
@@ -138,6 +145,7 @@ def test_learner_strategy(
         run=dict(
             seed=seed,
             data_root=str(data_root),
+            batch_size_per_device=batch_size,
             dir=str(run_dir),
             strategy=strategy,
             devices=2,
@@ -204,36 +212,41 @@ def test_learner_strategy(
         classifier.eval()
         classifier.to("cuda")
 
-        val_metrics = compute_metrics(classifier.backbone, classifier.head, val_dataset)
+        val_metrics = compute_metrics(
+            classifier.backbone, classifier.head, val_dataset, batch_size=batch_size
+        )
 
         assert np.isclose(val_metrics["top1"], val_top1_by_step[i - 1], atol=1e-2)
-        assert np.isclose(val_metrics["loss"], val_loss_by_step[i - 1], atol=2)
 
-    for x in ["start", "end"]:
-        ckpt0_path = osp.join(debug_dir, f"checkpoint-worker-0-{x}.ckpt")
-        ckpt1_path = osp.join(debug_dir, f"checkpoint-worker-1-{x}.ckpt")
-        with open(ckpt0_path, "rb") as ckpt0_file, open(ckpt1_path, "rb") as ckpt1_file:
-            ckpt0 = torch.load(ckpt0_file)
-            ckpt1 = torch.load(ckpt1_file)
-            assert check_state_dicts_equal(ckpt0["state_dict"], ckpt1["state_dict"])
+    if strategy == "ddp":
+        for x in ["start", "end"]:
+            ckpt0_path = osp.join(debug_dir, f"checkpoint-worker-0-{x}.ckpt")
+            ckpt1_path = osp.join(debug_dir, f"checkpoint-worker-1-{x}.ckpt")
+            with open(ckpt0_path, "rb") as ckpt0_file, open(
+                ckpt1_path, "rb"
+            ) as ckpt1_file:
+                ckpt0 = torch.load(ckpt0_file)
+                ckpt1 = torch.load(ckpt1_file)
+                check_state_dicts_equal(ckpt0["state_dict"], ckpt1["state_dict"])
 
     ckpt0_path = osp.join(debug_dir, f"checkpoint-worker-0-start.ckpt")
     ckpt1_path = osp.join(debug_dir, f"checkpoint-worker-0-end.ckpt")
     with open(ckpt0_path, "rb") as ckpt0_file, open(ckpt1_path, "rb") as ckpt1_file:
         ckpt0 = torch.load(ckpt0_file)
         ckpt1 = torch.load(ckpt1_file)
-        assert not check_state_dicts_equal(ckpt0["state_dict"], ckpt1["state_dict"])
+        check_state_dicts_not_equal(ckpt0["state_dict"], ckpt1["state_dict"])
 
-    if checkpoint_on_train_step:
-        for i in range(1, num_iterations + 1):
-            ckpt0_path = osp.join(debug_dir, f"checkpoint-worker-0-train-{i}.ckpt")
-            ckpt1_path = osp.join(debug_dir, f"checkpoint-worker-1-train-{i}.ckpt")
-            with open(ckpt0_path, "rb") as ckpt0_file, open(
-                ckpt1_path, "rb"
-            ) as ckpt1_file:
-                ckpt0 = torch.load(ckpt0_file)
-                ckpt1 = torch.load(ckpt1_file)
-                assert check_state_dicts_equal(ckpt0["state_dict"], ckpt1["state_dict"])
+    if strategy == "ddp":
+        if checkpoint_on_train_step:
+            for i in range(1, num_iterations + 1):
+                ckpt0_path = osp.join(debug_dir, f"checkpoint-worker-0-train-{i}.ckpt")
+                ckpt1_path = osp.join(debug_dir, f"checkpoint-worker-1-train-{i}.ckpt")
+                with open(ckpt0_path, "rb") as ckpt0_file, open(
+                    ckpt1_path, "rb"
+                ) as ckpt1_file:
+                    ckpt0 = torch.load(ckpt0_file)
+                    ckpt1 = torch.load(ckpt1_file)
+                    check_state_dicts_equal(ckpt0["state_dict"], ckpt1["state_dict"])
 
     if min_top_1 is not None:
         best_top_1 = max(val_top1.values())

@@ -5,6 +5,7 @@ defaults:
   - /base/supervised/optimizer/sgd
   - /base/supervised/lr_scheduler/polynomial
   - /base/noisy_student/model
+  - _self_
 run:
   seed: 42
   devices: 2

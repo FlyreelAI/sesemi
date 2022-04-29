@@ -1,5 +1,6 @@
 defaults:
   - /ops/inference
+  - _self_
 test_time_augmentation:
   _target_: sesemi.tta.MultiCropTTA
   resize: 256

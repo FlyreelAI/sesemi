@@ -33,35 +33,6 @@ Usage
 ^^^^^
 
 A sample built-in configuration that can be used to generate pseudo-datasets from the
-imagewang dataset is expanded below. It can be adapated for other datasets as well::
+imagewang dataset is expanded below. It can be adapated for other datasets as well:
 
-  .. code-block:: bash
-
-  $ python -m sesemi.ops.pseudo_dataset -cn imagewang_noisy_student_stage_n \
-      output_dir=${OUTPUT_DIR} \
-      checkpoint_path=${CHECKPOINT_PATH} \
-      dataset.root=${DATASET_ROOT} \
-      --cfg job
-
-  checkpoint_path: ${CHECKPOINT_PATH}
-  seed: 42
-  output_dir: ${OUTPUT_DIR}
-  dataset:
-    root: ${DATASET_ROOT}
-    subset:
-    - val
-    - unsup
-    image_transform: null
-    _target_: sesemi.dataset
-    name: image_folder
-  preprocessing_transform:
-    _target_: sesemi.transforms.center_crop_transforms
-    resize: 256
-    crop_dim: 224
-  test_time_augmentation: null
-  postaugmentation_transform: null
-  image_getter: null
-  gpus: -1
-  batch_size: 16
-  num_workers: 6
-  symlink_images: true
+.. command-output:: python -m sesemi.ops.pseudo_dataset -cn imagewang_noisy_student_pseudo_dataset output_dir='${OUTPUT_DIR}' checkpoint_path='${CHECKPOINT_PATH}' dataset.root='${DATASET_ROOT}' --cfg job

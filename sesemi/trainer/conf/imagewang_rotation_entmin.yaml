@@ -4,6 +4,7 @@ defaults:
   - /base/supervised/data/imagewang
   - /base/rotation_entropy_minimization/model
   - /base/rotation_entropy_minimization/data/imagewang
+  - _self_
 run:
   seed: 42
   devices: 2

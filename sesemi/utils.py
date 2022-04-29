@@ -3,7 +3,9 @@
 # =============================================#
 """Utility functions."""
 import numpy as np
-import os, errno
+import os
+import errno
+import copy
 import torch
 import logging
 
@@ -202,3 +204,37 @@ def copy_config(
     return OmegaConf.to_container(
         config, resolve=True, structured_config_mode=structured_config_mode
     )
+
+
+def ema_update(
+    ema_module: nn.Module,
+    module: nn.Module,
+    decay: float,
+    method: str = "states",
+    copy_non_floating_point: bool = True,
+):
+    """Computes in-place the EMA parameters from the original parameters."""
+    if method == "parameters":
+        for ema_param, param in zip(ema_module.parameters(), module.parameters()):
+            ema_param.data.mul_(decay).add_(param.data, alpha=(1.0 - decay))
+    elif method == "states":
+        for ema_state, state in zip(
+            ema_module.state_dict().values(), module.state_dict().values()
+        ):
+            if ema_state.dtype.is_floating_point:
+                ema_state.data.mul_(decay).add_(state.data, alpha=(1.0 - decay))
+            elif copy_non_floating_point:
+                ema_state.data.copy_(state.data)
+    else:
+        raise ValueError(f"invalid ema update method {method}")
+
+
+def copy_and_detach(module: Optional[nn.Module]) -> Optional[nn.Module]:
+    """Detaches a new module from the computational graph after copying."""
+    if module is None:
+        return None
+
+    new_module = copy.deepcopy(module)
+    for param in new_module.parameters():
+        param.detach_()
+    return new_module

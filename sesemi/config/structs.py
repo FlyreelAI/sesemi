@@ -3,7 +3,7 @@
 # =============================================#
 """Omegaconf structured configurations."""
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from omegaconf.dictconfig import DictConfig
 from omegaconf.omegaconf import MISSING
 from enum import Enum
@@ -240,6 +240,8 @@ class EMAConfig:
     """
 
     decay: float = 0.999
+    method: str = "states"
+    copy_non_floating_point: bool = True
 
 
 @dataclass
@@ -314,6 +316,7 @@ class SESEMIPseudoDatasetConfig:
         num_workers: The number of workers to use for data loaders.
         symlink_images: Whether to use symlinks for images in the
             pseudo-labeled dataset rather than copying the image.
+        use_ema: Whether to use the EMA weights if available.
     """
 
     checkpoint_path: str = MISSING
@@ -328,6 +331,7 @@ class SESEMIPseudoDatasetConfig:
     batch_size: int = 16
     num_workers: int = 6
     symlink_images: bool = True
+    use_ema: bool = True
 
 
 @dataclass

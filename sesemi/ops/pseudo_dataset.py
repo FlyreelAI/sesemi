@@ -76,7 +76,7 @@ def default_image_getter(x) -> Image.Image:
 
 
 def apply_model_to_test_time_augmentations(
-    model: nn.Module,
+    model: Callable[[torch.Tensor], torch.Tensor],
     device: str,
     data: List[List[torch.Tensor]],
     batch_compatible_tensors: bool = True,
@@ -200,7 +200,7 @@ def task(
     configure_log(hydra_config.hydra.job_logging, hydra_config.hydra.verbose)
     HydraConfig.instance().set_config(hydra_config)
 
-    learner = Classifier.load_from_checkpoint(
+    learner: Classifier = Classifier.load_from_checkpoint(
         to_absolute_path(config.checkpoint_path), map_location=device
     )
     learner.eval()
@@ -240,13 +240,21 @@ def task(
     num_samples = len(dataset)
     num_digits = _num_digits(num_samples)
 
+    if learner.has_ema and config.use_ema:
+        model_forward = learner.forward_ema
+    else:
+        model_forward = learner.forward
+
     details: Dict[str, Dict[str, Any]] = {}
     relative_index = 0
     with torch.no_grad():
         iterable = tqdm(dataloader) if task_id == 0 else dataloader
         for i, (images, data_tensors) in enumerate(iterable):
             logits = apply_model_to_test_time_augmentations(
-                learner, device, data_tensors, batch_compatible_tensors=True
+                model_forward,
+                device,
+                data_tensors,
+                batch_compatible_tensors=True,
             )
             probabilities = [torch.softmax(l, dim=-1) for l in logits]
             avg_logits = [torch.mean(x, dim=0) for x in logits]

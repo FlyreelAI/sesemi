@@ -3,6 +3,7 @@
 # =============================================#
 """Backbones for the torchvision repository."""
 import logging
+from sesemi.utils import freeze_module
 import torch.nn as nn
 
 from torchvision.models.feature_extraction import create_feature_extractor
@@ -45,7 +46,7 @@ class TorchVisionBackbone(nn.Module):  # (Backbone):
         self.dropout = nn.Dropout(p=drop_rate)
 
         if freeze:
-            self.freeze()
+            freeze_module(self)
 
     def forward(self, x):
         return self.dropout(self.encoder(x)["flatten"])

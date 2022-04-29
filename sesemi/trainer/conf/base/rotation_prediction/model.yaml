@@ -6,5 +6,5 @@ learner:
         rotation_prediction:
           head:
             _target_: sesemi.models.heads.loss.RotationPredictionLossHead
-            input_data: rotation_prediction
-            input_backbone: supervised_backbone
+            data: rotation_prediction
+            backbone: supervised_backbone

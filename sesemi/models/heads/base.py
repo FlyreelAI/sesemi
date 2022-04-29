@@ -6,6 +6,8 @@ import torch.nn as nn
 
 from torch import Tensor
 
+from sesemi.utils import freeze_module
+
 
 class Head(nn.Module):
     """The interface for image classification heads.
@@ -33,7 +35,7 @@ class LinearHead(Head):
         self.out_features = out_features
         self.lin = nn.Linear(in_features, out_features)
         if freeze:
-            self.freeze()
+            freeze_module(self)
 
     def forward(self, inputs: Tensor) -> Tensor:
         return self.lin(inputs)

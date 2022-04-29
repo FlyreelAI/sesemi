@@ -9,13 +9,11 @@ import torch.nn.functional as F
 from torch import Tensor
 from typing import Dict, Any, Optional
 
+from sesemi.losses import get_loss_fn
+from sesemi.logger import LoggerWrapper
+
 from ..backbones.base import Backbone
 from .base import Head
-from ...losses import (
-    softmax_mse_loss,
-    kl_div_loss,
-)
-from ...logger import LoggerWrapper
 
 
 class LossHead(nn.Module):
@@ -68,8 +66,8 @@ class RotationPredictionLossHead(LossHead):
 
     def __init__(
         self,
-        input_data: str,
-        input_backbone: str = "supervised_backbone",
+        data: str,
+        backbone: str = "supervised_backbone",
         num_pretext_classes: int = 4,
     ):
         """Initializes the loss head.
@@ -80,13 +78,13 @@ class RotationPredictionLossHead(LossHead):
             num_pretext_classes: Number of pretext labels.
         """
         super().__init__()
-        self.input_data = input_data
-        self.input_backbone = input_backbone
+        self.data = data
+        self.backbone = backbone
         self.num_pretext_classes = num_pretext_classes
 
     def build(self, backbones: Dict[str, Backbone], heads: Dict[str, Head], **kwargs):
         self.fc_unsupervised = nn.Linear(
-            backbones[self.input_backbone].out_features, self.num_pretext_classes
+            backbones[self.backbone].out_features, self.num_pretext_classes
         )
 
     def forward(
@@ -99,8 +97,8 @@ class RotationPredictionLossHead(LossHead):
         logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
-        inputs, targets = data[self.input_data]
-        feats = backbones[self.input_backbone](inputs)
+        inputs, targets = data[self.data]
+        feats = backbones[self.backbone](inputs)
         logits = self.fc_unsupervised(feats)
         loss_u = F.cross_entropy(logits, targets, reduction="none")
 
@@ -117,12 +115,14 @@ class JigsawPredictionLossHead(RotationPredictionLossHead):
 
     def __init__(
         self,
-        input_data: str,
-        input_backbone: str = "supervised_backbone",
+        data: str,
+        backbone: str = "supervised_backbone",
         num_pretext_classes: int = 6,
     ):
         super(JigsawPredictionLossHead, self).__init__(
-            input_data, num_pretext_classes=num_pretext_classes
+            data,
+            backbone=backbone,
+            num_pretext_classes=num_pretext_classes,
         )
 
 
@@ -133,21 +133,21 @@ class EntropyMinimizationLossHead(LossHead):
 
     def __init__(
         self,
-        input_data: str,
-        input_backbone: str = "supervised_backbone",
-        predict_head: str = "supervised_head",
+        data: str,
+        backbone: str = "supervised_backbone",
+        head: str = "supervised_head",
     ):
         """Initializes the loss head.
 
         Args:
-            input_data: The key used to get the unlabeled input data.
-            input_backbone: The key used to get the backbone for feature extraction.
-            predict_head: The prediction module used to compute output logits.
+            data: The key used to get the unlabeled input data.
+            backbone: The key used to get the backbone for feature extraction.
+            head: The prediction module used to compute output logits.
         """
         super().__init__()
-        self.input_data = input_data
-        self.input_backbone = input_backbone
-        self.predict_head = predict_head
+        self.data = data
+        self.backbone = backbone
+        self.head = head
 
     def forward(
         self,
@@ -159,9 +159,9 @@ class EntropyMinimizationLossHead(LossHead):
         logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
-        inputs, _ = data[self.input_data]
-        feats = backbones[self.input_backbone](inputs)
-        logits = heads[self.predict_head](feats)
+        inputs, _ = data[self.data]
+        feats = backbones[self.backbone](inputs)
+        logits = heads[self.head](feats)
         loss_u = -F.softmax(logits, dim=-1) * F.log_softmax(logits, dim=-1)
 
         if logger_wrapper:
@@ -177,9 +177,9 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
 
     def __init__(
         self,
-        input_data: str,
-        input_backbone: str = "supervised_backbone",
-        predict_head: str = "supervised_head",
+        data: str,
+        backbone: str = "supervised_backbone",
+        head: str = "supervised_head",
         loss_fn: str = "mse",
     ):
         """
@@ -190,17 +190,12 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
             predict_head: The prediction module used to compute output logits.
             loss_fn: The loss function to compute the consistency between two views.
         """
-        super(ConsistencyLossHead, self).__init__(input_data)
-        if loss_fn == "mse":
-            self.loss_fn = softmax_mse_loss
-        elif loss_fn == "kl_div":
-            self.loss_fn = kl_div_loss
-        else:
-            raise ValueError(
-                loss_fn,
-                "is not a supported consistency loss function. "
-                "Choose between `mse` or `kl_div`. Default `mse`.",
-            )
+        super().__init__(data=data, backbone=backbone, head=head)
+        assert loss_fn in (
+            "mse",
+            "kl_div",
+        ), f"invalid consistency loss function {loss_fn}"
+        self.loss_fn = get_loss_fn(loss_fn)
 
     def forward(
         self,
@@ -212,11 +207,11 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
-        (view1, view2), _ = data[self.input_data]
-        feats1 = backbones[self.input_backbone](view1)
-        feats2 = backbones[self.input_backbone](view2)
-        logits1 = heads[self.predict_head](feats1)
-        logits2 = heads[self.predict_head](feats2)
+        (view1, view2), _ = data[self.data]
+        feats1 = backbones[self.backbone](view1)
+        feats2 = backbones[self.backbone](view2)
+        logits1 = heads[self.head](feats1)
+        logits2 = heads[self.head](feats2)
         loss_u = self.loss_fn(logits1, logits2)
 
         if logger_wrapper:
@@ -226,14 +221,14 @@ class ConsistencyLossHead(EntropyMinimizationLossHead):
         return loss_u
 
 
-class EMAConsistencyLossHead(ConsistencyLossHead):
+class EMAConsistencyLossHead(LossHead):
     """The EMA consistency loss head following Mean Teacher.
     https://arxiv.org/abs/1703.01780
     """
 
     def __init__(
         self,
-        input_data: str,
+        data: str,
         student_backbone: str = "supervised_backbone",
         teacher_backbone: str = "supervised_backbone_ema",
         student_head: str = "supervised_head",
@@ -250,11 +245,17 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
             teacher_head: The teacher module used to compute output logits.
             loss_fn: The loss function to compute the consistency between two views.
         """
-        super(EMAConsistencyLossHead, self).__init__(input_data, loss_fn=loss_fn)
+        super().__init__()
+        assert loss_fn in (
+            "mse",
+            "kl_div",
+        ), f"invalid consistency loss function {loss_fn}"
+        self.data = data
         self.student_backbone = student_backbone
         self.teacher_backbone = teacher_backbone
         self.student_head = student_head
         self.teacher_head = teacher_head
+        self.loss_fn = get_loss_fn(loss_fn)
 
     def forward(
         self,
@@ -266,7 +267,7 @@ class EMAConsistencyLossHead(ConsistencyLossHead):
         logger_wrapper: Optional[LoggerWrapper] = None,
         **kwargs,
     ) -> Tensor:
-        (view1, view2), _ = data[self.input_data]
+        (view1, view2), _ = data[self.data]
         student_feats = backbones[self.student_backbone](view1)
         teacher_feats = backbones[self.teacher_backbone](view2)
         student_logits = heads[self.student_head](student_feats)

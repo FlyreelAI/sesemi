@@ -19,7 +19,7 @@ import torchvision.transforms as T
 from omegaconf import ListConfig
 from torchvision import datasets, transforms
 
-from .collation import RotationTransformer, JigsawTransformer
+from .collation import RotationCollator, JigsawCollator
 from .utils import validate_paths
 
 
@@ -93,7 +93,7 @@ class GaussianBlur:
         return self.__class__.__name__ + "(s={})".format(self.sigma_range)
 
 
-def train_transforms(
+def TrainTransform(
     random_resized_crop: bool = True,
     resize: int = 256,
     crop_dim: int = 224,
@@ -217,7 +217,7 @@ class MultiViewTransform:
         return tuple(views)
 
 
-def center_crop_transforms(
+def CenterCropTransform(
     resize: int = 256,
     crop_dim: int = 224,
     interpolation: str = "bilinear",
@@ -247,7 +247,7 @@ def center_crop_transforms(
     )
 
 
-def multi_crop_transforms(
+def MultiCropTransform(
     resize: int = 256,
     crop_dim: int = 224,
     num_crop: int = 5,
@@ -289,7 +289,7 @@ def multi_crop_transforms(
     )
 
 
-def cifar_train_transforms() -> Callable:
+def CIFARTrainTransform() -> Callable:
     """Returns the standard CIFAR training transforms."""
     return T.Compose(
         [
@@ -303,7 +303,7 @@ def cifar_train_transforms() -> Callable:
     )
 
 
-def cifar_test_transforms() -> Callable:
+def CIFARTestTransform() -> Callable:
     """Returns the standard CIFAR test-time transform."""
     return T.Compose(
         [
@@ -370,15 +370,15 @@ if __name__ == "__main__":
         else ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
     )
 
-    transformations = train_transforms(
+    transformations = TrainTransform(
         gamma_range=gamma_range, p_hflip=p_hflip, norms=(mean, std), p_erase=p_erase
     )
     dataset = datasets.ImageFolder(args.img_dir, transformations)
     print("transformations:\n", transformations)
     print("dataset size: {}".format(len(dataset)))
     to_pil_image = transforms.ToPILImage()
-    rotate = RotationTransformer()
-    jigsaw = JigsawTransformer(p_grayscale=0.5)
+    rotate = RotationCollator()
+    jigsaw = JigsawCollator(p_grayscale=0.5)
     for i in trange(args.head):
         fpath = dataset.imgs[i][0]
         fname = fpath.split("/")[-1]

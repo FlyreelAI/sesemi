@@ -6,8 +6,8 @@ learner:
         jigsaw_prediction:
           head:
             _target_: sesemi.models.heads.loss.JigsawPredictionLossHead
-            input_data: unsupervised
-            input_backbone: supervised_backbone
+            data: unsupervised
+            backbone: supervised_backbone
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 1.0
@@ -16,9 +16,9 @@ learner:
         entropy_minimization:
           head:
             _target_: sesemi.models.heads.loss.EntropyMinimizationLossHead
-            input_data: unsupervised
-            input_backbone: supervised_backbone
-            predict_head: supervised_head
+            data: unsupervised
+            backbone: supervised_backbone
+            head: supervised_head
           scheduler:
             _target_: sesemi.schedulers.weight.SigmoidRampupScheduler
             weight: 1.0

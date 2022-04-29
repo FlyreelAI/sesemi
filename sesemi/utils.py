@@ -238,3 +238,11 @@ def copy_and_detach(module: Optional[nn.Module]) -> Optional[nn.Module]:
     for param in new_module.parameters():
         param.detach_()
     return new_module
+
+
+def freeze_module(module: torch.nn.Module):
+    """Freezes the module."""
+    for m in module.modules():
+        m.eval()
+        for param in m.parameters():
+            param.requires_grad = False

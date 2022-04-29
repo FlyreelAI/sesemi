@@ -11,7 +11,7 @@ data:
         name: cifar10
         subset: train
         image_transform:
-          _target_: sesemi.transforms.cifar_train_transforms
+          _target_: sesemi.transforms.CIFARTrainTransform
       shuffle: True
       pin_memory: True
       num_workers: 4
@@ -21,7 +21,7 @@ data:
       name: cifar10
       subset: test
       image_transform:
-        _target_: sesemi.transforms.cifar_test_transforms
+        _target_: sesemi.transforms.CIFARTestTransform
     shuffle: False
     pin_memory: True
     num_workers: 4

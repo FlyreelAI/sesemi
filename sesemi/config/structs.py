@@ -63,8 +63,8 @@ class DataLoaderConfig:
     Attributes:
         dataset: The dataset configuration.
         batch_size: An optional batch size to use for a PyTorch data loader. Cannot be set with
-            `batch_size_per_gpu`.
-        batch_size_per_gpu: An optional batch size per GPU to use. Cannot be set with `batch_size`.
+            `batch_size_per_device`.
+        batch_size_per_device: An optional batch size per device to use. Cannot be set with `batch_size`.
         shuffle: Whether to shuffle the dataset at each epoch.
         sampler: An optional sampler configuration.
         batch_sampler: An optional batch sampler configuration.
@@ -74,6 +74,9 @@ class DataLoaderConfig:
         drop_last: Whether to drop the last unevenly sized batch.
         timeout: The timeout to use get data batches from workers.
         worker_init_fn: An optional callable that is invoked for each worker on initialization.
+        repeat: The number of times to repeat the dataset on iteration.
+        prefetch_factor: The number of samples to prefetch per worker.
+        persistent_workers: Whether or not to persist workers after iterating through a dataset.
 
     References:
         * https://pytorch.org/docs/1.6.0/data.html?highlight=dataloader#torch.utils.data.DataLoader
@@ -81,7 +84,7 @@ class DataLoaderConfig:
 
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: Optional[int] = None
-    batch_size_per_gpu: Optional[int] = None
+    batch_size_per_device: Optional[int] = None
     shuffle: bool = False
     sampler: Optional[Any] = None
     batch_sampler: Optional[Any] = None
@@ -92,6 +95,8 @@ class DataLoaderConfig:
     timeout: float = 0
     worker_init_fn: Optional[Any] = None
     repeat: Optional[int] = None
+    prefetch_factor: Optional[int] = 2
+    persistent_workers: Optional[bool] = False
     _target_: str = "sesemi.RepeatableDataLoader"
 
 
@@ -148,8 +153,10 @@ class RunConfig:
             integer IDs, a comma-separated list of GPU IDs, or None to train on the CPU. Setting
             this to -1 uses all GPUs and setting it to 0 also uses the CPU.
         num_nodes: The number of nodes to use during training (defaults to 1).
-        accelerator: Supports either "dp" or "ddp" (the default).
-        batch_size_per_gpu: An optional default batch size per GPU to use with all data loaders.
+        strategy: Supports either "dp" or "ddp" (the default).
+        accelerator: The hardware accelerator to use.
+        devices: The number of accelerators to use.
+        batch_size_per_device: An optional default batch size per device to use with all data loaders.
         data_root: The directory to use as the parent of relative dataset root directories
             (see `DatasetConfig`).
         id: The identifier to use for the run.
@@ -162,10 +169,11 @@ class RunConfig:
     seed: Optional[int] = None
     num_epochs: Optional[int] = None
     num_iterations: Optional[int] = None
-    gpus: Any = -1
+    strategy: Optional[str] = None
+    accelerator: str = "gpu"
+    devices: Optional[int] = None
     num_nodes: int = 1
-    accelerator: Optional[str] = None
-    batch_size_per_gpu: Optional[int] = None
+    batch_size_per_device: Optional[int] = None
     data_root: str = "./data"
     id: str = "default"
     dir: str = "./runs"
@@ -232,24 +240,7 @@ class LossHeadConfig:
         scale_factor: The loss scale factor.
     """
 
-    head: Any
-    scheduler: Any = None
-    reduction: str = "mean"
-    scale_factor: float = 1.0
-
-
-@dataclass
-class LossCallableConfig:
-    """A callable loss configuration.
-
-    Attributes:
-        callable: An callable configuration that can be instantiated.
-        scheduler: An optional learning rate scheduler that can be instantiated.
-        reduction: The loss reduction method to use (e.g. "mean" or "sum").
-        scale_factor: The loss scale factor.
-    """
-
-    callable: Any = MISSING
+    head: Any = MISSING
     scheduler: Any = None
     reduction: str = "mean"
     scale_factor: float = 1.0
@@ -296,14 +287,14 @@ class ClassifierModelConfig:
     Attributes:
         backbone: A backbone config that can be instantiated.
         head: A head config that can be instantiated.
-        loss: An optional callable loss config.
+        loss: An optional supervised loss head config.
         regularization_loss_heads: An optional dictionary of loss head configs.
         ema: An optional config for the ema decay coefficient.
     """
 
     backbone: Any = MISSING
     head: Any = MISSING
-    loss: Optional[LossCallableConfig] = LossCallableConfig()
+    loss: Optional[LossHeadConfig] = LossHeadConfig()
     regularization_loss_heads: Optional[Dict[str, LossHeadConfig]] = None
     ema: Optional[EMAConfig] = None
 
@@ -321,7 +312,7 @@ class ClassifierLoggerConfig(LoggerConfig):
         log_gradients: Whether to log gradients.
     """
 
-    log_gradients: bool = True
+    log_gradients: bool = False
 
 
 @dataclass
@@ -368,8 +359,6 @@ class SESEMIPseudoDatasetConfig:
             and returns a list of augmented versions of that image.
         postaugmentation_transform: A transform to apply after test-time
             augmentations and which should return a tensor.
-        image_getter: The function to extract the source image from
-            an example in the dataset.
         gpus: Either an integer specifying the number of GPUs to use, a list of
             GPU integer IDs, a comma-separated list of GPU IDs, or None to
             train on the CPU. Setting this to -1 uses all GPUs and setting it
@@ -388,7 +377,6 @@ class SESEMIPseudoDatasetConfig:
     preprocessing_transform: Any = None
     test_time_augmentation: Any = None
     postaugmentation_transform: Any = None
-    image_getter: Any = None
     gpus: Any = -1
     batch_size: int = 16
     num_workers: int = 6
@@ -398,31 +386,40 @@ class SESEMIPseudoDatasetConfig:
 
 @dataclass
 class SESEMIInferenceConfig:
-    """The inference operation config.
+    """The inference config.
 
     Attributes:
-        checkpoint_path: The path to the saved checkpoint.
-        no_cuda: Whether to disable CUDA.
-        data_dir: Path to test dataset with one or more subdirs containing images.
-        batch_size: Mini-batch size.
-        workers: Number of data loading workers.
-        oversample: Whether to oversample.
-        ncrops: Number of crops to oversample.
-        topk: Return topk predictions.
-        resize: Resize smaller edge to this resolution while maintaining
-            aspect ratio.
-        crop_dim: Dimension for center or multi cropping.
-        outfile: File to write predictions to.
+        checkpoint_path: The path to the checkpoint to load.
+        seed: The random seed used on initialization.
+        output_dir: The directory to save the pseudo-labeled dataset.
+        data_dir: The dataset directory containing image files potentially nested.
+        preprocessing_transform: The preprocessing transform.
+        test_time_augmentation: The test-time augmentation that takes an image
+            and returns a list of augmented versions of that image.
+        postaugmentation_transform: A transform to apply after test-time
+            augmentations and which should return a tensor.
+        gpus: Either an integer specifying the number of GPUs to use, a list of
+            GPU integer IDs, a comma-separated list of GPU IDs, or None to
+            train on the CPU. Setting this to -1 uses all GPUs and setting it
+            to 0 also uses the CPU.
+        batch_size: The data loading and inference batch size.
+        num_workers: The number of workers to use for data loaders.
+        symlink_images: Whether to use symlinks for images in the
+            pseudo-labeled dataset rather than copying the image.
+        use_ema: Whether to use the EMA weights if available.
+        export_predictions: Whether to export the detailed predictions including
+            logits and probabilities.
     """
 
     checkpoint_path: str = MISSING
-    no_cuda: bool = False
+    seed: int = 42
+    output_dir: str = MISSING
     data_dir: str = MISSING
+    preprocessing_transform: Any = None
+    test_time_augmentation: Any = None
+    postaugmentation_transform: Any = None
+    gpus: Any = -1
     batch_size: int = 16
-    workers: int = 6
-    oversample: bool = False
-    ncrops: int = 5
-    topk: int = 1
-    resize: int = 256
-    crop_dim: int = 224
-    outfile: str = MISSING
+    num_workers: int = 6
+    use_ema: bool = True
+    export_predictions: bool = True

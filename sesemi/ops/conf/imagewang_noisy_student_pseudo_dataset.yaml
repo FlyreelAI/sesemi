@@ -1,7 +1,7 @@
 defaults:
   - /ops/pseudo_dataset
 preprocessing_transform:
-  _target_: sesemi.transforms.center_crop_transforms
+  _target_: sesemi.transforms.CenterCropTransform
   resize: 256
   crop_dim: 224
 dataset:

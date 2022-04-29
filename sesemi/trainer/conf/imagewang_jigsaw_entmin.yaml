@@ -7,7 +7,7 @@ defaults:
   - /base/entropy_minimization/model
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 6
+  devices: 2
+  batch_size_per_device: 6
   num_epochs: 100
   id: imagewang_jigpred

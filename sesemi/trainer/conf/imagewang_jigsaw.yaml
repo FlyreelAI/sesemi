@@ -6,7 +6,7 @@ defaults:
   - /base/jigsaw_prediction/data/imagewang
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 8
+  devices: 2
+  batch_size_per_device: 8
   num_epochs: 100
   id: imagewang_jigpred

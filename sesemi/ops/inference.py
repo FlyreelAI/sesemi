@@ -1,23 +1,41 @@
 #
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
-import os
-import numpy as np
-from tqdm import trange
-import logging
-
-import torch
+"""An inference operation."""
 import hydra
-from torchvision import datasets
+import torch
+import logging
+import pytorch_lightning as pl
+import math
+import os
+import h5py
+import numpy as np
+import pandas as pd
+import multiprocessing as mp
+
+from torch import Tensor
+from torch.utils.data import DataLoader, Subset
+
+from hydra.utils import instantiate
 from hydra.core.config_store import ConfigStore
+from hydra.utils import to_absolute_path
+from hydra.core.hydra_config import HydraConfig
+from hydra.core.utils import configure_log, setup_globals
 
-from ..config.structs import SESEMIInferenceConfig
-from ..learners import Classifier
-from ..utils import validate_paths
-from ..transforms import center_crop_transforms, multi_crop_transforms
+from typing import Any, ChainMap, Dict, List
 
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, wait
+
+from sesemi.config.structs import SESEMIInferenceConfig
+from sesemi.learners import Classifier
+from sesemi.collation import TestTimeAugmentationCollator
+from sesemi.datasets.image_file import ImageFile
+from sesemi.tta import apply_model_to_test_time_augmentations
+from sesemi.utils import compute_gpu_device_names, compute_num_digits
 
 logger = logging.getLogger(__name__)
+
 
 config_store = ConfigStore.instance()
 config_store.store(
@@ -28,93 +46,158 @@ config_store.store(
 )
 
 
-class Predictor:
-    def __init__(self, model_path, classes, config):
-        self.config = config
-        self.model_path = model_path
-        self.classes = np.array(classes)
-        self.device = torch.device(
-            "cpu" if config.no_cuda or not torch.cuda.is_available() else "cuda"
-        )
-        self._init_model()
+def task(
+    config: SESEMIInferenceConfig,
+    hydra_config: HydraConfig,
+    task_id: int,
+    num_tasks: int,
+    device: str,
+) -> Dict[str, Dict[str, Any]]:
+    """A task to generate a subset of the pseudo-labeled dataset.
 
-    def _init_model(self):
-        self.model = Classifier.load_from_checkpoint(
-            self.model_path, map_location=self.device
-        )
-        assert len(self.classes) == self.model.hparams.num_classes
-        logger.info(f"=> Model checkpoint loaded from {self.model_path}")
-        self.model = torch.nn.DataParallel(self.model).to(self.device)
-        self.model.eval()
+    Args:
+        config: The operation's configuration.
+        hydra_config: The global hydra configuration.
+        task_id: The assigned task id from 0 to num_tasks-1.
+        num_tasks: The number of tasks running.
+        device: The device to use for inference.
 
-    def predict(self, x, ncrops, topk=1):
-        with torch.no_grad():
-            x = x.to(self.device)
-            batch_size = x.size(0)
-            w, h, c = x.shape[-1:-4:-1]
-            outputs = self.model(x.view(-1, c, h, w))  # fuse batch size and ncrops
-            outputs = torch.softmax(outputs, dim=-1)
-            outputs = outputs.view(batch_size, ncrops, -1).mean(1)  # avg over crops
-            scores, indices = torch.topk(outputs, k=topk, largest=True, sorted=True)
-            scores = scores.cpu().numpy()
-            indices = indices.cpu().numpy()
-            labels = self.classes[indices]
-            return (labels, scores)
+    Returns:
+        A dictionary of detailed metadata for each image by its assigned
+        string identifier.
+    """
+    pl.seed_everything(config.seed)
+
+    setup_globals()
+    configure_log(hydra_config.hydra.job_logging, hydra_config.hydra.verbose)
+    HydraConfig.instance().set_config(hydra_config)
+
+    learner: Classifier = Classifier.load_from_checkpoint(
+        to_absolute_path(config.checkpoint_path), map_location=device
+    )
+    learner.eval()
+    learner.to(device)
+
+    dataset = ImageFile(to_absolute_path(config.data_dir))
+
+    collator = TestTimeAugmentationCollator(
+        instantiate(config.preprocessing_transform),
+        instantiate(config.test_time_augmentation),
+        instantiate(config.postaugmentation_transform),
+    )
+
+    size = len(dataset)
+    items_per_worker = math.ceil(size / num_tasks)
+    start = items_per_worker * task_id
+    end = min(items_per_worker * (task_id + 1), size)
+    subset = Subset(dataset, list(range(start, end)))
+
+    dataloader = DataLoader(
+        subset,
+        batch_size=config.batch_size,
+        shuffle=False,
+        num_workers=config.num_workers,
+        batch_sampler=None,
+        collate_fn=collator,
+    )
+
+    output_dir = to_absolute_path(config.output_dir)
+    predictions_dir = os.path.join(output_dir, "predictions")
+
+    num_samples = len(dataset)
+    num_digits = compute_num_digits(num_samples)
+
+    if learner.has_ema and config.use_ema:
+        model_forward = learner.forward_ema
+    else:
+        model_forward = learner.forward
+
+    details: Dict[str, Dict[str, Any]] = {}
+    relative_index = 0
+    with torch.no_grad():
+        iterable = tqdm(dataloader) if task_id == 0 else dataloader
+        for i, (images, data_tensors) in enumerate(iterable):
+            logits = apply_model_to_test_time_augmentations(
+                model_forward,
+                device,
+                data_tensors,
+                batch_compatible_tensors=True,
+            )
+            probabilities: List[Tensor] = [torch.softmax(l, dim=-1) for l in logits]
+            avg_logits: List[Tensor] = [torch.mean(x, dim=0) for x in logits]
+            avg_probabilities: List[Tensor] = [
+                torch.mean(x, dim=0) for x in probabilities
+            ]
+            for j, (image, logits_, probs) in enumerate(
+                zip(images, avg_logits, avg_probabilities)
+            ):
+                index = start + relative_index + j
+                data_id = str(index).zfill(num_digits)
+
+                src_image_filename = image.info.get("filename")
+
+                logits_np = logits_.detach().cpu().numpy()
+                probs_np = probs.detach().cpu().numpy()
+                if config.export_predictions:
+                    with h5py.File(
+                        os.path.join(predictions_dir, f"{data_id}.h5"), "w"
+                    ) as predictions:
+                        predictions.create_dataset("logits", data=logits_np)
+                        predictions.create_dataset("probabilities", data=probs_np)
+
+                label = int(np.argmax(probs_np))
+                score = float(probs_np[label])
+                details[data_id] = dict(
+                    id=data_id, filename=src_image_filename, label=label, score=score
+                )
+            relative_index += len(images)
+
+    return details
 
 
 @hydra.main(config_path="./conf", config_name="/ops/inference")
-def predict(config: SESEMIInferenceConfig):
-    # Data loading
-    validate_paths([config.data_dir])
-    if config.oversample:
-        ncrops = config.ncrops
-        test_transformations = multi_crop_transforms(
-            config.resize, config.crop_dim, ncrops, interpolation=3
+def inference(config: SESEMIInferenceConfig):
+    """The pseudo dataset generator.
+
+    Args:
+        config: The pseudo dataset generation config.
+    """
+    mp.set_start_method("spawn")
+
+    output_dir = to_absolute_path(config.output_dir)
+    predictions_dir = os.path.join(output_dir, "predictions")
+
+    os.makedirs(output_dir, exist_ok=True)
+    if config.export_predictions:
+        os.makedirs(predictions_dir, exist_ok=False)
+
+    devices = compute_gpu_device_names(config.gpus)
+
+    process_pool = ProcessPoolExecutor(max_workers=len(devices))
+
+    task_futures = []
+    hydra_config = HydraConfig.instance().cfg
+    for task_id, device in enumerate(devices):
+        task_futures.append(
+            process_pool.submit(
+                task,
+                config=config,
+                hydra_config=hydra_config,
+                task_id=task_id,
+                num_tasks=len(devices),
+                device=device,
+            )
         )
-    else:
-        ncrops = 1
-        test_transformations = center_crop_transforms(
-            config.resize, config.crop_dim, interpolation=3
-        )
-    dataset = datasets.ImageFolder(config.data_dir, test_transformations)
-    dataset_loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers=config.workers,
-        pin_memory=True,
-        drop_last=False,
-    )
 
-    classifier = Predictor(config.checkpoint_path, dataset.classes, config)
+    done, not_done = wait(task_futures)
+    if not_done:
+        logger.error(f"Could not run inference successfully on all devices: {not_done}")
+        return
 
-    # Write prediction results to file
-    if os.path.exists(config.outfile):
-        os.remove(config.outfile)
-    with open(config.outfile, "a") as f:
-        header = ",".join(["Id", "Category", "Score"])
-        f.write(header + "\n")
-    index = 0
-
-    dataset_iterator = iter(dataset_loader)
-    for _ in trange(
-        len(dataset_loader),
-        desc=f"Inferencing on {len(dataset.imgs)} files",
-        position=1,
-    ):
-        inputs, _ = next(dataset_iterator)
-        labels, scores = classifier.predict(inputs, ncrops, config.topk)
-        # Write prediction results to file
-        with open(config.outfile, "a") as f:
-            for label, score in zip(labels, scores):
-                img_path = dataset.imgs[index][0]
-                img_id = os.path.splitext(os.path.basename(img_path))[0]
-                label = " ".join(label)
-                score = [f"{s:.6f}" for s in score]
-                score = " ".join(score)
-                f.write(",".join([img_id, label, score]) + "\n")
-                index += 1
+    details = dict(ChainMap(*[x.result() for x in done]))
+    df = pd.DataFrame(details.values(), columns=["id", "filename", "label", "score"])
+    df.to_csv(os.path.join(config.output_dir, "labels.csv"), index=False)
 
 
 if __name__ == "__main__":
-    predict()
+    inference()

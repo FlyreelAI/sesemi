@@ -1,18 +1,74 @@
 #
 # Copyright 2021, Flyreel. All Rights Reserved.
 # =============================================#
+import torch
+
 from torch.utils.data import ConcatDataset, Dataset
 from torchvision.datasets import STL10
 
-from typing import List, Optional, Union
-from .base import register_dataset, ImageTransform
+from typing import Callable, List, Optional, Union, Any, Tuple
+from PIL import Image
+from .base import DatasetRegistry
+
+from sesemi.utils import random_indices
 
 
-@register_dataset
+class _STL10(STL10):
+    """An STL10 dataset that supports random subset sampling."""
+
+    def __init__(
+        self,
+        *args,
+        unlabeled: bool = False,
+        random_subset_size: Optional[int] = None,
+        random_subset_seed: Any = None,
+        **kwargs,
+    ):
+        """
+        Initializes the dataset.
+
+        Args:
+            unlabeled: Whether to drop the supervised targets when yielding examples.
+            random_subset_size: The size of the random subset.
+            random_subset_seed: The seed to use to generate the random subset.
+        """
+        super().__init__(*args, **kwargs)
+        self.unlabeled = unlabeled
+        self.random_subset_size = random_subset_size
+        self.random_subset_seed = random_subset_seed
+        self.random_subset_indices = None
+        self.length = len(self.data)
+        if self.random_subset_size is not None:
+            self.length = self.random_subset_size
+            self.random_subset_indices = random_indices(
+                self.random_subset_size,
+                len(self.data),
+                self.random_subset_seed,
+                labels=self.labels,
+            )
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(
+        self, index: int
+    ) -> Union[Image.Image, Tuple[Image.Image, torch.Tensor]]:
+        if self.random_subset_indices is None:
+            item = super().__getitem__(index)
+        else:
+            item = super().__getitem__(self.random_subset_indices[index])
+
+        if self.unlabeled:
+            return item[0]
+        else:
+            return item
+
+
+@DatasetRegistry
 def stl10(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """An STL10 dataset builder.
@@ -33,7 +89,7 @@ def stl10(
             "unlabeled",
             "train+unlabeled",
         }, f"invalid subset {subset}, only support {{train, test, unlabeled, train+unlabeled}}"
-        return STL10(
+        return _STL10(
             root,
             split=subset,
             download=True,
@@ -55,7 +111,7 @@ def stl10(
             }, f"invalid subset {subset}, only support {{train, test, unlabeled, train+unlabeled}}"
 
         dsts = [
-            STL10(
+            _STL10(
                 root,
                 split=s,
                 download=True,

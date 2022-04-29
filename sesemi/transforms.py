@@ -5,11 +5,10 @@
 import os
 import numpy as np
 
-from PIL import ImageFilter
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 from torch import Tensor
-from PIL import ImageFilter
+from PIL import ImageFilter, Image, ImageDraw
 from typing import Callable, Tuple
 
 import torch
@@ -29,7 +28,7 @@ IMAGENET_CHANNEL_STD = (0.229, 0.224, 0.225)
 CIFAR_CHANNEL_MEAN = (0.4914, 0.4822, 0.4465)
 CIFAR_CHANNEL_STD = (0.2023, 0.1994, 0.2010)
 
-modes_mapping = {
+INTERPOLATION_MODE_BY_NAME = {
     "nearest": TF.InterpolationMode.NEAREST,
     "bilinear": TF.InterpolationMode.BILINEAR,
     "bicubic": TF.InterpolationMode.BICUBIC,
@@ -48,7 +47,7 @@ class GammaCorrection:
         """
         self.gamma_range = gamma_range
 
-    def __call__(self, x: Tensor) -> Tensor:
+    def __call__(self, x: Union[Tensor, Image.Image]) -> Union[Tensor, Image.Image]:
         """Applies random gamma correction to the input image.
 
         Args:
@@ -129,7 +128,7 @@ def TrainTransform(
     Returns:
         A torchvision transform.
     """
-    interpolation = modes_mapping[interpolation]
+    interpolation = INTERPOLATION_MODE_BY_NAME[interpolation]
     augmentations = [
         GammaCorrection(gamma_range),
         transforms.RandomGrayscale(p_grayscale),
@@ -239,52 +238,10 @@ def CenterCropTransform(
     """
     return transforms.Compose(
         [
-            transforms.Resize(resize, modes_mapping[interpolation]),
+            transforms.Resize(resize, INTERPOLATION_MODE_BY_NAME[interpolation]),
             transforms.CenterCrop(crop_dim),
             transforms.ToTensor(),
             transforms.Normalize(*norms),
-        ]
-    )
-
-
-def MultiCropTransform(
-    resize: int = 256,
-    crop_dim: int = 224,
-    num_crop: int = 5,
-    interpolation: str = "bilinear",
-    norms: Tuple[Tuple[float, float, float], Tuple[float, float, float]] = (
-        IMAGENET_CHANNEL_MEAN,
-        IMAGENET_CHANNEL_STD,
-    ),
-) -> Callable:
-    """Builds a multi-crop transform.
-
-    Args:
-        resize: The image size to resize to if random cropping is not applied.
-        crop_dim: The output crop dimension.
-        num_crop: The number of crops to generate.
-        interpolation: The interpolation mode to use when resizing.
-        norms: A tuple of the normalization mean and standard deviation.
-
-    Returns:
-        A torchvision transform.
-    """
-    to_tensor = transforms.ToTensor()
-    normalize = transforms.Normalize(*norms)
-    Lambda = transforms.Lambda
-    if num_crop == 5:
-        multi_crop = transforms.FiveCrop
-    elif num_crop == 10:
-        multi_crop = transforms.TenCrop
-    else:
-        raise NotImplementedError("Number of crops should be integer of 5 or 10")
-
-    return transforms.Compose(
-        [
-            transforms.Resize(resize, modes_mapping[interpolation]),
-            multi_crop(crop_dim),  # this is a list of PIL Images
-            Lambda(lambda crops: torch.stack([to_tensor(crop) for crop in crops])),
-            Lambda(lambda crops: torch.stack([normalize(crop) for crop in crops])),
         ]
     )
 
@@ -311,6 +268,25 @@ def CIFARTestTransform() -> Callable:
             T.Normalize(CIFAR_CHANNEL_MEAN, CIFAR_CHANNEL_STD),
         ]
     )
+
+
+class AlbumentationTransform:
+    def __init__(self, transform: Callable):
+        self.transform = transform
+
+    def __call__(self, image: Callable) -> Union[Image.Image, torch.Tensor, np.ndarray]:
+        if isinstance(image, Image.Image):
+            return Image.fromarray(self.transform(image=np.array(image))["image"])
+        elif isinstance(image, torch.Tensor):
+            return torch.tensor(
+                self.transform(image=image.detach().cpu().numpy())["image"],
+                dtype=image.dtype,
+                device=image.device,
+            )
+        elif isinstance(image, np.ndarray):
+            return self.transform(image=image)["image"]
+        else:
+            raise ValueError(f"unsupported data type {type(image)}")
 
 
 if __name__ == "__main__":

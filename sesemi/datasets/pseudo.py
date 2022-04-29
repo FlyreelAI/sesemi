@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 from typing import List, Optional, Union, Callable
-from .base import register_dataset, ImageTransform
+from .base import DatasetRegistry
 
 
 class PseudoDataset(Dataset):
@@ -65,11 +65,11 @@ class PseudoDataset(Dataset):
         return image, target
 
 
-@register_dataset
+@DatasetRegistry
 def pseudo(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """An image folder dataset builder.

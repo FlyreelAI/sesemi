@@ -12,4 +12,4 @@ from . import (
     pseudo,
     stl10,
 )
-from .base import register_dataset, dataset
+from .base import DatasetRegistry, dataset

@@ -4,7 +4,7 @@ defaults:
   - /base/supervised/data/stl10
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 128
+  devices: 2
+  batch_size_per_device: 128
   num_epochs: 800
   id: stl10

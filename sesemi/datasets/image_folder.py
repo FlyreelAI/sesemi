@@ -13,7 +13,7 @@ from torchvision.datasets.folder import (
 
 from PIL import Image
 from typing import Any, Callable, List, Optional, Union
-from .base import register_dataset, ImageTransform
+from .base import DatasetRegistry
 
 
 class _ImageFolder(ImageFolder):
@@ -60,11 +60,11 @@ class _ImageFolder(ImageFolder):
         return sample, target
 
 
-@register_dataset
+@DatasetRegistry
 def image_folder(
     root: str,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     **kwargs,
 ) -> Dataset:
     """An image folder dataset builder.

@@ -12,7 +12,7 @@ from sesemi.logger import LoggerWrapper
 
 from ..backbones.base import Backbone
 from ..heads.base import Head
-from .base import LossHead
+from .base import LossHead, LossOutputs
 
 
 class RotationPredictionLossHead(LossHead):
@@ -61,4 +61,4 @@ class RotationPredictionLossHead(LossHead):
         if logger_wrapper:
             logger_wrapper.log_images("rotation_prediction/images", inputs, step=step)
 
-        return loss_u
+        return LossOutputs(losses=loss_u)

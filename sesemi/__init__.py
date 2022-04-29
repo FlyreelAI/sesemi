@@ -8,9 +8,10 @@ import pytorch_lightning as _pl
 
 from .dataloaders import RepeatableDataLoader, _DataLoader as DataLoader
 from .datasets import dataset
-from .models.backbones.timm import PyTorchImageModels
+from .models.backbones.timm import PyTorchImageModel
 from .models.backbones.torchvision import TorchVisionBackbone
 from .schedulers.lr import PolynomialLR
 from .learners import Classifier
 
 import torchvision.transforms as T
+import albumentations.augmentations as A

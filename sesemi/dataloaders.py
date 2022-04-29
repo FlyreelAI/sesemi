@@ -3,6 +3,7 @@
 # =============================================#
 """SESEMI data loaders."""
 import torch
+import torch.utils.data.graph_settings
 
 from typing import (
     Any,
@@ -149,6 +150,8 @@ class RepeatableDataLoader(_DataLoader):
         self.multiprocessing_context = multiprocessing_context
 
         self.repeat = repeat if repeat is not None else 1
+        if self.repeat <= 0:
+            raise ValueError("repeat must be greater than 0")
 
         # Arg-check dataset related before checking samplers because we want to
         # tell users that iterable-style datasets are incompatible with custom

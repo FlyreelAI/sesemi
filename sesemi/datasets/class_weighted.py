@@ -7,8 +7,8 @@ import numpy as np
 from collections import defaultdict
 from torch.utils.data import Dataset, IterableDataset
 
-from typing import List, Optional, Union
-from .base import register_dataset, ImageTransform
+from typing import Callable, List, Optional, Union
+from .base import DatasetRegistry
 
 
 class ClassWeightedDataset(IterableDataset):
@@ -76,12 +76,12 @@ class ClassWeightedDataset(IterableDataset):
             yield self._dataset[dataset_index]
 
 
-@register_dataset
+@DatasetRegistry
 def class_weighted(
     root: str,
     *,
     subset: Optional[Union[str, List[str]]] = None,
-    image_transform: Optional[ImageTransform] = None,
+    image_transform: Optional[Callable] = None,
     dataset: Dataset,
     weights: Optional[List[float]] = None,
     seed: Optional[int] = None,
@@ -101,7 +101,7 @@ def class_weighted(
             distributed setting.
 
     Returns:
-        A class-weighted iterable dataset dataset.
+        A class-weighted iterable dataset.
     """
     assert subset is None, "class-weighted datasets don't support subsets"
     return ClassWeightedDataset(dataset, weights=weights, seed=seed)

@@ -7,33 +7,52 @@ import os
 import errno
 import copy
 import torch
+import math
 import logging
 
 from typing import Any, Dict, Iterable, List, Optional, Union
-from torchvision.datasets import ImageFolder
 
 from omegaconf.base import SCMode
 from omegaconf.omegaconf import OmegaConf
 
-from itertools import combinations
 from torch import nn
-
-from omegaconf import DictConfig
-
 from torch import Tensor
 
-logger = logging.getLogger(__name__)
+from omegaconf import DictConfig
+from collections import defaultdict
+
+from pytorch_lightning.accelerators.registry import AcceleratorRegistry
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 
-def reduce_tensor(tensor: Tensor, reduction: Optional[str] = None) -> Tensor:
+def reduce_tensor(
+    tensor: Tensor, weights: Optional[Tensor] = None, reduction: Optional[str] = None
+) -> Tensor:
     """Reduces a tensor using the given mode.
 
     Args:
+        tensor: The tensor to reduce.
+        weights: Optional weights that should be the same shape as tensor.
         reduction: An optional method to use when reducing the tensor. Can be one of
-            (mean, sum, none).
+            (mean, batchmean, sum, none).
+
+    Returns:
+        A scalar tensor.
     """
-    if reduction == "mean":
-        return torch.mean(tensor)
+    epsilon = torch.tensor(
+        1e-5 if tensor.dtype == torch.float16 else 1e-7,
+        dtype=tensor.dtype,
+        device=tensor.device,
+    )
+    tensor = tensor if weights is None else tensor * weights
+    if reduction == "batchmean":
+        return torch.sum(tensor) / tensor.size(0)
+    elif reduction == "mean":
+        return (
+            torch.mean(tensor)
+            if weights is None
+            else torch.sum(tensor) / torch.maximum(torch.sum(weights), epsilon)
+        )
     elif reduction == "sum":
         return torch.sum(tensor)
     elif reduction is None or reduction == "none":
@@ -42,37 +61,29 @@ def reduce_tensor(tensor: Tensor, reduction: Optional[str] = None) -> Tensor:
         raise ValueError(f"unsupported reduction method {reduction}")
 
 
-def compute_num_gpus(gpus: Union[int, str, List[int]]) -> int:
-    """Computes the number of GPUs being used.
+def compute_num_devices(accelerator: str, devices: Optional[int]) -> int:
+    """Computes the number of devices to use for an accelerator.
 
     Args:
-        gpus: Either an integer specifying the number of GPUs to use, a list of GPU
-            integer IDs, a comma-separated list of GPU IDs, or None to train on the CPU. Setting
-            this to -1 uses all GPUs and setting it to 0 also uses the CPU.
+        accelerator: The accelerator reference string.
+        devices: The number of devices to use of None for auto selection.
 
     Returns:
-        The number of GPUs that will be used.
+        The number of devices to use.
     """
-    num_gpus = 0
-    if gpus is not None:
-        num_available_gpus = torch.cuda.device_count()
-        if isinstance(gpus, int):
-            num_gpus = gpus if gpus >= 0 else num_available_gpus
-        elif isinstance(gpus, str):
-            gpu_ids = [x.strip() for x in gpus.split(",")]
-            if len(gpu_ids) > 1:
-                num_gpus = len(gpu_ids)
-            elif len(gpu_ids) == 1:
-                if int(gpu_ids[0]) < 0:
-                    num_gpus = num_available_gpus
-                else:
-                    num_gpus = 1
-        else:
-            num_gpus = len(gpus)
-    return num_gpus
+    accelerator_cls = AcceleratorRegistry.get(accelerator)
+    if devices is None:
+        return accelerator_cls.auto_device_count()
+
+    accelerator_devices = accelerator_cls.parse_devices(devices)
+    if isinstance(accelerator_devices, (list, tuple)):
+        return len(accelerator_devices)
+    else:
+        assert isinstance(accelerator_devices, int)
+        return accelerator_devices
 
 
-def compute_device_names(gpus: Union[int, str, List[int]]) -> List[str]:
+def compute_gpu_device_names(gpus: Union[int, str, List[int]]) -> List[str]:
     """Computes the device names for the given GPU config.
 
     Args:
@@ -86,7 +97,13 @@ def compute_device_names(gpus: Union[int, str, List[int]]) -> List[str]:
     if gpus is not None:
         num_available_gpus = torch.cuda.device_count()
         if isinstance(gpus, int):
-            num_gpus = gpus if gpus >= 0 else num_available_gpus
+            if gpus == 0:
+                return ["cpu"]
+
+            num_gpus = gpus if gpus > 0 else num_available_gpus
+            assert (
+                num_gpus <= num_available_gpus
+            ), f"requested {num_gpus} but only {num_available_gpus} available"
             return [f"cuda:{i}" for i in range(num_gpus)]
         elif isinstance(gpus, str):
             gpu_ids = [x.strip() for x in gpus.split(",")]
@@ -122,22 +139,6 @@ def sigmoid_rampup(curr_iter: int, rampup_iters: int) -> float:
         return float(np.exp(-5.0 * phase * phase))
 
 
-def assert_same_classes(datasets: List[ImageFolder]):
-    """Checks that the image folder datasets have the same classes.
-
-    Args:
-        datasets: The datasets to ensure have the same classes.
-    """
-    if len(datasets) == 1:
-        return True
-    same_classes = [
-        x.class_to_idx == y.class_to_idx for x, y in combinations(datasets, r=2)
-    ]
-    assert all(
-        same_classes
-    ), f"The following have mismatched subdirectory names. Check the `Root location`.\n{datasets}"
-
-
 def validate_paths(paths: List[str]):
     """Validates that the paths exist.
 
@@ -156,8 +157,8 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str, strict: bool = False
         model: The classifier.
         checkpoint_path: The path to the classifier's checkpoint.
     """
-    logger.info(f"Loading {checkpoint_path}")
-    logger.info("")
+    rank_zero_info(f"Loading {checkpoint_path}")
+    rank_zero_info("")
     with open(checkpoint_path, "rb") as f:
         checkpoint = torch.load(f)
 
@@ -176,16 +177,16 @@ def load_checkpoint(model: nn.Module, checkpoint_path: str, strict: bool = False
 
         incompatible_keys = model.load_state_dict(pretrained_state_dict, strict=False)
         if incompatible_keys.missing_keys:
-            logger.info("missing keys:")
-            logger.info("---")
-            logger.info("\n".join(incompatible_keys.missing_keys))
-            logger.info("")
+            rank_zero_info("missing keys:")
+            rank_zero_info("---")
+            rank_zero_info("\n".join(incompatible_keys.missing_keys))
+            rank_zero_info("")
 
         if incompatible_keys.unexpected_keys:
-            logger.info("unexpected keys:")
-            logger.info("---")
-            logger.info("\n".join(incompatible_keys.unexpected_keys))
-            logger.info("")
+            rank_zero_info("unexpected keys:")
+            rank_zero_info("---")
+            rank_zero_info("\n".join(incompatible_keys.unexpected_keys))
+            rank_zero_info("")
     else:
         model.load_state_dict(pretrained_state_dict, strict=True)
 
@@ -263,3 +264,96 @@ def get_distributed_rank() -> Optional[int]:
         return torch.distributed.get_rank()
     else:
         return None
+
+
+def compute_num_digits(x: int) -> int:
+    """Computes the number of digits in a non-negative number base 10."""
+    assert x >= 0, "input must be non-negative"
+    if x == 0:
+        return 1
+    return int(math.floor(math.log10(x) + 1))
+
+
+def random_indices(
+    n: int, length: int, seed: Any = None, labels: Optional[List[int]] = None
+) -> List[int]:
+    """Samples `n` random indices for a dataset of length `length.
+
+    Args:
+        n: The number of random indices to sample.
+        length: The length of the original dataset.
+        seed: An optional random seed to use.
+        labels: An optional list of labels for each item in the dataset
+            to use for stratification during sampling.
+
+    Returns:
+        A list of sampled random indices.
+    """
+    assert n <= length, (
+        f"number of random indices ({n}) must be less than or "
+        f"equal to the size of the total length ({length})"
+    )
+
+    rs = np.random.RandomState(seed)
+    if labels is not None:
+        assert (
+            len(labels) == length
+        ), "number of labels must match the provided dataset length"
+
+        indices_by_labels = defaultdict(list)
+        for i, l in enumerate(labels):
+            indices_by_labels[int(l)].append(i)
+
+        counts_by_label = {l: len(v) for l, v in indices_by_labels.items()}
+        classes = sorted(list(counts_by_label.keys()))
+        num_classes = len(counts_by_label)
+
+        assert len(labels) >= num_classes
+
+        # Ensure that each class has at least one sample.
+        initial_sample_index_by_label = {
+            l: rs.randint(0, len(indices_by_labels[l])) for l in indices_by_labels
+        }
+
+        # Use c-1 to account for the initial sample.
+        num_samples_per_label = {
+            l: int(((c - 1) / length) * (n - num_classes))
+            for l, c in counts_by_label.items()
+        }
+
+        # Compute the remainders from rounding the number of samples to use down.
+        remainder_fraction_per_label = {
+            l: (((c - 1) / length) * (n - num_classes)) - num_samples_per_label[l]
+            for l, c in counts_by_label.items()
+        }
+
+        num_remaining_samples = n - sum(num_samples_per_label.values()) - num_classes
+        num_remainders_per_label = defaultdict(int)
+        if num_remaining_samples > 0:
+            for i in range(num_remaining_samples):
+                label_weights = [
+                    remainder_fraction_per_label[l]
+                    if num_remainders_per_label[l]
+                    <= (counts_by_label[l] - num_samples_per_label[l] - 1)
+                    else 0.0
+                    for l in classes
+                ]
+                weight_normalizer = sum(label_weights)
+                label_weights = [x / weight_normalizer for x in label_weights]
+
+                s = rs.choice(classes, p=label_weights)
+                num_remainders_per_label[s] += 1
+
+        sample_indices_by_label = {}
+        for l, indices in indices_by_labels.items():
+            index = indices.pop(initial_sample_index_by_label[l])
+            sample_indices_by_label[l] = [index] + rs.choice(
+                indices,
+                num_samples_per_label[l] + num_remainders_per_label[l],
+                replace=False,
+            ).tolist()
+
+        return sum(sample_indices_by_label.values(), [])
+    else:
+        indices = rs.choice(length, size=n, replace=False)
+        return indices.tolist()

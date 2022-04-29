@@ -8,9 +8,7 @@ from torch.optim import Optimizer
 
 from torch.optim.lr_scheduler import _LRScheduler
 
-import logging
-
-logger = logging.getLogger(__name__)
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 
 class PolynomialLR(_LRScheduler):
@@ -23,7 +21,7 @@ class PolynomialLR(_LRScheduler):
         lr_pow: float,
         max_iters: int,
         warmup_iters: Optional[int] = None,
-        warmup_epochs: Optional[int] = None,
+        warmup_epochs: Optional[float] = None,
         iters_per_epoch: Optional[int] = None,
         last_epoch: int = -1,
     ):
@@ -47,11 +45,11 @@ class PolynomialLR(_LRScheduler):
             ), "must specify either warmup_iters or warmup_epochs and iters_per_epoch"
 
             self.iters_per_epoch = iters_per_epoch
-            self.warmup_iters = warmup_epochs * iters_per_epoch
+            self.warmup_iters = int(warmup_epochs * iters_per_epoch)
         else:
             self.warmup_iters = warmup_iters
 
-        logger.info(f"Using warmup iterations of {self.warmup_iters}")
+        rank_zero_info(f"Using warmup iterations of {self.warmup_iters}")
 
         self.warmup_lr = warmup_lr
         self.lr_pow = lr_pow

@@ -50,9 +50,7 @@ def _(experiment: SummaryWriter, tag: str, images: Tensor, step: Optional[int] =
 
 
 @singledispatch
-def log_metrics(
-    experiment, tag: str, metrics: Dict[str, float], step: Optional[int] = None
-):
+def log_metrics(experiment, metrics: Dict[str, float], step: Optional[int] = None):
     """Log a set of numeric metrics using the given tag as a prefix.
 
     Metric tags are formatted as "{tag}/{metric}".

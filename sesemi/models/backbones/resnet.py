@@ -4,7 +4,7 @@
 """Specialized residual networks."""
 from typing import Optional
 from sesemi.utils import freeze_module
-from torch import nn
+from torch import Tensor, nn
 
 import torch.nn.functional as F
 
@@ -216,3 +216,177 @@ class CIFARResNet(Backbone):
 
         outputs = self.dropout(features)
         return outputs
+
+
+class WRNBasicBlock(nn.Module):
+    """A Wide-ResNet basic block."""
+
+    def __init__(
+        self, in_channels: int, out_channels: int, stride: int, drop_rate: float = 0.0
+    ):
+        """Initializes the Wide-ResNet basic block.
+
+        Args:
+            in_channels: The input convolutional channels.
+            out_channels: The output convolutional channels.
+            stride: The stride to use for the first block.
+            drop_rate: The drop rate for dropout.
+        """
+        super().__init__()
+        self.preprocessing_layers = nn.Sequential()
+        self.block_layers = nn.Sequential()
+
+        no_use_shortcut = in_channels == out_channels and stride == 1
+        if no_use_shortcut:
+            self.preprocessing_layers.append(nn.BatchNorm2d(in_channels))
+            self.preprocessing_layers.append(nn.ReLU(inplace=True))
+        else:
+            self.block_layers.append(nn.BatchNorm2d(in_channels))
+            self.block_layers.append(nn.ReLU(inplace=True))
+        self.block_layers.append(
+            nn.Conv2d(in_channels, out_channels, 3, stride, 1, bias=False)
+        )
+
+        self.block_layers.append(nn.BatchNorm2d(out_channels))
+        self.block_layers.append(nn.ReLU(inplace=True))
+        self.block_layers.append(nn.Dropout(p=drop_rate))
+        self.block_layers.append(
+            nn.Conv2d(out_channels, out_channels, 3, 1, 1, bias=False)
+        )
+
+        self.shortcut = (
+            nn.Identity()
+            if no_use_shortcut
+            else nn.Conv2d(in_channels, out_channels, 1, stride, 0, bias=False)
+        )
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        x = self.preprocessing_layers(inputs)
+        outputs = self.block_layers(x) + self.shortcut(x)
+        return outputs
+
+
+class WRNBlock(nn.Module):
+    """A Wide-ResNet block."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels,
+        stride: int,
+        num_basic_blocks: int,
+        drop_rate: float = 0.0,
+    ):
+        """Initializes the Wide-ResNet Block.
+
+        Args:
+            in_channels: The input convolutional channels.
+            out_channels: The output convolutional channels.
+            stride: The stride to use for the first block.
+            num_basic_blocks: The number of basic blocks to use.
+            drop_rate: The drop rate for dropout.
+        """
+        super().__init__()
+        self.layers = nn.Sequential()
+        self.layers.append(
+            WRNBasicBlock(in_channels, out_channels, stride, drop_rate=drop_rate)
+        )
+        for _ in range(num_basic_blocks - 1):
+            self.layers.append(
+                WRNBasicBlock(out_channels, out_channels, 1, drop_rate=drop_rate)
+            )
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return self.layers(inputs)
+
+
+class WRN(Backbone):
+    """A Wide-ResNet implementation following:
+
+    @article{Zagoruyko2016WideRN,
+        title={Wide Residual Networks},
+            author={Sergey Zagoruyko and Nikos Komodakis},
+            journal={ArXiv},
+            year={2016},
+            volume={abs/1605.07146}
+    }
+
+    This contains the variants composed of B(3, 3) blocks
+    that were shown to perform best out of those tried in the paper.
+
+    Adapted from the original code:
+    https://github.com/szagoruyko/wide-residual-networks/blob/master/models/wide-resnet.lua
+    """
+
+    def __init__(
+        self, depth: int, k: int, drop_rate: float = 0.0, freeze: bool = False
+    ):
+        """Initializes the Wide-ResNet (WRN).
+
+        Args:
+            depth: The depth of the resnet including a final linear layer. This
+                parameter matches those used in the literature, however, as this is only
+                the backbone, it does not contain the linear layer.
+            k: The widening factor.
+            drop_rate: The drop rate for dropout.
+            freeze: Whether or not to freeze the backbone.
+        """
+        super().__init__()
+        self.layers = nn.Sequential()
+
+        assert ((depth - 4) % 6) == 0, "depth must be decomposable into 6n+4"
+        num_basic_blocks = (depth - 4) // 6
+
+        n_stages = [16, 16 * k, 32 * k, 64 * k]
+
+        # 1 layer
+        self.layers.append(nn.Conv2d(3, n_stages[0], 3, 1, 1, bias=False))
+
+        # num_basic_blocks * 2 + 1 layers (shortcut)
+        self.layers.append(
+            WRNBlock(
+                n_stages[0],
+                n_stages[1],
+                1,
+                num_basic_blocks,
+                drop_rate=drop_rate,
+            )
+        )
+
+        # num_basic_blocks * 2 + 1 layers (shortcut)
+        self.layers.append(
+            WRNBlock(
+                n_stages[1],
+                n_stages[2],
+                2,
+                num_basic_blocks,
+                drop_rate=drop_rate,
+            )
+        )
+
+        # num_basic_blocks * 2 + 1 layers (shortcut)
+        self.layers.append(
+            WRNBlock(
+                n_stages[2],
+                n_stages[3],
+                2,
+                num_basic_blocks,
+                drop_rate=drop_rate,
+            )
+        )
+
+        self.layers.append(nn.AdaptiveAvgPool2d(1))
+
+        # The total sum of layers for the backbone is:
+        #   1 + (num_basic_blocks * 2 + 1) +
+        #       (num_basic_blocks * 2 + 1) +
+        #       (num_basic_blocks * 2 + 1)
+        #   = num_basic_blocks * 6 + 4
+
+        self.out_features = n_stages[3]
+
+        if freeze:
+            freeze_module(self)
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return self.layers(inputs)[..., 0, 0]

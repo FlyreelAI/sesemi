@@ -6,7 +6,7 @@ defaults:
   - /base/entropy_minimization/data/imagewang
 run:
   seed: 42
-  gpus: 2
-  batch_size_per_gpu: 16
+  devices: 2
+  batch_size_per_device: 16
   num_epochs: 100
   id: imagewang_entmin
